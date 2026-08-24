@@ -13,7 +13,7 @@
 | 1 | Multi-Cabang | ✅ | Fondasi: tabel cabang, barang_stok, model, MFC, routes |
 | 2 | Master Barang & Satuan | ✅ | Tambah harga_beli, is_default |
 | 3 | POS Penjualan | 🔄 | Migration + model + transaksi-create + cancel |
-| 4 | Cash Ledger | ⏳ | Tabel kas_mutasi |
+| 4 | Cash Ledger | 🔄 | kas_mutasi + laporan kas + refund cancel |
 | 5 | Pembelian & HPP | ⏳ | Modul pembelian barang |
 | 6 | Jurnal Akuntansi | ⏳ | Akun, jurnal, jurnal_detail |
 | 7 | Piutang, Hutang & Pajak | ⏳ | Piutang, hutang, pelunasan, PPN |
@@ -117,6 +117,40 @@
 - Migration: `create_kas_mutasi_table`
 - UI Laporan Kas (`laporan.kas.list`): filter cabang, per tanggal, saldo akhir
 - Saat transaksi LUNAS tunai: insert `kas_mutasi` MASUK (`bayar`) + KELUAR (`kembali`)
+
+### Tahap 4 — Cash Ledger (2026-08-24)
+
+**Selesai:**
+- 1 migration: `create_kas_mutasi_table`
+- Model `KasMutasi` baru
+- Update `transaksi-create` (insert `kas_mutasi` MASUK/KELUAR saat TUNAI SELESAI)
+- Update `transaksi-edit` cancel (insert `kas_mutasi` refund: KELUAR `bayar` + MASUK `kembali`)
+- MFC Component `kas-list` (`pages::laporan.kas-list`): filter cabang + tanggal, tampil MASUK/KELUAR/saldo_akhir
+- Route: `laporan.kas.list`
+- Permission auto-sync: `laporan.kas.view`, `laporan.kas.export`
+
+**File berubah:**
+- `src/database/migrations/2026_08_24_000009_create_kas_mutasi_table.php` (BARU)
+- `src/app/Models/KasMutasi.php` (BARU)
+- `src/resources/views/pages/transaksi/⚡transaksi-create/transaksi-create.php` (UPDATE)
+- `src/resources/views/pages/transaksi/⚡transaksi-edit/transaksi-edit.php` (UPDATE)
+- `src/resources/views/pages/laporan/⚡kas-list/kas-list.php` (BARU)
+- `src/resources/views/pages/laporan/⚡kas-list/kas-list.blade.php` (BARU)
+- `src/routes/web.php` (UPDATE)
+
+**Migration yang dibuat:**
+- `2026_08_24_000009_create_kas_mutasi_table`
+
+**Known Issues / TODO:**
+- Saldo awal cabang belum ada (butuh seeding awal atau input manual)
+- `saldo_akhir` di `kas_mutasi` masih nullable (belum dihitung kumulatif)
+- Menu sidebar belum ada entry untuk "Laporan Kas"
+
+**Hint untuk tahap berikutnya:**
+- Lanjut **Tahap 5** — Pembelian & HPP: tabel `pembelian` + `pembelian_detail`
+- Migration: `create_pembelian_table`, `create_pembelian_detail_table`
+- UI `pembelian.list / .create / .edit`
+- Status TERIMA → `DB::transaction()`: `stok_mutasi` MASUK + update `barang.harga_beli` & `barang_stok`
 
 ### Tahap 2 — Master Barang & Satuan (2026-08-24)
 

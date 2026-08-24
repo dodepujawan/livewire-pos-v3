@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\Barang;
+use App\Models\BarangStok;
 use App\Models\BarangSatuan;
+use App\Models\KasMutasi;
 use App\Models\StokMutasi;
 use App\Models\Transaksi;
 use App\Models\TransaksiDetail;
@@ -413,6 +415,30 @@ new class extends Component
                             'cabang_id' => $transaksi->cabang_id,
                         ]
                     );
+                }
+
+                if ($transaksi->metode_bayar === 'TUNAI') {
+                    KasMutasi::create([
+                        'cabang_id' => $transaksi->cabang_id,
+                        'tanggal' => $transaksi->tanggal,
+                        'tipe' => 'KELUAR',
+                        'sumber' => 'REFUND',
+                        'transaksi_id' => $transaksi->id,
+                        'jumlah' => $transaksi->bayar,
+                        'keterangan' => 'Refund pembatalan ' . $transaksi->nomor_transaksi,
+                    ]);
+
+                    if ($transaksi->kembali > 0) {
+                        KasMutasi::create([
+                            'cabang_id' => $transaksi->cabang_id,
+                            'tanggal' => $transaksi->tanggal,
+                            'tipe' => 'MASUK',
+                            'sumber' => 'REFUND',
+                            'transaksi_id' => $transaksi->id,
+                            'jumlah' => $transaksi->kembali,
+                            'keterangan' => 'Pengembalian uang ' . $transaksi->nomor_transaksi,
+                        ]);
+                    }
                 }
             });
 

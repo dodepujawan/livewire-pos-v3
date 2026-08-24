@@ -60,6 +60,10 @@ Route::prefix('system')->middleware(['auth', 'permission'])->name('system.')->gr
     Route::livewire('/roles', 'pages::system.role-list')->name('role.list');
 });
 
+Route::prefix('laporan')->middleware(['auth', 'permission'])->group(function () {
+    Route::livewire('/kas', 'pages::laporan.kas-list')->name('laporan.kas.list');
+});
+
 // Hilangkan ini saat awal middleware(['auth', 'permission'])
 Route::prefix('system')->middleware('auth')->name('system.')->group(function () {
     Route::livewire('/', 'pages::system.system-management')->name('list');

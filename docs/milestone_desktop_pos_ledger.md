@@ -72,10 +72,11 @@
 
 **Tujuan:** mutasi uang tercatat rapi per cabang (inti "ledger").
 
-- [ ] Migration: tabel `kas_mutasi` (section 4.7 db doc).
-- [ ] Saat transaksi LUNAS tunai: insert `kas_mutasi` MASUK (`bayar`) + KELUAR (`kembali`).
-- [ ] UI Laporan Kas (`laporan.kas.list`): filter cabang, per tanggal, saldo akhir.
-- [ ] Aksi `laporan.kas.export` → `$additionalPermissions = ['laporan.kas.export']`.
+- [x] Migration: tabel `kas_mutasi` (section 4.7 db doc).
+- [x] Saat transaksi LUNAS tunai: insert `kas_mutasi` MASUK (`bayar`) + KELUAR (`kembali`).
+- [x] UI Laporan Kas (`laporan.kas.list`): filter cabang, per tanggal, saldo akhir.
+- [x] Saat transaksi BATAL (cancel) tunai: insert `kas_mutasi` KELUAR (`bayar`) + MASUK (`kembali`) dengan sumber REFUND.
+- [x] Permission `laporan.kas.view` + `laporan.kas.export` (auto via route naming).
 
 ---
 

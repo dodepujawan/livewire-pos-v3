@@ -4,6 +4,7 @@ use App\Models\Barang;
 use App\Models\BarangSatuan;
 use App\Models\BarangStok;
 use App\Models\Cabang;
+use App\Models\KasMutasi;
 use App\Models\StokMutasi;
 use App\Models\Transaksi;
 use App\Models\TransaksiDetail;
@@ -384,6 +385,30 @@ new class extends Component
                         );
 
                         $barang->decrement('stok', $item['qty_pcs']);
+                    }
+                }
+
+                if ($this->transMetodeBayar === 'TUNAI' && $this->transStatus === 'SELESAI') {
+                    KasMutasi::create([
+                        'cabang_id' => $this->transCabangId,
+                        'tanggal' => $this->transTanggal,
+                        'tipe' => 'MASUK',
+                        'sumber' => 'PENJUALAN',
+                        'transaksi_id' => $transaksi->id,
+                        'jumlah' => $this->transBayar,
+                        'keterangan' => 'Pembayaran tunai ' . $this->transNoInvoice,
+                    ]);
+
+                    if ($this->transKembali > 0) {
+                        KasMutasi::create([
+                            'cabang_id' => $this->transCabangId,
+                            'tanggal' => $this->transTanggal,
+                            'tipe' => 'KELUAR',
+                            'sumber' => 'PENJUALAN',
+                            'transaksi_id' => $transaksi->id,
+                            'jumlah' => $this->transKembali,
+                            'keterangan' => 'Kembalian ' . $this->transNoInvoice,
+                        ]);
                     }
                 }
             });
