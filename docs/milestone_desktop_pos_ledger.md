@@ -1,7 +1,12 @@
+<!-- INI YNG DI COPY KE AI AGENT -->
 # Milestone — Desktop POS & Ledger
 
 > Panduan bertahap membangun aplikasi POS + Ledger dari `docs/database_pos_ledger.md`.
 > Ditulis rapi & sederhana biar siapa pun (termasuk AI lain) bisa lanjutkan.
+>
+> **Dokumentasi terkait:**
+> - `docs/MEGA_PLAN_pos_ledger.md` — Rencana teknis lengkap (migration, model, routes, components, urutan pengerjaan). AI selanjutnya **WAJIB** baca ini dulu sebelum lanjut coding.
+> - `docs/MODULE_milestone_desktop_pos_ledger.md` — Log progress per tahap + hints untuk AI selanjutnya.
 >
 > Aturan wajib (dari `PROJECT_RULES_v2.md` & `hak-akses-ai.md`):
 > - **Migration tidak boleh dibuat/diubah tanpa approval.**
@@ -136,3 +141,5 @@
 
 > Ingat: jangan ubah migration/program inti tanpa approval. Dokumentasi ini
 > adalah acuan bersama, bisa dilanjutkan AI mana pun asal baca `docs/` dulu.
+
+> tambahan tolong catat progress disini docs/MODULE_milestone_desktop_pos_ledger.md kalo perlu kasi sedikit hints untuk selanjutnya sehingga ai lain ada acuan lebih clear

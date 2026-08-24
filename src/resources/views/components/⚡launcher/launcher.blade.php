@@ -1,11 +1,14 @@
 @php
     $palette = [
-        ['accent' => '#D4AF37', 'accentSoft' => 'rgba(212,175,55,0.45)', 'ring' => 'rgba(212,175,55,0.2)', 'border' => 'rgba(212,175,55,0.35)'],  // Gold
-        ['accent' => '#B8C2CC', 'accentSoft' => 'rgba(184,194,204,0.45)', 'ring' => 'rgba(184,194,204,0.25)', 'border' => 'rgba(184,194,204,0.4)'], // Silver
-        ['accent' => '#C08552', 'accentSoft' => 'rgba(192,133,82,0.45)', 'ring' => 'rgba(192,133,82,0.2)', 'border' => 'rgba(192,133,82,0.35)'],   // Copper
+        ['accent' => '#D4AF37', 'accentSoft' => 'rgba(212,175,55,0.45)',  'ring' => 'rgba(212,175,55,0.2)',  'border' => 'rgba(212,175,55,0.35)'],  // Gold
+        ['accent' => '#B8C2CC', 'accentSoft' => 'rgba(184,194,204,0.45)', 'ring' => 'rgba(184,194,204,0.25)', 'border' => 'rgba(184,194,204,0.4)'],  // Silver
+        ['accent' => '#C08552', 'accentSoft' => 'rgba(192,133,82,0.45)',  'ring' => 'rgba(192,133,82,0.2)',  'border' => 'rgba(192,133,82,0.35)'],  // Copper
         ['accent' => '#C98F8A', 'accentSoft' => 'rgba(201,143,138,0.45)', 'ring' => 'rgba(201,143,138,0.2)', 'border' => 'rgba(201,143,138,0.35)'], // Rose Gold
-        ['accent' => '#B08D57', 'accentSoft' => 'rgba(176,141,87,0.45)', 'ring' => 'rgba(176,141,87,0.2)', 'border' => 'rgba(176,141,87,0.35)'],   // Bronze
+        ['accent' => '#B08D57', 'accentSoft' => 'rgba(176,141,87,0.45)',  'ring' => 'rgba(176,141,87,0.2)',  'border' => 'rgba(176,141,87,0.35)'],  // Bronze
         ['accent' => '#7FAF9B', 'accentSoft' => 'rgba(127,175,155,0.45)', 'ring' => 'rgba(127,175,155,0.2)', 'border' => 'rgba(127,175,155,0.35)'], // Jade
+        ['accent' => '#6C8EB0', 'accentSoft' => 'rgba(108,142,176,0.45)', 'ring' => 'rgba(108,142,176,0.2)', 'border' => 'rgba(108,142,176,0.35)'], // Sapphire
+        ['accent' => '#9E85AD', 'accentSoft' => 'rgba(158,133,173,0.45)', 'ring' => 'rgba(158,133,173,0.2)', 'border' => 'rgba(158,133,173,0.35)'], // Amethyst
+        ['accent' => '#B0616B', 'accentSoft' => 'rgba(176,97,107,0.45)',  'ring' => 'rgba(176,97,107,0.2)',  'border' => 'rgba(176,97,107,0.35)'],  // Ruby
     ];
 @endphp
 

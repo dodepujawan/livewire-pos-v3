@@ -13,11 +13,14 @@ new class extends Component
     public string $createBarangKode = '';
     public string $createBarangNama = '';
     public int $createBarangStok = 0;
+    public $createBarangHargaBeli = 0;
+    public int $createDefaultSatuanIndex = 0;
     public array $createBarangSatuanRows = [
         [
             'nama_satuan' => '',
             'konversi' => 1,
             'harga_jual' => 0,
+            'harga_beli' => 0,
         ]
     ];
 
@@ -27,6 +30,7 @@ new class extends Component
             'nama_satuan' => '',
             'konversi' => 1,
             'harga_jual' => 0,
+            'harga_beli' => 0,
         ];
     }
 
@@ -41,6 +45,9 @@ new class extends Component
         $this->createBarangSatuanRows = array_values(
             $this->createBarangSatuanRows
         );
+        if ($this->createDefaultSatuanIndex >= count($this->createBarangSatuanRows)) {
+            $this->createDefaultSatuanIndex = 0;
+        }
     }
 
     public function saveBarang()
@@ -49,24 +56,29 @@ new class extends Component
             'createBarangKode' => 'required|unique:barang,kode_barang',
             'createBarangNama' => 'required|min:3',
             'createBarangStok' => 'required|numeric|min:0',
+            'createBarangHargaBeli' => 'nullable|numeric|min:0',
 
             'createBarangSatuanRows.*.nama_satuan' => 'required',
             'createBarangSatuanRows.*.konversi' => 'required|numeric|min:1',
             'createBarangSatuanRows.*.harga_jual' => 'required|numeric|min:0',
+            'createBarangSatuanRows.*.harga_beli' => 'nullable|numeric|min:0',
         ]);
 
         $barang = Barang::create([
             'kode_barang' => strtoupper($this->createBarangKode),
             'nama_barang' => $this->createBarangNama,
             'stok' => $this->createBarangStok,
+            'harga_beli' => $this->createBarangHargaBeli,
         ]);
 
-        foreach ($this->createBarangSatuanRows as $satuanRow) {
+        foreach ($this->createBarangSatuanRows as $index => $satuanRow) {
             BarangSatuan::create([
                 'barang_id'   => $barang->id,
                 'nama_satuan' => strtoupper($satuanRow['nama_satuan']),
                 'konversi'    => $satuanRow['konversi'],
                 'harga_jual'  => $satuanRow['harga_jual'],
+                'harga_beli'  => $satuanRow['harga_beli'] ?? 0,
+                'is_default'  => ($index === $this->createDefaultSatuanIndex),
             ]);
         }
 
@@ -76,7 +88,7 @@ new class extends Component
         );
 
         return $this->redirect(
-            route('barang-list'),
+            route('master.barang.list'),
             navigate: true
         );
     }
@@ -88,4 +100,3 @@ new class extends Component
             ->title('Tambah Barang');
     }
 };
-

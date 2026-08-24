@@ -56,7 +56,7 @@
                             <td class="px-4 py-3 text-right">{{ number_format($barang->stok) }}</td>
                             <td class="px-4 py-3">
                                 <div class="flex justify-center gap-2">
-                                    <a href="{{ route('barang-edit', $barang->id) }}" wire:navigate class="px-3 py-1 bg-amber-500 text-white rounded">Edit</a>
+                                    <a href="{{ route('master.barang.edit', $barang->id) }}" wire:navigate class="px-3 py-1 bg-amber-500 text-white rounded">Edit</a>
                                     <button type="button" onclick="confirm('Yakin hapus barang ini?') || event.stopImmediatePropagation()" wire:click="deleteBarang({{ $barang->id }})"class="px-3 py-1 bg-red-600 text-white rounded">
                                         Hapus
                                     </button>

@@ -179,7 +179,6 @@ Saat review/analisa:
 
 ## 14. Documentation
 Setiap milestone selesai:
-- Update `docs/CHANGELOG.md`
 - Update `MODULE_*.md` yang relevan.
 
 Project knowledge wajib ada di repository, bukan hanya chat.

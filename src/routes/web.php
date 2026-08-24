@@ -35,6 +35,13 @@ Route::prefix('master')->middleware(['auth', 'permission'])->group(function () {
     Route::livewire('/barang/{id}/edit', 'pages::master.barang-edit')->name('master.barang.edit');
 });
 
+// Cabang
+Route::prefix('master')->middleware(['auth', 'permission'])->group(function () {
+    Route::livewire('/cabang', 'pages::master.cabang-list')->name('master.cabang.list');
+    Route::livewire('/cabang/create', 'pages::master.cabang-create')->name('master.cabang.create');
+    Route::livewire('/cabang/{id}/edit', 'pages::master.cabang-edit')->name('master.cabang.edit');
+});
+
 //
 Route::prefix('transaksi')->middleware(['auth', 'permission'])->group(function () {
     Route::livewire('/', 'pages::transaksi.transaksi-list')->name('transaksi.penjualan.list');

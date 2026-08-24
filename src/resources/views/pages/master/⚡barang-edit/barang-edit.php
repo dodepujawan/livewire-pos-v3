@@ -10,6 +10,8 @@ new class extends Component
     public string $editBarangKode = '';
     public string $editBarangNama = '';
     public int $editBarangStok = 0;
+    public $editBarangHargaBeli = 0;
+    public int $editDefaultSatuanIndex = 0;
     public array $editBarangSatuanRows = [];
     public array $deleteBarangSatuanIds = [];
 
@@ -19,17 +21,22 @@ new class extends Component
         $this->editBarangKode = $barang->kode_barang;
         $this->editBarangNama = $barang->nama_barang;
         $this->editBarangStok = $barang->stok;
-        $this->editBarangSatuanRows =
-        $barang->satuan
-            ->map(function ($satuan) {
-                return [
-                    'id' => $satuan->id,
-                    'nama_satuan' => $satuan->nama_satuan,
-                    'konversi' => $satuan->konversi,
-                    'harga_jual' => (int) $satuan->harga_jual,
-                ];
-            })
-            ->toArray();
+        $this->editBarangHargaBeli = $barang->harga_beli;
+        $satuans = $barang->satuan;
+        $defaultFound = false;
+        $this->editBarangSatuanRows = $satuans->map(function ($satuan, $index) use (&$defaultFound) {
+            if ($satuan->is_default && !$defaultFound) {
+                $this->editDefaultSatuanIndex = $index;
+                $defaultFound = true;
+            }
+            return [
+                'id' => $satuan->id,
+                'nama_satuan' => $satuan->nama_satuan,
+                'konversi' => $satuan->konversi,
+                'harga_jual' => (int) $satuan->harga_jual,
+                'harga_beli' => (int) ($satuan->harga_beli ?? 0),
+            ];
+        })->toArray();
     }
 
     public function addEditBarangSatuanRow(){
@@ -38,6 +45,7 @@ new class extends Component
             'nama_satuan' => '',
             'konversi' => 1,
             'harga_jual' => 0,
+            'harga_beli' => 0,
         ];
     }
 
@@ -51,6 +59,9 @@ new class extends Component
         }
         unset($this->editBarangSatuanRows[$rowIndex]);
         $this->editBarangSatuanRows = array_values($this->editBarangSatuanRows);
+        if ($this->editDefaultSatuanIndex >= count($this->editBarangSatuanRows)) {
+            $this->editDefaultSatuanIndex = 0;
+        }
     }
 
     public function updateBarang(){
@@ -61,6 +72,7 @@ new class extends Component
             'editBarangSatuanRows.*.nama_satuan' => 'required',
             'editBarangSatuanRows.*.konversi' => 'required|numeric|min:1',
             'editBarangSatuanRows.*.harga_jual' => 'required|numeric|min:0',
+            'editBarangSatuanRows.*.harga_beli' => 'nullable|numeric|min:0',
         ]);
 
         $barang = Barang::findOrFail(
@@ -70,18 +82,21 @@ new class extends Component
             'kode_barang' => strtoupper($this->editBarangKode),
             'nama_barang' => $this->editBarangNama,
             'stok' => $this->editBarangStok,
+            'harga_beli' => $this->editBarangHargaBeli,
         ]);
 
         foreach ($this->deleteBarangSatuanIds as $deleteId) {
             BarangSatuan::where('id', $deleteId)->delete();
         }
 
-        foreach ($this->editBarangSatuanRows as $satuanRow) {
+        foreach ($this->editBarangSatuanRows as $index => $satuanRow) {
             if ($satuanRow['id']) {
                 BarangSatuan::findOrFail($satuanRow['id'])->update([
                     'nama_satuan' => strtoupper($satuanRow['nama_satuan']),
                     'konversi'    => $satuanRow['konversi'],
                     'harga_jual'  => $satuanRow['harga_jual'],
+                    'harga_beli'  => $satuanRow['harga_beli'] ?? 0,
+                    'is_default'  => ($index === $this->editDefaultSatuanIndex),
                 ]);
             } else {
                 BarangSatuan::create([
@@ -89,6 +104,8 @@ new class extends Component
                     'nama_satuan' => strtoupper($satuanRow['nama_satuan']),
                     'konversi'    => $satuanRow['konversi'],
                     'harga_jual'  => $satuanRow['harga_jual'],
+                    'harga_beli'  => $satuanRow['harga_beli'] ?? 0,
+                    'is_default'  => ($index === $this->editDefaultSatuanIndex),
                 ]);
             }
         }
@@ -98,7 +115,7 @@ new class extends Component
             'Barang berhasil diperbarui'
         );
         return $this->redirect(
-            route('barang-list'),
+            route('master.barang.list'),
             navigate: true
         );
     }
@@ -109,4 +126,3 @@ new class extends Component
             ->title('Edit Barang');
     }
 };
-

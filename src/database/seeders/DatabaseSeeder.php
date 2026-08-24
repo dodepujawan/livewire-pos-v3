@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $this->call([
+            CabangSeeder::class,
             MenuSeeder::class,
             LauncherGroupSeeder::class,
             SuperAdminSeeder::class,

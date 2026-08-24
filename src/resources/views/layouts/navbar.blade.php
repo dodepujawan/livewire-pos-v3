@@ -22,8 +22,7 @@
 
 <div>
 
-    <nav class="relative overflow-visible border-b border-white/10 px-4 md:px-6 py-3 flex items-center justify-between flex-wrap gap-3
-                bg-gradient-to-r from-[#0f172a] via-[#1a2a6c] to-[#0f172a] shadow-lg shadow-black/20">
+    <nav class="relative overflow-hidden border-b border-white/10 px-4 md:px-6 py-3 flex items-center justify-between flex-wrap gap-3 bg-gradient-to-r from-[#0f172a] via-[#1a2a6c] to-[#0f172a] shadow-lg shadow-black/20">
 
         {{-- subtle glow --}}
         <div class="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-amber-400/10 blur-2xl"></div>
@@ -128,34 +127,37 @@
     </nav>
 </div>
 <script>
-    const LABELS = {
-        master: 'Master', transaksi: 'Transaksi', auth: 'Auth', system: 'System',
-        barang: 'Barang', menu: 'Menu', penjualan: 'Penjualan', register: 'User',
-        role: 'Role', list: 'Daftar', create: 'Tambah', edit: 'Edit',
-        show: 'Detail', dashboard: 'Dashboard',
-    };
+    if (!window.livewireNavbarInitialized) {
+        window.livewireNavbarInitialized = true;
 
-    function renderBreadcrumb() {
-        const routeName = document.querySelector('meta[name="route-name"]')?.content ?? '';
-        const segments = routeName ? routeName.split('.') : [];
-        const wrap = document.getElementById('breadcrumb-items');
-        if (!wrap) return;
+        const LABELS = {
+            master: 'Master', transaksi: 'Transaksi', auth: 'Auth', system: 'System',
+            barang: 'Barang', menu: 'Menu', penjualan: 'Penjualan', register: 'User',
+            role: 'Role', list: 'Daftar', create: 'Tambah', edit: 'Edit',
+            show: 'Detail', dashboard: 'Dashboard',
+        };
 
-        wrap.innerHTML = segments.map((seg, i) => {
-            const label = LABELS[seg] ?? (seg.charAt(0).toUpperCase() + seg.slice(1).replace('-', ' '));
-            const isLast = i === segments.length - 1;
-            return `<span class="text-slate-600 shrink-0">/</span>
-                    <span class="${isLast ? 'text-amber-300 font-medium' : ''} truncate">${label}</span>`;
-        }).join('');
+        function renderBreadcrumb() {
+            const routeName = document.querySelector('meta[name="route-name"]')?.content ?? '';
+            const segments = routeName ? routeName.split('.') : [];
+            const wrap = document.getElementById('breadcrumb-items');
+            if (!wrap) return;
 
-        // mobile title juga ikut update kalau perlu
-        const mobileTitle = document.getElementById('mobile-page-title');
-        if (mobileTitle && segments.length) {
-            const last = segments[segments.length - 1];
-            mobileTitle.textContent = LABELS[last] ?? last;
+            wrap.innerHTML = segments.map((seg, i) => {
+                const label = LABELS[seg] ?? (seg.charAt(0).toUpperCase() + seg.slice(1).replace('-', ' '));
+                const isLast = i === segments.length - 1;
+                return `<span class="text-slate-600 shrink-0">/</span>
+                        <span class="${isLast ? 'text-amber-300 font-medium' : ''} truncate">${label}</span>`;
+            }).join('');
+
+            const mobileTitle = document.getElementById('mobile-page-title');
+            if (mobileTitle && segments.length) {
+                const last = segments[segments.length - 1];
+                mobileTitle.textContent = LABELS[last] ?? last;
+            }
         }
-    }
 
-    document.addEventListener('livewire:navigated', renderBreadcrumb);
-    document.addEventListener('DOMContentLoaded', renderBreadcrumb);
+        document.addEventListener('livewire:navigated', renderBreadcrumb);
+        document.addEventListener('DOMContentLoaded', renderBreadcrumb);
+    }
 </script>

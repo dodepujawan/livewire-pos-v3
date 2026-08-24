@@ -12,7 +12,9 @@ class BarangSatuan extends Model
         'barang_id',
         'nama_satuan',
         'konversi',
-        'harga_jual'
+        'harga_jual',
+        'harga_beli',
+        'is_default',
     ];
 
     public function barang()

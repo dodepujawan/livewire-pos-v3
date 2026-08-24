@@ -7,52 +7,75 @@
     <form wire:submit="saveBarang">
         <div class="bg-white rounded-xl shadow p-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {{-- Kode --}}
                 <div>
                     <label class="block mb-2 text-sm font-medium">Kode Barang</label>
-                    <input type="text" wire:model="createBarangKode" class="w-full border rounded-lg px-3 py-2">
+                    <input type="text" wire:model="createBarangKode" x-on:input="$el.value = $el.value.toUpperCase()" class="w-full border rounded-lg px-3 py-2">
                     @error('createBarangKode')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                     @enderror
                 </div>
 
-                {{-- Nama --}}
                 <div>
                     <label class="block mb-2 text-sm font-medium">Nama Barang</label>
-                    <input type="text" wire:model="createBarangNama" class="w-full border rounded-lg px-3 py-2">
+                    <input type="text" wire:model="createBarangNama" x-on:input="$el.value = $el.value.toUpperCase()" class="w-full border rounded-lg px-3 py-2">
                     @error('createBarangNama')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                     @enderror
                 </div>
             </div>
 
-            <div class="mt-6">
-                <label class="block mb-2 text-sm font-medium">Stok Awal</label>
-                <input type="number" wire:model="createBarangStok" class="w-full md:w-64 border rounded-lg px-3 py-2">
-                @error('createBarangStok')
-                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                @enderror
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                <div>
+                    <label class="block mb-2 text-sm font-medium">Stok Awal</label>
+                    <input type="number" wire:model="createBarangStok" class="w-full border rounded-lg px-3 py-2">
+                    @error('createBarangStok')
+                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <label class="block mb-2 text-sm font-medium">Harga Beli (PCS)</label>
+                    <input type="number" wire:model="createBarangHargaBeli" class="w-full border rounded-lg px-3 py-2" min="0">
+                    @error('createBarangHargaBeli')
+                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
             </div>
         </div>
-        {{-- Quantity --}}
+
         <div class="mt-6">
             <h3 class="font-semibold mb-3">Satuan Barang</h3>
 
             @foreach($createBarangSatuanRows as $rowIndex => $row)
-                <div class="grid grid-cols-12 gap-3 mb-3">
-                    <div class="col-span-4">
-                        <input type="text" wire:model="createBarangSatuanRows.{{ $rowIndex }}.nama_satuan" class="w-full border rounded-lg px-3 py-2" placeholder="Nama Satuan">
-                    </div>
+                <div class="grid grid-cols-12 gap-3 mb-3 items-end">
                     <div class="col-span-3">
-                        <input type="number" wire:model="createBarangSatuanRows.{{ $rowIndex }}.konversi" class="w-full border rounded-lg px-3 py-2" placeholder="Konversi">
-                    </div>
-                    <div class="col-span-3">
-                        <input type="number" wire:model="createBarangSatuanRows.{{ $rowIndex }}.harga_jual" class="w-full border rounded-lg px-3 py-2" placeholder="Harga">
+                        <label class="block text-xs mb-1">Nama Satuan</label>
+                        <input type="text" wire:model="createBarangSatuanRows.{{ $rowIndex }}.nama_satuan" x-on:input="$el.value = $el.value.toUpperCase()" class="w-full border rounded-lg px-3 py-2" placeholder="Nama Satuan">
                     </div>
                     <div class="col-span-2">
-                    <button type="button" wire:click="removeBarangSatuanRow({{ $rowIndex }})" @disabled(count($createBarangSatuanRows) <= 1) class="w-full px-3 py-2 bg-red-600 text-white rounded-lg disabled:opacity-50">Hapus</button>
-
-                </div>
+                        <label class="block text-xs mb-1">Konversi</label>
+                        <input type="number" wire:model="createBarangSatuanRows.{{ $rowIndex }}.konversi" class="w-full border rounded-lg px-3 py-2" placeholder="Konversi">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs mb-1">Harga Jual</label>
+                        <input type="number" wire:model="createBarangSatuanRows.{{ $rowIndex }}.harga_jual" class="w-full border rounded-lg px-3 py-2" placeholder="Harga Jual">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs mb-1">Harga Beli</label>
+                        <input type="number" wire:model="createBarangSatuanRows.{{ $rowIndex }}.harga_beli" class="w-full border rounded-lg px-3 py-2" placeholder="Harga Beli">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs mb-1">Default</label>
+                        <label class="flex items-center justify-center h-[42px] cursor-pointer">
+                            <input type="radio" name="default_satuan" value="{{ $rowIndex }}" wire:model.live="createDefaultSatuanIndex" class="border-gray-300">
+                        </label>
+                    </div>
+                    <div class="col-span-1">
+                        <button type="button" wire:click="removeBarangSatuanRow({{ $rowIndex }})" @disabled(count($createBarangSatuanRows) <= 1) class="w-full px-3 py-2 bg-red-600 text-white rounded-lg disabled:opacity-50">Hapus</button>
+                    </div>
+                    @error('createBarangSatuanRows.{{ $rowIndex }}.nama_satuan')
+                        <p class="col-span-12 text-red-500 text-sm mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
             @endforeach
             <div class="mt-4">
