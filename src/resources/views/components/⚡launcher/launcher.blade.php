@@ -43,7 +43,8 @@
                         {{ $menus->count() }} Modul
                     </p>
                 </div>
-                <div class="ml-auto h-px flex-1 bg-gradient-to-r from-slate-200 via-slate-200 to-transparent"></div>
+                {{-- <div class="ml-auto h-px flex-1 bg-gradient-to-r from-slate-200 via-slate-200 to-transparent"></div> --}}
+                <div class="ml-auto h-px flex-1" style="background: linear-gradient(to right, {{ $color['border'] }}, {{ $color['border'] }} 40%, transparent);"></div>
             </div>
 
             <div class="flex-1 flex flex-col justify-center">

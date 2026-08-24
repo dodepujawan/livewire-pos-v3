@@ -14,7 +14,7 @@
 | 2 | Master Barang & Satuan | ✅ | Tambah harga_beli, is_default |
 | 3 | POS Penjualan | 🔄 | Migration + model + transaksi-create + cancel |
 | 4 | Cash Ledger | 🔄 | kas_mutasi + laporan kas + refund cancel |
-| 5 | Pembelian & HPP | ⏳ | Modul pembelian barang |
+| 5 | Pembelian & HPP | 🔄 | pembelian + pembelian_detail + receive stok |
 | 6 | Jurnal Akuntansi | ⏳ | Akun, jurnal, jurnal_detail |
 | 7 | Piutang, Hutang & Pajak | ⏳ | Piutang, hutang, pelunasan, PPN |
 | 8 | Laporan Gabungan & Final | ⏳ | Semua laporan + test |
@@ -151,6 +151,46 @@
 - Migration: `create_pembelian_table`, `create_pembelian_detail_table`
 - UI `pembelian.list / .create / .edit`
 - Status TERIMA → `DB::transaction()`: `stok_mutasi` MASUK + update `barang.harga_beli` & `barang_stok`
+
+### Tahap 5 — Pembelian & HPP (2026-08-24)
+
+**Selesai:**
+- 2 migration: `create_pembelian_table`, `create_pembelian_detail_table`
+- Model `Pembelian` & `PembelianDetail` baru
+- MFC Component `pembelian-list` (`pages::transaksi.pembelian-list`): list + filter status/tanggal + tombol Terima
+- MFC Component `pembelian-create` (`pages::transaksi.pembelian-create`): form ORDER + cart barang
+- MFC Component `pembelian-edit` (`pages::transaksi.pembelian-edit`): edit ORDER + receive + cancel
+- Route: `transaksi.pembelian.list`, `.create`, `.edit`
+- Permission auto-sync: `transaksi.pembelian.view`, `.create`, `.update`, `.delete`
+- Additional permissions: `transaksi.pembelian.receive`, `transaksi.pembelian.cancel`
+
+**File berubah:**
+- `src/database/migrations/2026_08_24_000010_create_pembelian_table.php` (BARU)
+- `src/database/migrations/2026_08_24_000011_create_pembelian_detail_table.php` (BARU)
+- `src/app/Models/Pembelian.php` (BARU)
+- `src/app/Models/PembelianDetail.php` (BARU)
+- `src/resources/views/pages/transaksi/⚡pembelian-list/pembelian-list.php` (BARU)
+- `src/resources/views/pages/transaksi/⚡pembelian-list/pembelian-list.blade.php` (BARU)
+- `src/resources/views/pages/transaksi/⚡pembelian-create/pembelian-create.php` (BARU)
+- `src/resources/views/pages/transaksi/⚡pembelian-create/pembelian-create.blade.php` (BARU)
+- `src/resources/views/pages/transaksi/⚡pembelian-edit/pembelian-edit.php` (BARU)
+- `src/resources/views/pages/transaksi/⚡pembelian-edit/pembelian-edit.blade.php` (BARU)
+- `src/routes/web.php` (UPDATE)
+
+**Migration yang dibuat:**
+- `2026_08_24_000010_create_pembelian_table`
+- `2026_08_24_000011_create_pembelian_detail_table`
+
+**Known Issues / TODO:**
+- `receivePembelian()` di `pembelian-edit` sudah ada tapi belum diuji langsung
+- Belum ada validasi `harga_beli` minimum saat create/edit
+- Menu sidebar belum ada entry untuk "Pembelian Barang"
+
+**Hint untuk tahap berikutnya:**
+- Lanjut **Tahap 6** — Jurnal Akuntansi: tabel `akun`, `jurnal`, `jurnal_detail`
+- Migration: `create_akun_table`, `create_jurnal_table`, `create_jurnal_detail_table`
+- Seed akun dasar: Kas, Persediaan, HPP, Penjualan, Beban, Utang, Modal
+- Service `JurnalService`: dari transaksi LUNAS → jurnal, dari pembelian TERIMA → jurnal
 
 ### Tahap 2 — Master Barang & Satuan (2026-08-24)
 

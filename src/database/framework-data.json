@@ -1,6 +1,6 @@
 {
     "version": 1,
-    "generated_at": "2026-08-18T09:17:11+00:00",
+    "generated_at": "2026-08-24T14:02:32+00:00",
     "system_routes": [
         {
             "route_name": "default-livewire.update",
@@ -21,14 +21,6 @@
         {
             "route_name": "dashboard",
             "display_name": "Dashboard"
-        },
-        {
-            "route_name": "storage.local",
-            "display_name": "Storage Local"
-        },
-        {
-            "route_name": "storage.local.upload",
-            "display_name": "Storage Local Upload"
         },
         {
             "route_name": "auth.register.create",
@@ -57,6 +49,18 @@
         {
             "route_name": "master.barang.edit",
             "display_name": "Master Barang Edit"
+        },
+        {
+            "route_name": "master.cabang.list",
+            "display_name": "Master Cabang List"
+        },
+        {
+            "route_name": "master.cabang.create",
+            "display_name": "Master Cabang Create"
+        },
+        {
+            "route_name": "master.cabang.edit",
+            "display_name": "Master Cabang Edit"
         },
         {
             "route_name": "transaksi.penjualan.list",
@@ -97,6 +101,30 @@
         {
             "route_name": "master.launcher-group.list",
             "display_name": "Master Launcher Group List"
+        },
+        {
+            "route_name": "storage.local",
+            "display_name": "Storage Local"
+        },
+        {
+            "route_name": "storage.local.upload",
+            "display_name": "Storage Local Upload"
+        },
+        {
+            "route_name": "laporan.kas.list",
+            "display_name": "Laporan Kas List"
+        },
+        {
+            "route_name": "transaksi.pembelian.list",
+            "display_name": "Transaksi Pembelian List"
+        },
+        {
+            "route_name": "transaksi.pembelian.create",
+            "display_name": "Transaksi Pembelian Create"
+        },
+        {
+            "route_name": "transaksi.pembelian.edit",
+            "display_name": "Transaksi Pembelian Edit"
         }
     ],
     "permissions": [
@@ -106,6 +134,7 @@
         "auth.register.view",
         "dashboard",
         "default-livewire.update",
+        "laporan.kas.view",
         "login",
         "login.process",
         "logout",
@@ -114,16 +143,24 @@
         "master.barang.export",
         "master.barang.update",
         "master.barang.view",
+        "master.cabang.create",
+        "master.cabang.delete",
+        "master.cabang.update",
+        "master.cabang.view",
         "master.launcher-group.view",
         "master.menu.create",
         "master.menu.update",
         "master.menu.view",
         "storage.local",
         "storage.local.upload",
-        "system.role.create",
-        "system.role.update",
         "system.role.view",
         "system.view",
+        "transaksi.pembelian.cancel",
+        "transaksi.pembelian.create",
+        "transaksi.pembelian.receive",
+        "transaksi.pembelian.update",
+        "transaksi.pembelian.view",
+        "transaksi.penjualan.cancel",
         "transaksi.penjualan.create",
         "transaksi.penjualan.update",
         "transaksi.penjualan.view"
@@ -140,14 +177,44 @@
             "parent_title": null
         },
         {
+            "route": "master.barang.list",
+            "title": "Master Barang List",
+            "icon": "ti ti-package",
+            "sort_order": 1,
+            "is_sidebar": true,
+            "launcher_group": "master_data",
+            "parent_route": null,
+            "parent_title": "Master"
+        },
+        {
             "route": "transaksi.penjualan.list",
-            "title": "Penjualan",
+            "title": "Transaksi Penjualan List",
             "icon": "ti ti-receipt",
             "sort_order": 1,
             "is_sidebar": true,
             "launcher_group": "transaksi",
             "parent_route": null,
-            "parent_title": "Master"
+            "parent_title": "Transaksi"
+        },
+        {
+            "route": "system.list",
+            "title": "System List",
+            "icon": "ti ti-user-cog",
+            "sort_order": 1,
+            "is_sidebar": true,
+            "launcher_group": "sistem",
+            "parent_route": null,
+            "parent_title": "Sistem"
+        },
+        {
+            "route": "laporan.kas.list",
+            "title": "Laporan Kas List",
+            "icon": "ti ti-report-money",
+            "sort_order": 1,
+            "is_sidebar": true,
+            "launcher_group": "laporan",
+            "parent_route": null,
+            "parent_title": "Kas & Bank"
         },
         {
             "route": null,
@@ -160,49 +227,49 @@
             "parent_title": null
         },
         {
-            "route": "master.barang.list",
-            "title": "Barang",
-            "icon": "ti ti-package",
+            "route": "master.cabang.list",
+            "title": "Master Cabang List",
+            "icon": "ti ti-building-store",
             "sort_order": 2,
             "is_sidebar": true,
-            "launcher_group": "transaksi",
+            "launcher_group": "master_data",
             "parent_route": null,
             "parent_title": "Master"
         },
         {
-            "route": "system.list",
-            "title": "System Index",
-            "icon": "ti ti-receipt",
-            "sort_order": 3,
-            "is_sidebar": true,
-            "launcher_group": "sistem",
-            "parent_route": null,
-            "parent_title": "System"
-        },
-        {
             "route": "master.menu.list",
             "title": "Master Menu List",
-            "icon": "ti ti-receipt",
-            "sort_order": 3,
+            "icon": "ti ti-menu-2",
+            "sort_order": 2,
             "is_sidebar": true,
             "launcher_group": "sistem",
             "parent_route": null,
-            "parent_title": "System"
+            "parent_title": "Sistem"
         },
         {
-            "route": "system.role.list",
-            "title": "System Role List",
-            "icon": "ti ti-receipt",
-            "sort_order": 4,
+            "route": "transaksi.pembelian.list",
+            "title": "Transaksi Pembelian List",
+            "icon": "ti ti-basket-dollar",
+            "sort_order": 2,
             "is_sidebar": true,
-            "launcher_group": "sistem",
+            "launcher_group": "transaksi",
             "parent_route": null,
-            "parent_title": "System"
+            "parent_title": "Transaksi"
         },
         {
             "route": null,
-            "title": "System",
-            "icon": "ti ti-package",
+            "title": "Transaksi",
+            "icon": "ti ti-shopping-cart",
+            "sort_order": 3,
+            "is_sidebar": true,
+            "launcher_group": null,
+            "parent_route": null,
+            "parent_title": null
+        },
+        {
+            "route": null,
+            "title": "Sistem",
+            "icon": "ti ti-settings",
             "sort_order": 4,
             "is_sidebar": true,
             "launcher_group": null,
@@ -210,14 +277,14 @@
             "parent_title": null
         },
         {
-            "route": "master.launcher-group.list",
-            "title": "Master Launcher Group List",
-            "icon": "ti ti-receipt",
-            "sort_order": 4,
+            "route": null,
+            "title": "Kas & Bank",
+            "icon": "ti ti-report-money",
+            "sort_order": 6,
             "is_sidebar": true,
-            "launcher_group": "sistem",
+            "launcher_group": null,
             "parent_route": null,
-            "parent_title": "System"
+            "parent_title": null
         }
     ],
     "launcher_groups": [
