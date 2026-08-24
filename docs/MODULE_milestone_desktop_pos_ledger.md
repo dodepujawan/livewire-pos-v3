@@ -12,7 +12,7 @@
 | 0 | Persiapan | ✅ | Mega Plan & dokumentasi selesai |
 | 1 | Multi-Cabang | ✅ | Fondasi: tabel cabang, barang_stok, model, MFC, routes |
 | 2 | Master Barang & Satuan | ✅ | Tambah harga_beli, is_default |
-| 3 | POS Penjualan | ⏳ | Upgrade transaksi + cabang + metode bayar |
+| 3 | POS Penjualan | 🔄 | Migration + model + transaksi-create + cancel |
 | 4 | Cash Ledger | ⏳ | Tabel kas_mutasi |
 | 5 | Pembelian & HPP | ⏳ | Modul pembelian barang |
 | 6 | Jurnal Akuntansi | ⏳ | Akun, jurnal, jurnal_detail |
@@ -78,6 +78,46 @@
 - Update UI `barang-create` dan `barang-edit` untuk input harga beli
 - Migration: `add_harga_beli_to barang`, `add_harga_beli_is_default_to barang_satuan`
 
+### Tahap 3 — POS Penjualan (2026-08-24)
+
+**Selesai:**
+- 3 migration: `add_fields_to_transaksi_table`, `add_snapshot_to_transaksi_detail_table`, `add_fields_to_stok_mutasi_table`
+- Update Model `Transaksi` (tambah cabang_id, user_id, status, metode_bayar, bayar, kembali, diskon_total, catatan + relasi)
+- Update Model `TransaksiDetail` (tambah harga_beli, nama_barang, nama_satuan fillable)
+- Update Model `StokMutasi` (tambah cabang_id, transaksi_id, barang_satuan_id, qty_satuan + relasi)
+- Update UI `transaksi-create` (pilih cabang, metode bayar, bayar/kembali otomatis, diskon total, catatan)
+- Update `saveTransaksi()` pakai `DB::transaction()` + simpan snapshot + update `barang_stok` per cabang
+- Tambah cancel/void di `transaksi-edit` (`$additionalPermissions = ['transaksi.penjualan.cancel']`)
+
+**File berubah:**
+- `src/database/migrations/2026_08_24_000006_add_fields_to_transaksi_table.php` (BARU)
+- `src/database/migrations/2026_08_24_000007_add_snapshot_to_transaksi_detail_table.php` (BARU)
+- `src/database/migrations/2026_08_24_000008_add_fields_to_stok_mutasi_table.php` (BARU)
+- `src/app/Models/Transaksi.php` (UPDATE)
+- `src/app/Models/TransaksiDetail.php` (UPDATE)
+- `src/app/Models/StokMutasi.php` (UPDATE)
+- `src/resources/views/pages/transaksi/⚡transaksi-create/transaksi-create.php` (UPDATE)
+- `src/resources/views/pages/transaksi/⚡transaksi-create/transaksi-create.blade.php` (UPDATE)
+- `src/resources/views/pages/transaksi/⚡transaksi-edit/transaksi-edit.php` (UPDATE)
+- `src/resources/views/pages/transaksi/⚡transaksi-edit/transaksi-edit.blade.php` (UPDATE)
+
+**Migration yang dibuat:**
+- `2026_08_24_000006_add_fields_to_transaksi_table`
+- `2026_08_24_000007_add_snapshot_to_transaksi_detail_table`
+- `2026_08_24_000008_add_fields_to_stok_mutasi_table`
+
+**Known Issues / TODO:**
+- Migration belum dijalankan (butuh PHP >= 8.4.1, env saat ini 8.3.17)
+- `transaksi-edit` belum fully updated untuk field-field baru (cabang, metode bayar, dll)
+- `transaksi-list` belum ada tombol Edit/Cancel
+- Menu sidebar belum ada entry untuk "Transaksi Penjualan"
+
+**Hint untuk tahap berikutnya:**
+- Lanjut **Tahap 4** — Cash Ledger: tabel `kas_mutasi`, insert saat transaksi LUNAS tunai
+- Migration: `create_kas_mutasi_table`
+- UI Laporan Kas (`laporan.kas.list`): filter cabang, per tanggal, saldo akhir
+- Saat transaksi LUNAS tunai: insert `kas_mutasi` MASUK (`bayar`) + KELUAR (`kembali`)
+
 ### Tahap 2 — Master Barang & Satuan (2026-08-24)
 
 **Selesai:**
@@ -106,6 +146,7 @@
 - Menu sidebar belum ada entry untuk "Master Cabang"
 
 **Hint untuk tahap berikutnya:**
-- Lanjut **Tahap 3** — upgrade transaksi: tambah cabang_id, user_id, status, metode_bayar, bayar, kembali
-- Migration: `add_fields_to transaksi`, `add_snapshot_to transaksi_detail`, `add_fields_to stok_mutasi`
-- Update UI `transaksi-create` untuk pilih cabang & metode bayar
+- Lanjut **Tahap 4** — Cash Ledger: tabel `kas_mutasi`, insert saat transaksi LUNAS tunai
+- Migration: `create_kas_mutasi_table`
+- UI Laporan Kas (`laporan.kas.list`): filter cabang, per tanggal, saldo akhir
+- Saat transaksi LUNAS tunai: insert `kas_mutasi` MASUK (`bayar`) + KELUAR (`kembali`)

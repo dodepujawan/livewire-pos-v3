@@ -2,9 +2,12 @@
 
 use App\Models\Barang;
 use App\Models\BarangSatuan;
+use App\Models\BarangStok;
+use App\Models\Cabang;
 use App\Models\StokMutasi;
 use App\Models\Transaksi;
 use App\Models\TransaksiDetail;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
 new class extends Component
@@ -14,6 +17,16 @@ new class extends Component
     public string $transTanggal = '';
     public string $transCustomer = '';
     public $transGrandTotal = 0;
+    public int $transCabangId = 0;
+    public string $transMetodeBayar = 'TUNAI';
+    public string $transStatus = 'SELESAI';
+    public $transBayar = 0;
+    public $transKembali = 0;
+    public $transDiskonTotal = 0;
+    public string $transCatatan = '';
+
+    // Cabang list
+    public array $listCabang = [];
 
     // Cart
     public array $cartItems = [];
@@ -30,28 +43,45 @@ new class extends Component
     public $itemDiskon = 0;
     public $itemSubtotal = 0;
 
-    // Payment
-    public $bayarNominal = 0;
-    public $kembaliNominal = 0;
-
     protected $rules = [
         'transNoInvoice' => 'required|string|unique:transaksi,nomor_transaksi',
         'transTanggal' => 'required|date',
-        'transCustomer' => 'nullable|string',
+        'transCabangId' => 'required|exists:cabang,id',
+        'transMetodeBayar' => 'required|in:TUNAI,TRANSFER,QRIS',
+        'transBayar' => 'required|numeric|min:0',
         'itemKodeBarang' => 'nullable|string',
         'itemBarangId' => 'required|exists:barang,id',
         'itemBarangSatuanId' => 'required|exists:barang_satuan,id',
         'itemQty' => 'required|integer|min:1',
         'itemHarga' => 'required|numeric|min:0',
         'itemDiskon' => 'nullable|numeric|min:0',
-        'bayarNominal' => 'required|numeric|min:0',
     ];
 
     public function mount(): void
     {
-        // dd(__FILE__);
         $this->transTanggal = now()->format('Y-m-d');
         $this->generateInvoiceNumber();
+        $this->loadCabangList();
+        $this->setDefaultCabang();
+    }
+
+    private function loadCabangList(): void
+    {
+        $this->listCabang = Cabang::where('is_aktif', true)
+            ->orderBy('nama_cabang')
+            ->get()
+            ->mapWithKeys(fn($c) => [$c->id => $c->nama_cabang])
+            ->toArray();
+    }
+
+    private function setDefaultCabang(): void
+    {
+        $user = Auth::user();
+        if ($user && $user->cabang_id) {
+            $this->transCabangId = $user->cabang_id;
+        } elseif (!empty($this->listCabang)) {
+            $this->transCabangId = array_key_first($this->listCabang);
+        }
     }
 
     private function generateInvoiceNumber(): void
@@ -92,7 +122,6 @@ new class extends Component
         $this->itemStok = $barang->stok;
         $this->itemSatuanList = $barang->satuan->toArray();
 
-        // Auto-select satuan: prefer konversi = 1, else first available
         $defaultSatuan = $barang->satuan->firstWhere('konversi', 1);
         if (!$defaultSatuan) {
             $defaultSatuan = $barang->satuan->first();
@@ -125,8 +154,12 @@ new class extends Component
 
     public function updatedItemDiskon(): void
     {
-        // dd('updated');
         $this->calculateItemSubtotal();
+    }
+
+    public function updatedTransBayar(): void
+    {
+        $this->transKembali = (float) $this->transBayar - (float) $this->transGrandTotal;
     }
 
     private function toFloat($value): float
@@ -162,13 +195,11 @@ new class extends Component
 
         $qtyPcs = (int) $this->itemQty * $satuan->konversi;
 
-        // Check stock availability
         if ($barang->stok < $qtyPcs) {
             session()->flash('error', 'Stok tidak mencukupi. Stok tersedia: ' . $barang->stok . ' pcs');
             return;
         }
 
-        // Check if same barang and satuan already in cart
         $existingIndex = null;
         foreach ($this->cartItems as $index => $item) {
             if ($item['barang_id'] === $this->itemBarangId && $item['barang_satuan_id'] === $this->itemBarangSatuanId) {
@@ -178,7 +209,6 @@ new class extends Component
         }
 
         if ($existingIndex !== null) {
-            // Update existing item
             $newQty = (int) $this->cartItems[$existingIndex]['qty'] + (int) $this->itemQty;
             $newQtyPcs = $newQty * $satuan->konversi;
 
@@ -191,11 +221,10 @@ new class extends Component
             $this->cartItems[$existingIndex]['qty_pcs'] = $newQtyPcs;
             $this->cartItems[$existingIndex]['subtotal'] = $newQty * $satuan->harga_jual;
         } else {
-            // Add new item
             $qty = (int) $this->itemQty;
             $diskon = (float) $this->itemDiskon;
             $subtotal = (float) $this->itemSubtotal;
-            
+
             $this->cartItems[] = [
                 'barang_id' => $this->itemBarangId,
                 'barang_satuan_id' => $this->itemBarangSatuanId,
@@ -251,11 +280,10 @@ new class extends Component
         }
 
         $this->calculateGrandTotal();
-        
-        // Recalculate kembaliNominal after grand total changes
-        $bayar = (float) $this->bayarNominal;
+
+        $bayar = (float) $this->transBayar;
         $grandTotal = (float) $this->transGrandTotal;
-        $this->kembaliNominal = $bayar - $grandTotal;
+        $this->transKembali = $bayar - $grandTotal;
     }
 
     private function calculateGrandTotal(): void
@@ -281,20 +309,14 @@ new class extends Component
         $this->itemSubtotal = 0;
     }
 
-    public function updatedBayarNominal(): void
-    {
-        $bayar = (float) $this->bayarNominal;
-        $grandTotal = (float) $this->transGrandTotal;
-        
-        $this->kembaliNominal = $bayar - $grandTotal;
-    }
-
     public function saveTransaksi(): void
     {
         $this->validate([
             'transNoInvoice' => 'required|string|unique:transaksi,nomor_transaksi',
             'transTanggal' => 'required|date',
-            'bayarNominal' => 'required|numeric|min:' . $this->transGrandTotal,
+            'transCabangId' => 'required|exists:cabang,id',
+            'transMetodeBayar' => 'required|in:TUNAI,TRANSFER,QRIS',
+            'transBayar' => 'required|numeric|min:' . $this->transGrandTotal,
         ]);
 
         if (empty($this->cartItems)) {
@@ -303,50 +325,74 @@ new class extends Component
         }
 
         try {
-            \DB::beginTransaction();
+            \DB::transaction(function () {
+                $userId = Auth::id();
 
-            // Save transaksi header
-            $transaksi = Transaksi::create([
-                'nomor_transaksi' => $this->transNoInvoice,
-                'tanggal' => $this->transTanggal,
-                'customer' => $this->transCustomer,
-                'grand_total' => $this->transGrandTotal,
-            ]);
-
-            // Save transaksi details and record stock mutations
-            foreach ($this->cartItems as $item) {
-                TransaksiDetail::create([
-                    'transaksi_id' => $transaksi->id,
-                    'barang_id' => $item['barang_id'],
-                    'barang_satuan_id' => $item['barang_satuan_id'],
-                    'qty' => $item['qty'],
-                    'harga' => $item['harga'],
-                    'diskon' => $item['diskon'],
-                    'subtotal' => $item['subtotal'],
-                    'qty_pcs' => $item['qty_pcs'],
-                ]);
-
-                // Record stock mutation
-                StokMutasi::create([
-                    'barang_id' => $item['barang_id'],
+                $transaksi = Transaksi::create([
+                    'nomor_transaksi' => $this->transNoInvoice,
                     'tanggal' => $this->transTanggal,
-                    'tipe' => 'keluar',
-                    'qty' => $item['qty_pcs'],
-                    'keterangan' => 'Transaksi ' . $this->transNoInvoice,
+                    'cabang_id' => $this->transCabangId,
+                    'user_id' => $userId,
+                    'customer' => $this->transCustomer,
+                    'status' => $this->transStatus,
+                    'metode_bayar' => $this->transMetodeBayar,
+                    'bayar' => $this->transBayar,
+                    'kembali' => $this->transKembali,
+                    'grand_total' => $this->transGrandTotal,
+                    'diskon_total' => $this->transDiskonTotal,
+                    'catatan' => $this->transCatatan,
                 ]);
 
-                // Deduct stock
-                $barang = Barang::find($item['barang_id']);
-                if ($barang) {
-                    $barang->decrement('stok', $item['qty_pcs']);
+                foreach ($this->cartItems as $item) {
+                    $barang = Barang::find($item['barang_id']);
+                    $satuan = BarangSatuan::find($item['barang_satuan_id']);
+                    $hargaBeli = $barang ? ($barang->harga_beli ?? 0) : 0;
+
+                    TransaksiDetail::create([
+                        'transaksi_id' => $transaksi->id,
+                        'barang_id' => $item['barang_id'],
+                        'barang_satuan_id' => $item['barang_satuan_id'],
+                        'qty' => $item['qty'],
+                        'harga' => $item['harga'],
+                        'diskon' => $item['diskon'],
+                        'subtotal' => $item['subtotal'],
+                        'qty_pcs' => $item['qty_pcs'],
+                        'harga_beli' => $hargaBeli,
+                        'nama_barang' => $item['nama_barang'],
+                        'nama_satuan' => $item['nama_satuan'],
+                    ]);
+
+                    StokMutasi::create([
+                        'barang_id' => $item['barang_id'],
+                        'cabang_id' => $this->transCabangId,
+                        'transaksi_id' => $transaksi->id,
+                        'barang_satuan_id' => $item['barang_satuan_id'],
+                        'tanggal' => $this->transTanggal,
+                        'tipe' => 'KELUAR',
+                        'qty' => $item['qty_pcs'],
+                        'qty_satuan' => $item['qty'],
+                        'keterangan' => 'Transaksi ' . $this->transNoInvoice,
+                    ]);
+
+                    if ($barang) {
+                        $barangStok = BarangStok::updateOrCreate(
+                            [
+                                'barang_id' => $barang->id,
+                                'cabang_id' => $this->transCabangId,
+                            ],
+                            ['stok' => $barang->stok - $item['qty_pcs']]
+                        );
+
+                        $barang->decrement('stok', $item['qty_pcs']);
+                    }
                 }
-            }
+            });
 
             \DB::commit();
 
             session()->flash('success', 'Transaksi berhasil disimpan');
 
-            $this->redirect(route('transaksi-list'), navigate: true);
+            $this->redirect(route('transaksi.penjualan.list'), navigate: true);
         } catch (\Exception $e) {
             \DB::rollBack();
             session()->flash('error', 'Terjadi kesalahan: ' . $e->getMessage());

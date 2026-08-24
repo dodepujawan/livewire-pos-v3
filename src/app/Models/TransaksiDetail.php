@@ -18,6 +18,9 @@ class TransaksiDetail extends Model
         'diskon',
         'subtotal',
         'qty_pcs',
+        'harga_beli',
+        'nama_barang',
+        'nama_satuan',
     ];
 
     public function transaksi()

@@ -201,9 +201,11 @@ Contoh:
 Nama generic seperti nama, harga, qty, atau total boleh digunakan
 jika konteks component sudah jelas dan tidak menimbulkan ambiguitas.
 
-catatn tambahan ketita pelru mengedit dan membuat file baru wajib tanya programmer untuk aproval tapi kalo delete file itu big no, harus di hapus manual dan akmu buat notifikasi besar wajib hapus file ini pathnya biar prgrammer yang hapus
+catatn tambahan ketita pelru mengedit dan membuat file baru wajib tanya programmer untuk aproval tapi kalo delete file itu big no, harus di hapus manual dan kamu buat notifikasi besar wajib hapus file ini pathnya biar programmer yang hapus
 
 apbila butuh artisan jalankan docker compose exec app bash -> cd src -> artisan 
 
-#untuk lebih hemat token baca juga ini
+"KATA KUNCI INSTANSI KEAMANAN OPERASIONAL:Dilarang Keras menjalankan perintah terminal yang bersifat merusak infrastruktur data seperti: DROP, DELETE, rm -rf pada file database, terraform destroy, atau pembersihan total data lokal.Jika mendeteksi galat koneksi database, wajib melaporkan kesalahan teks tersebut kepada pengguna dan dilarang mencoba memperbaiki status database dengan cara menghapus data atau mereset tabel secara otonom.Ikuti aturan Rule 13 (AI Workflow): Buat Mega Plan terlebih dahulu, jelaskan akar masalah, dan tunggu approval manual dari programmer sebelum mengubah kode apa pun."
+
+dan juga baca ini
 .kiloignore

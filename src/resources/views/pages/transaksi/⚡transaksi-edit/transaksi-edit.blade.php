@@ -247,6 +247,7 @@
                 {{-- Action Buttons --}}
                 <div class="flex flex-col gap-2 shrink-0">
                     <button type="submit" class="w-full px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold text-xs">Simpan</button>
+                    <button type="button" wire:click="cancelTransaksi" class="w-full px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 font-semibold text-xs">Batalkan Transaksi</button>
                     <a href="{{ route('transaksi.penjualan.list') }}" wire:navigate class="w-full px-3 py-1.5 border rounded hover:bg-gray-50 text-center text-xs">Kembali</a>
                 </div>
             </div>

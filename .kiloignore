@@ -1,14 +1,29 @@
-node_modules/
-vendor/
-storage/logs/
-storage/framework/
-bootstrap/cache/
-public/hot/
-public/build/
+# 1. Kredensial & Lingkungan Sensitif (MUTLAK)
 .env
 .env.*
-*.sqlite
-*.sqlite-journal
+config/database.php
+docker-compose.yml
+docker-compose.*.yml
+
+# 2. Berkas Database Lokal (Mencegah AI menghapus SQLite/Maju Sendiri)
+database/*.sqlite
+database/database.sqlite
+.data/
+mysql/
+pgdata/
+
+# 3. Direktori Penyimpanan & Cache (Menghemat Token)
+storage/
+bootstrap/cache/
+vendor/
+node_modules/
+
+# 4. Berkas Git & Dokumentasi IDE
 .git/
-.idea/
 .vscode/
+.idea/
+.phpunit.result.cache
+
+# 5. Core Framework Protection (Sesuai Aturan Rule 12)
+# Menyembunyikan migration agar AI tidak membuat/mengubah tanpa approval manual (Rule 3)
+database/migrations/

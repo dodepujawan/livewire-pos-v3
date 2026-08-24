@@ -69,7 +69,11 @@
                             <td class="px-4 py-3 text-right">{{ number_format($transaksi->grand_total, 0, ',', '.') }}</td>
                             <td class="px-4 py-3">
                                 <div class="flex justify-center gap-2">
-                                    <a href="{{ route('transaksi-show', $transaksi->id) }}" wire:navigate class="px-3 py-1 bg-blue-500 text-white rounded">View</a>
+                                    <a href="{{ route('transaksi.penjualan.show', $transaksi->id) }}" wire:navigate class="px-3 py-1 bg-blue-500 text-white rounded">View</a>
+                                    @if($transaksi->status !== 'BATAL')
+                                        <a href="{{ route('transaksi.penjualan.edit', $transaksi->id) }}" wire:navigate class="px-3 py-1 bg-amber-500 text-white rounded">Edit</a>
+                                        <button wire:click="cancelTransaksi({{ $transaksi->id }})" class="px-3 py-1 bg-red-500 text-white rounded">Batal</button>
+                                    @endif
                                 </div>
                             </td>
                         </tr>

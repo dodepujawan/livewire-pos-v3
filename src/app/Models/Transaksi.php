@@ -12,8 +12,16 @@ class Transaksi extends Model
     protected $fillable = [
         'nomor_transaksi',
         'tanggal',
+        'cabang_id',
+        'user_id',
         'customer',
+        'status',
+        'metode_bayar',
+        'bayar',
+        'kembali',
         'grand_total',
+        'diskon_total',
+        'catatan',
     ];
 
     protected $casts = [
@@ -23,6 +31,16 @@ class Transaksi extends Model
     public function details()
     {
         return $this->hasMany(TransaksiDetail::class);
+    }
+
+    public function cabang()
+    {
+        return $this->belongsTo(Cabang::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
     /** @use HasFactory<\Database\Factories\TransaksiFactory> */
     use HasFactory;

@@ -57,14 +57,14 @@
 
 **Tujuan:** transaksi catat cabang, kasir, metode bayar, bayar/kembali, status.
 
-- [ ] Migration: kolom `transaksi` (section 4.4 db doc):
+- [x] Migration: kolom `transaksi` (section 4.4 db doc):
   `cabang_id`, `user_id`, `status`, `metode_bayar`, `bayar`, `kembali`, `diskon_total`, `pajak`, `catatan`.
-- [ ] Migration: snapshot `transaksi_detail` (`harga_beli`, `nama_barang`, `nama_satuan`) + revisi `stok_mutasi` (`cabang_id`, `transaksi_id`, `barang_satuan_id`, `qty_satuan`).
-- [ ] Update component `transaksi.penjualan.create`:
+- [x] Migration: snapshot `transaksi_detail` (`harga_beli`, `nama_barang`, `nama_satuan`) + revisi `stok_mutasi` (`cabang_id`, `transaksi_id`, `barang_satuan_id`, `qty_satuan`).
+- [x] Update component `transaksi.penjualan.create`:
   - Pilih cabang (default cabang kasir), metode bayar, input bayar → hitung kembali otomatis.
   - Simpan `harga_beli` & nama snapshot ke detail.
-- [ ] Saat simpan: `DB::transaction()` → insert transaksi + detail + `stok_mutasi` KELUAR per cabang + kurangi `barang_stok`.
-- [ ] Tambah `transaksi.penjualan.cancel` (void) → `$additionalPermissions = ['transaksi.penjualan.cancel']`, balikkan stok.
+- [x] Saat simpan: `DB::transaction()` → insert transaksi + detail + `stok_mutasi` KELUAR per cabang + kurangi `barang_stok`.
+- [x] Tambah `transaksi.penjualan.cancel` (void) → `$additionalPermissions = ['transaksi.penjualan.cancel']`, balikkan stok.
 
 ---
 

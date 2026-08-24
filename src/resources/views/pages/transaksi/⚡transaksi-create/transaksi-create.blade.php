@@ -54,6 +54,33 @@
                                 <p class="text-red-500 text-sm mt-0.5">{{ $message }}</p>
                             @enderror
                         </div>
+
+                        {{-- Cabang --}}
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Cabang</label>
+                            <select wire:model="transCabangId" class="w-full border rounded px-3 py-1.5 text-sm">
+                                <option value="0">Pilih Cabang</option>
+                                @foreach($listCabang as $id => $nama)
+                                    <option value="{{ $id }}">{{ $nama }}</option>
+                                @endforeach
+                            </select>
+                            @error('transCabangId')
+                                <p class="text-red-500 text-sm mt-0.5">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        {{-- Metode Bayar --}}
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Metode Bayar</label>
+                            <select wire:model="transMetodeBayar" class="w-full border rounded px-3 py-1.5 text-sm">
+                                <option value="TUNAI">Tunai</option>
+                                <option value="TRANSFER">Transfer</option>
+                                <option value="QRIS">QRIS</option>
+                            </select>
+                            @error('transMetodeBayar')
+                                <p class="text-red-500 text-sm mt-0.5">{{ $message }}</p>
+                            @enderror
+                        </div>
                     </div>
                 </div>
 
@@ -222,8 +249,8 @@
                         {{-- Bayar Nominal --}}
                         <div>
                             <label class="block text-xs font-medium mb-1">Bayar</label>
-                            <input type="number" wire:model.live.debounce.500ms="bayarNominal" min="0" class="w-full border rounded px-2 py-1 text-xs">
-                            @error('bayarNominal')
+                            <input type="number" wire:model.live="transBayar" min="0" class="w-full border rounded px-2 py-1 text-xs">
+                            @error('transBayar')
                                 <p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>
                             @enderror
                         </div>
@@ -231,7 +258,25 @@
                         {{-- Kembalian --}}
                         <div>
                             <label class="block text-xs font-medium mb-1">Kembali</label>
-                            <input type="text" readonly class="w-full border rounded px-2 py-1 bg-gray-100 text-xs" value="{{ number_format($kembaliNominal, 0, ',', '.') }}">
+                            <input type="text" readonly class="w-full border rounded px-2 py-1 bg-gray-100 text-xs" value="{{ number_format($transKembali, 0, ',', '.') }}">
+                        </div>
+
+                        {{-- Diskon Total --}}
+                        <div>
+                            <label class="block text-xs font-medium mb-1">Diskon Total</label>
+                            <input type="number" wire:model="transDiskonTotal" min="0" class="w-full border rounded px-2 py-1 text-xs">
+                            @error('transDiskonTotal')
+                                <p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        {{-- Catatan --}}
+                        <div>
+                            <label class="block text-xs font-medium mb-1">Catatan</label>
+                            <textarea wire:model="transCatatan" rows="2" class="w-full border rounded px-2 py-1 text-xs"></textarea>
+                            @error('transCatatan')
+                                <p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>
+                            @enderror
                         </div>
                     </div>
                 </div>

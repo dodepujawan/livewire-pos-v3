@@ -9,6 +9,10 @@ use Livewire\Component;
 
 new class extends Component
 {
+    protected array $additionalPermissions = [
+        'transaksi.penjualan.cancel',
+    ];
+
     public int $transaksiId;
 
     // Header
@@ -377,7 +381,46 @@ new class extends Component
 
             session()->flash('success', 'Transaksi berhasil diupdate');
 
-            $this->redirect(route('transaksi-show', ['id' => $this->transaksiId]), navigate: true);
+            $this->redirect(route('transaksi.penjualan.show', ['id' => $this->transaksiId]), navigate: true);
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            session()->flash('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    public function cancelTransaksi(): void
+    {
+        $transaksi = Transaksi::findOrFail($this->transaksiId);
+
+        if ($transaksi->status === 'BATAL') {
+            session()->flash('error', 'Transaksi sudah dibatalkan');
+            return;
+        }
+
+        try {
+            \DB::transaction(function () use ($transaksi) {
+                $transaksi->update(['status' => 'BATAL']);
+
+                foreach ($transaksi->details as $detail) {
+                    $barang = Barang::find($detail->barang_id);
+                    if ($barang) {
+                        $barang->increment('stok', $detail->qty_pcs);
+                    }
+
+                    BarangStok::updateOrCreate(
+                        [
+                            'barang_id' => $detail->barang_id,
+                            'cabang_id' => $transaksi->cabang_id,
+                        ]
+                    );
+                }
+            });
+
+            \DB::commit();
+
+            session()->flash('success', 'Transaksi berhasil dibatalkan');
+
+            $this->redirect(route('transaksi.penjualan.list'), navigate: true);
         } catch (\Exception $e) {
             \DB::rollBack();
             session()->flash('error', 'Terjadi kesalahan: ' . $e->getMessage());
