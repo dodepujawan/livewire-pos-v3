@@ -22,10 +22,12 @@
 
 <div>
 
-    <nav class="relative overflow-hidden border-b border-white/10 px-4 md:px-6 py-3 flex items-center justify-between flex-wrap gap-3 bg-gradient-to-r from-[#0f172a] via-[#1a2a6c] to-[#0f172a] shadow-lg shadow-black/20">
+    <nav class="relative border-b border-white/10 px-4 md:px-6 py-3 flex items-center justify-between flex-wrap gap-3 bg-gradient-to-r from-[#0f172a] via-[#1a2a6c] to-[#0f172a] shadow-lg shadow-black/20">
 
         {{-- subtle glow --}}
-        <div class="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-amber-400/10 blur-2xl"></div>
+        <div class="pointer-events-none absolute inset-0 overflow-hidden">
+            <div class="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-amber-400/10 blur-2xl"></div>
+        </div>
 
         {{-- LEFT: Toggle + Brand + Breadcrumb --}}
         <div class="relative flex items-center gap-3 min-w-0 flex-1">

@@ -1,14 +1,14 @@
 @php
     $palette = [
-        ['accent' => '#D4AF37', 'accentSoft' => 'rgba(212,175,55,0.45)',  'ring' => 'rgba(212,175,55,0.2)',  'border' => 'rgba(212,175,55,0.35)'],  // Gold
-        ['accent' => '#B8C2CC', 'accentSoft' => 'rgba(184,194,204,0.45)', 'ring' => 'rgba(184,194,204,0.25)', 'border' => 'rgba(184,194,204,0.4)'],  // Silver
-        ['accent' => '#C08552', 'accentSoft' => 'rgba(192,133,82,0.45)',  'ring' => 'rgba(192,133,82,0.2)',  'border' => 'rgba(192,133,82,0.35)'],  // Copper
-        ['accent' => '#C98F8A', 'accentSoft' => 'rgba(201,143,138,0.45)', 'ring' => 'rgba(201,143,138,0.2)', 'border' => 'rgba(201,143,138,0.35)'], // Rose Gold
-        ['accent' => '#B08D57', 'accentSoft' => 'rgba(176,141,87,0.45)',  'ring' => 'rgba(176,141,87,0.2)',  'border' => 'rgba(176,141,87,0.35)'],  // Bronze
-        ['accent' => '#7FAF9B', 'accentSoft' => 'rgba(127,175,155,0.45)', 'ring' => 'rgba(127,175,155,0.2)', 'border' => 'rgba(127,175,155,0.35)'], // Jade
-        ['accent' => '#6C8EB0', 'accentSoft' => 'rgba(108,142,176,0.45)', 'ring' => 'rgba(108,142,176,0.2)', 'border' => 'rgba(108,142,176,0.35)'], // Sapphire
-        ['accent' => '#9E85AD', 'accentSoft' => 'rgba(158,133,173,0.45)', 'ring' => 'rgba(158,133,173,0.2)', 'border' => 'rgba(158,133,173,0.35)'], // Amethyst
-        ['accent' => '#B0616B', 'accentSoft' => 'rgba(176,97,107,0.45)',  'ring' => 'rgba(176,97,107,0.2)',  'border' => 'rgba(176,97,107,0.35)'],  // Ruby
+        ['accent' => '#D4AF37', 'accentSoft' => 'rgba(212,175,55,0.42)', 'ring' => 'rgba(212,175,55,0.20)', 'border' => 'rgba(212,175,55,0.30)'], // Gold
+        ['accent' => '#5B8DB8', 'accentSoft' => 'rgba(91,141,184,0.42)', 'ring' => 'rgba(91,141,184,0.20)', 'border' => 'rgba(91,141,184,0.30)'], // Steel Blue
+        ['accent' => '#5FA88D', 'accentSoft' => 'rgba(95,168,141,0.42)', 'ring' => 'rgba(95,168,141,0.20)', 'border' => 'rgba(95,168,141,0.30)'], // Jade
+        ['accent' => '#B56B7A', 'accentSoft' => 'rgba(181,107,122,0.42)', 'ring' => 'rgba(181,107,122,0.20)', 'border' => 'rgba(181,107,122,0.30)'], // Burgundy Rose
+        ['accent' => '#8B78B5', 'accentSoft' => 'rgba(139,120,181,0.42)', 'ring' => 'rgba(139,120,181,0.20)', 'border' => 'rgba(139,120,181,0.30)'], // Amethyst
+        ['accent' => '#C47A45', 'accentSoft' => 'rgba(196,122,69,0.42)', 'ring' => 'rgba(196,122,69,0.20)', 'border' => 'rgba(196,122,69,0.30)'], // Copper
+        ['accent' => '#6E9FA3', 'accentSoft' => 'rgba(110,159,163,0.42)', 'ring' => 'rgba(110,159,163,0.20)', 'border' => 'rgba(110,159,163,0.30)'], // Teal Steel
+        ['accent' => '#8C6F52', 'accentSoft' => 'rgba(140,111,82,0.42)', 'ring' => 'rgba(140,111,82,0.20)', 'border' => 'rgba(140,111,82,0.30)'], // Bronze
+        ['accent' => '#A65D5D', 'accentSoft' => 'rgba(166,93,93,0.42)', 'ring' => 'rgba(166,93,93,0.20)', 'border' => 'rgba(166,93,93,0.30)'], // Ruby
     ];
 @endphp
 
@@ -19,10 +19,14 @@
             $color = $palette[$loop->index % count($palette)];
         @endphp
 
-        <div
+        {{-- Untuk Border Color --}}
+        {{-- <div
             class="h-full flex flex-col rounded-xl bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-12px_rgba(15,23,42,0.12)]"
             style="border: 3px solid {{ $color['border'] }};"
-        >
+        > --}}
+            <div
+                class="h-full flex flex-col rounded-xl bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-12px_rgba(15,23,42,0.12)]" style=" border: 1px solid rgba(148,163,184,0.55); box-shadow: inset 0 1px 0 rgba(255,255,255,0.95), 0 1px 2px rgba(15,23,42,0.04), 0 8px 20px -12px rgba(15,23,42,0.12);"
+            >
             {{-- Group Header --}}
             <div class="flex items-center gap-2.5 mb-3.5 shrink-0">
                 <span
