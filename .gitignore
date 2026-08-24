@@ -1,0 +1,56 @@
+# ===== Docker =====
+/dbdata/
+/.env
+.env.*
+*.env
+
+# Docker cache & overrides
+**/.docker
+**/docker-compose.override.yml
+
+# ===== System files =====
+.DS_Store
+Thumbs.db
+
+# ===== VSCode / IDE =====
+.vscode/
+.idea/
+
+# ===== Logs & temp =====
+*.log
+*.cache
+*.pid
+*.seed
+*.bak
+*~
+*.swp
+*.swo
+
+npm_data/database.sqlite
+
+# TAMBAHAN TERBARU 13-5-2026
+npm_data/logs/
+
+# 13/6/2026
+# Laravel
+node_modules/
+
+src/vendor/
+src/node_modules/
+
+src/.env
+src/.env.*
+
+src/storage/logs/*
+src/storage/framework/cache/*
+src/storage/framework/sessions/*
+src/storage/framework/views/*
+
+# src/public/build/
+src/public/hot
+
+# Nginx Set Folder
+npm_data/
+npm_letsencrypt/
+# Docker logs
+logs/

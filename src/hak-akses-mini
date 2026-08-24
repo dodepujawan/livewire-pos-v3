@@ -1,0 +1,619 @@
+📘 POS SPA Framework Blueprint v1.0
+✅ Milestone 1 — Framework Foundation (100%)
+Tujuan
+Membangun fondasi framework agar seluruh halaman dapat ditemukan dan disinkronkan secara otomatis.
+Features
+✅ Laravel 12
+✅ Livewire 4 MFC Architecture
+✅ Route Discovery
+✅ Route Synchronization
+✅ System Route Table
+✅ Display Name Generator
+✅ Route Validation
+✅ One Route = One System Route
+Architecture
+Laravel Route
+        │
+        ▼
+Route Discovery
+        │
+        ▼
+RouteSyncCommand
+        │
+        ▼
+system_routes
+Files
+app/
+
+Console/
+    Commands/
+        RouteSyncCommand.php
+
+Models/
+    SystemRoute.php
+
+database/
+
+migrations/
+    create_system_routes_table.php
+Artisan
+php artisan framework:route-sync
+Depends On
+Laravel Routing
+FDR
+FDR-001
+FDR-007
+
+✅ Milestone 2 — Dynamic Menu Management (100%)
+Tujuan
+Seluruh menu aplikasi dikelola dari database.
+Features
+✅ Menu CRUD
+✅ Parent Menu
+✅ Child Menu
+✅ Dynamic Root Menu
+✅ Parent Menu Modal
+✅ Route Relation
+✅ Sort Order
+✅ Sidebar Flag
+✅ Editable Menu Title
+✅ Auto Display Name
+✅ Menu Preview
+Architecture
+system_routes
+      │
+      ▼
+menus
+      │
+      ▼
+Menu CRUD
+Files
+app/
+
+Models/
+    Menu.php
+
+database/
+
+migrations/
+    create_menus_table.php
+
+seeders/
+    MenuSeeder.php
+
+resources/views/pages/master/
+
+⚡menu-list/
+    menu-list.php
+    menu-list.blade.php
+
+⚡menu-create/
+    menu-create.php
+    menu-create.blade.php
+
+⚡menu-edit/
+    menu-edit.php
+    menu-edit.blade.php
+Artisan
+php artisan db:seed --class=MenuSeeder
+Depends On
+Milestone 1
+FDR
+FDR-002
+FDR-005
+
+✅ Milestone 3 — Dynamic Sidebar Engine (100%)
+Tujuan
+Sidebar dibangun sepenuhnya dari database.
+Features
+✅ Database Driven Sidebar
+✅ Parent / Child
+✅ Expand / Collapse
+✅ Active Parent
+✅ Active Child
+✅ Sort Order
+✅ Icon Support
+✅ Livewire Navigate
+Architecture
+menus
+    │
+    ▼
+Sidebar Component
+    │
+    ▼
+layouts/app.blade.php
+Files
+resources/views/
+
+components/sidebar/
+    sidebar.php
+    sidebar.blade.php
+
+layouts/
+    app.blade.php
+Depends On
+Milestone 2
+Remaining
+None
+
+🟡 Milestone 4 — UI Foundation (85%)
+Features
+Done
+✅ Sidebar UI
+✅ Hover Effect
+✅ Transition
+✅ Active Menu
+✅ Active Parent
+Remaining
+⬜ Breadcrumb
+⬜ Topbar
+⬜ User Profile
+⬜ Logout Dropdown
+⬜ Mobile Sidebar
+⬜ Desktop Polish
+Files
+resources/views/
+layouts/
+    app.blade.php
+components/sidebar/
+    sidebar.blade.php
+
+✅ Milestone 5 — Route Foundation (100%)
+Tujuan
+Semua Route framework dapat ditemukan secara otomatis.
+Features
+✅ Route Discovery
+✅ Route Synchronization
+✅ Route Filtering
+✅ Display Name Generator
+✅ Dynamic Menu Source
+Architecture
+Route
+   │
+   ▼
+RouteSyncCommand
+   │
+   ▼
+system_routes
+Files
+app/
+
+Console/
+    RouteSyncCommand.php
+
+Models/
+    SystemRoute.php
+Artisan
+php artisan framework:route-sync
+Depends On
+Milestone 1
+
+✅ Milestone 6 — Permission Engine (100%)
+Tujuan
+Permission dibuat otomatis berdasarkan Route dan Additional Permission.
+Features
+✅ Spatie Permission
+✅ Route → Permission Mapping
+✅ Permission Synchronization
+✅ Permission Matrix
+✅ Permission Save
+✅ Role Permission Sync
+✅ Select All
+✅ Clear All
+✅ Additional Permission Scanner
+✅ Livewire Component Scanner
+✅ Controller Scanner
+✅ Merge Route Permission + Additional Permission
+✅ Auto Remove Unused Permission
+✅ Permission Name Service
+Architecture
+Route
+      │
+      ▼
+PermissionNameService
+      │
+      ▼
+PermissionScannerService
+      │
+      ▼
+PermissionSyncCommand
+      │
+      ▼
+permissions
+      │
+      ▼
+PermissionMatrixService
+      │
+      ▼
+Permission Matrix
+Files
+app/
+
+Console/
+    PermissionSyncCommand.php
+
+Services/
+    PermissionScannerService.php
+    PermissionNameService.php
+    PermissionMatrixService.php
+
+Models/
+    SystemRoute.php
+
+resources/views/pages/auth/
+
+⚡permission-matrix/
+    permission-matrix.php
+    permission-matrix.blade.php
+
+database/
+
+migrations/
+    create_permission_tables.php
+
+seeders/
+    RoleSeeder.php
+    SuperAdminSeeder.php
+Artisan
+php artisan framework:permission-sync
+Depends On
+Milestone 1
+Milestone 5
+Spatie Permission
+FDR
+FDR-003
+FDR-004
+FDR-006
+FDR-007
+FDR-008
+Remaining
+⬜ Permission Cache
+⬜ Permission Seeder
+
+🟡 Milestone 7 — Role Engine (90%)
+Tujuan
+Mengelola Role dan Assignment Permission.
+Features
+Done
+✅ Role List
+✅ Create Role
+✅ Rename Role
+✅ Delete Role
+✅ Assign Permission
+✅ Save Permission
+✅ Protect Super Admin
+✅ Assign Role to User
+Remaining
+⬜ Role Seeder
+Architecture
+Role
+    │
+    ├── Permission Matrix
+    ├── Register
+    └── User
+Files
+resources/views/pages/system/
+
+⚡role-list/
+    role-list.php
+    role-list.blade.php
+
+resources/views/pages/auth/
+
+⚡register/
+    register.php
+    register.blade.php
+
+⚡register-list/
+    register-list.php
+    register-list.blade.php
+
+⚡register-edit/
+    register-edit.php
+    register-edit.blade.php
+
+database/
+
+seeders/
+    RoleSeeder.php
+    SuperAdminSeeder.php
+    UserSeeder.php
+Depends On
+Milestone 6
+FDR
+FDR-003
+
+✅ Milestone 8 — Dynamic Authorization (100%)
+✅ Sidebar Permission Filter
+Menu otomatis disembunyikan jika user tidak memiliki permission.
+Parent menu otomatis hilang jika semua child tidak boleh diakses.
+File:
+resources/views/components/sidebar/
+app/Services/PermissionNameService.php
+✅ Route Middleware
+PermissionMiddleware
+Route dicek berdasarkan permission.
+Route name otomatis dikonversi menjadi permission.
+File:
+app/Http/Middleware/
+    PermissionMiddleware.php
+✅ Livewire Permission Guard
+Sudah ada
+AuthorizesRoute
+dipakai oleh halaman Livewire.
+File
+app/Support/
+    AuthorizesRoute.php
+✅ Controller Permission Guard
+Sudah memakai mekanisme yang sama.
+✅ Permission Matrix
+Sekarang sudah:
+Database driven
+Resource otomatis
+Action otomatis
+Header otomatis
+Resource otomatis di-group
+Dynamic Column
+File
+app/Services/
+    PermissionMatrixService.php
+resources/views/pages/system/
+    system-management
+✅ Permission Name Service
+Sekarang semua mapping route → permission hanya ada satu tempat.
+master.barang.list
+↓
+master.barang.view
+File
+app/Services/
+    PermissionNameService.php
+✅ Permission Sync
+Sudah memakai PermissionNameService.
+File
+app/Console/Commands/
+    PermissionSyncCommand.php
+✅ Scanner
+Sudah support
+Livewire MFC
+Controller
+additionalPermissions
+
+; 🟡 Milestone 9 — Developer Experience(Not Done Unneeded at the moment)
+; Framework Generator
+; ⬜ make:master
+; ⬜ make:transaction
+; ⬜ make:page
+; ⬜ CRUD Generator
+; ⬜ Stub Generator
+
+🟡 Milestone 10 — Release v1
+⬜ Testing
+⬜ Documentation
+⬜ Versioning
+⬜ GitHub Release
+
+🟡 Milestone 11 — Deployment
+⬜ Auto Route Sync
+⬜ Auto Permission Sync
+⬜ Seeder Automation
+⬜ Initial Setup Wizard
+📘 Framework Decision Record (LOCK)
+
+FDR-001 — Route Rules
+✅ Route bebas jumlah segmen.
+✅ Segmen terakhir adalah Page Action.
+✅ Semua segmen sebelumnya dianggap Resource.
+✅ Route hanya merepresentasikan Page.
+
+FDR-002 — Menu Rules
+✅ system_routes menyimpan seluruh halaman.
+✅ display_name adalah nama default halaman.
+✅ menus.title adalah nama Sidebar yang dapat diubah Admin.
+✅ Parent Menu boleh memiliki Route atau tidak.
+✅ Child Menu wajib memiliki Route.
+✅ Satu system_route hanya boleh dipakai oleh satu Menu.
+
+FDR-003 — Permission Rules
+Permission dasar berasal dari Route.
+list   → view
+show   → view
+create → create
+edit   → update
+Permission tambahan berasal dari:
+protected array $additionalPermissions = [];
+Flow:
+Route
+↓
+PermissionNameService
+↓
+Permission Mapping
++
+additionalPermissions
+↓
+Merge
+
+↓
+Spatie Permission
+Permission dasar berasal dari Route.
+↓
+PermissionNameService
+↓
+Permission akhir
+
+FDR-004 — Scanner Rules
+
+Permission Scanner hanya melakukan scan terhadap handler yang digunakan Route.
+
+Didukung:
+
+✅ Livewire MFC Component
+✅ Laravel Controller
+
+Scanner Livewire menggunakan metadata route:
+
+livewire_component
+
+Kemudian membaca additionalPermissions langsung dari source code (regex), bukan dengan meng-instantiate anonymous component. Ini dipilih agar kompatibel dengan arsitektur Livewire MFC yang menggunakan new class extends Component.
+📌 Framework Principle
+Sebelum menambah fitur framework, selalu tanyakan:
+Apakah fitur ini benar-benar dibutuhkan?
+Apakah ada solusi yang lebih sederhana?
+Apakah tetap scalable?
+Apakah mudah di-maintain?
+Apakah perubahan 2 tahun lagi bisa dilakukan tanpa membongkar arsitektur?
+
+FDR-005 — Menu Creation Rules
+✅ Root Menu dapat dibuat langsung dari Menu Create.
+✅ Root Menu memiliki:
+    parent_id = null
+    system_route_id = null
+✅ Root Menu dapat dipilih kembali sebagai Parent Menu.
+✅ Parent Menu bersifat dinamis dan disimpan di database.
+✅ Menu Title otomatis mengambil display_name dari system_routes.
+✅ Admin tetap dapat mengubah Title sebelum disimpan.
+✅ Route bersifat opsional untuk Root Menu.
+✅ Child Menu dapat memiliki Route atau tidak sesuai kebutuhan.
+
+FDR-006 — Developer Permission Rules
+Untuk setiap Action bisnis baru yang bukan merupakan halaman (Page),
+Developer WAJIB mendeklarasikan permission melalui:
+protected array $additionalPermissions = [
+    'resource.action',
+];
+Contoh
+protected array $additionalPermissions = [
+
+    'master.barang.delete',
+    'master.barang.export',
+    'transaksi.penjualan.cancel',
+    'transaksi.penjualan.print',
+
+];
+PermissionSyncCommand akan menggabungkan:
+Route Permission
++
+Additional Permission
+menjadi daftar permission akhir.
+Framework menggunakan:
+App\Services\PermissionNameService
+sebagai satu-satunya konversi:
+Route Name
+↓
+Permission Name
+Developer tidak diperbolehkan membuat
+convertPermission() sendiri.
+
+FDR-007 — Naming Convention
+Route Name
+master.barang.list
+master.barang.create
+master.barang.edit
+Jumlah segmen bebas.
+Segmen terakhir = Page Action.
+Semua segmen sebelumnya = Resource.
+Controller Method
+list()
+show()
+create()
+store()
+edit()
+update()
+Action bisnis:
+delete()
+print()
+export()
+import()
+approval()
+posting()
+closing()
+cancel()
+Jika action bisnis ditambahkan,
+WAJIB menambahkan permission pada:
+protected array $additionalPermissions
+
+FDR-010 — Route Rename
+Apabila developer mengubah route_name
+yang sudah digunakan Menu,
+
+developer WAJIB
+memperbarui relasi Menu
+ke System Route yang baru.
+
+Framework tidak melakukan
+auto rename detection.
+
+// # Catatan User Pribadi
+contoh penamaan
+// | Action    | Arti                  |
+// | --------- | --------------------- |
+// | list      | Daftar                |
+// | show      | Detail                |
+// | create    | Form tambah           |
+// | store     | Simpan                |
+// | edit      | Form ubah             |
+// | update    | Proses update         |
+// | delete    | Hapus                 |
+// | destroy   | Proses hapus permanen |
+// | print     | Cetak                 |
+// | export    | Export                |
+// | import    | Import                |
+// | approve   | Approve               |
+// | reject    | Tolak                 |
+// | cancel    | Batal                 |
+// | duplicate | Salin                 |
+// | restore   | Restore               |
+// / cancelInvoice / ethod bisnis /
+// Contoh yang tidak aku sarankan:
+
+// transaksi.penjualan.print
+// transaksi.penjualan.export
+// transaksi.penjualan.approval
+
+// sebagai route halaman.
+
+// Route sebaiknya hanya untuk halaman.
+
+// Misalnya:
+
+// transaksi.penjualan.list
+// transaksi.penjualan.show
+// transaksi.penjualan.edit
+
+// Sedangkan aksi bisnis seperti:
+
+// Print
+// Export
+// Approval
+// Posting
+// Closing
+// Cancel
+
+// cukup menjadi permission tambahan ($additionalPermissions) dan method di controller, bukan halaman baru.
+
+// ### rangkuman file penting ###
+app/Console/Commands/RouteSyncCommand.php
+app/Console/Commands/PermissionSyncCommand.php
+
+app/Services/
+├── AuthorizationService.php
+├── PermissionNameService.php
+├── PermissionMatrixService.php
+└── PermissionScannerService.php
+
+app/Support/AuthorizesRoute.php
+
+app/Http/Middleware/PermissionMiddleware.php
+
+app/Models/
+├── Menu.php
+└── SystemRoute.php
+
+database/seeders/
+├── DatabaseSeeder.php
+├── MenuSeeder.php
+├── RoleSeeder.php
+├── SuperAdminSeeder.php
+└── UserSeeder.php
+
+bootstrap/app.php
+routes/web.php

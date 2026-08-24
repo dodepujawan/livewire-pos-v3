@@ -1,0 +1,914 @@
+AUTH Framework V2
+Easy Setup Permission & Menu Framework
+Software Design Document (SDD)
+
+Versi: 1.0 Draft
+Framework: Laravel 12 + Livewire 4 + Spatie Permission
+
+BAB 1
+Pendahuluan
+1.1 Latar Belakang
+
+Sebagian besar starter kit Laravel menggunakan Spatie Permission untuk mengatur hak akses.
+
+Namun proses implementasi masih cukup manual karena developer harus:
+
+membuat permission satu per satu,
+menghubungkan permission dengan route,
+membuat sidebar secara manual,
+mengatur menu terpisah dari permission.
+
+Framework ini dibuat untuk menyederhanakan proses tersebut tanpa menghilangkan fleksibilitas Laravel.
+
+1.2 Tujuan
+
+Framework memiliki tujuan utama:
+
+Easy Setup
+Easy Maintain
+Easy Extend
+Mendukung Livewire maupun Controller
+Tidak menggunakan Reflection
+Tidak menggunakan PHP Attribute
+Tidak melakukan scan Method
+Permission berbasis Route Name
+1.3 Target Pengguna
+
+Framework ditujukan untuk:
+
+Laravel Developer
+Freelancer
+Software House
+Internal Company
+
+Bukan ditujukan untuk End User.
+
+BAB 2
+Arsitektur Framework
+
+Framework menggunakan alur berikut.
+
+Developer
+        │
+        ▼
+Create Route
+        │
+        ▼
+Route Sync
+        │
+        ▼
+System Routes
+        │
+        ▼
+Menu Management
+        │
+        ▼
+Permission Sync
+        │
+        ▼
+Spatie Permission
+        │
+        ▼
+Role Management
+        │
+        ▼
+Sidebar
+Penjelasan
+Route
+
+Developer membuat route seperti biasa.
+
+Contoh
+
+Route::livewire('/barang', BarangPage::class)
+    ->name('barang.view');
+
+Route::get('/laporan/export')
+    ->name('laporan.export.pdf');
+
+Framework tidak membedakan apakah route berasal dari:
+
+Livewire
+Controller
+Closure
+
+Yang digunakan hanya Route Name.
+
+Route Sync
+
+Command
+
+php artisan route:sync
+
+Membaca seluruh Named Route Laravel.
+
+Disimpan ke tabel
+
+system_routes
+
+Belum membuat menu.
+
+Belum membuat permission.
+
+Menu Management
+
+Programmer membuat menu.
+
+Contoh
+
+Nama
+
+Barang
+
+Route
+
+barang.view
+
+Lalu mengatur:
+
+Section
+Icon
+Parent
+Sidebar
+Sort Order
+Action
+
+Programmer memilih action.
+
+Contoh
+
+✓ View
+
+✓ Store
+
+✓ Update
+
+✓ Delete
+
+✓ Print
+
+Atau menambahkan action baru.
+
+Approve
+
+Reject
+
+Closing
+
+Framework otomatis menghasilkan permission.
+
+barang.view
+
+barang.store
+
+barang.update
+
+barang.delete
+
+barang.print
+
+barang.approve
+Permission Sync
+
+Command
+
+php artisan permission:sync
+
+Membaca:
+
+Menu
+Menu Action
+Route Permission
+
+Kemudian membuat Permission pada Spatie.
+
+Role Management
+
+Client hanya mengatur:
+
+✓ Barang View
+
+✓ Barang Delete
+
+✓ Barang Print
+
+Client tidak membuat menu.
+
+Client tidak membuat permission.
+
+Sidebar
+
+Sidebar dibangun dari tabel Menu.
+
+Permission menentukan apakah menu boleh tampil.
+
+BAB 3
+Prinsip Framework
+
+Framework memiliki prinsip berikut.
+
+1
+
+Easy Setup
+
+Developer cukup membuat Route.
+
+2
+
+Convention Over Configuration
+
+Semua mengikuti Route Name.
+
+3
+
+Single Source of Truth
+
+Route adalah sumber utama halaman.
+
+Menu adalah sumber utama Sidebar.
+
+Permission adalah sumber utama Authorization.
+
+4
+
+No Reflection
+
+Framework tidak melakukan scan Method.
+
+5
+
+No PHP Attribute
+
+Framework tidak menggunakan Attribute.
+
+6
+
+Native Laravel
+
+Tetap menggunakan:
+
+Route
+Middleware
+Policy
+Gate
+Spatie Permission
+BAB 4
+Komponen Utama
+
+Nanti di bab ini kita bahas satu per satu:
+
+Struktur database.
+system_routes.
+menus.
+menu_actions.
+menu_route_permissions.
+Relasi tabel.
+
+### teknis
+BAB 4 dan BAB 5 adalah fondasi framework. Setelah dua bab ini selesai, kita hampir tidak perlu mengubah arsitektur lagi. Tinggal implementasi.
+
+BAB 4
+Desain Database
+4.1 Filosofi
+
+Framework memisahkan data menjadi tiga kategori.
+
+1. System Configuration
+
+Konfigurasi yang dibuat oleh programmer.
+
+Contoh:
+
+Route
+Menu
+Action
+Sidebar
+
+Data ini dapat diexport dan diimport ke project lain.
+
+2. Authorization
+
+Hak akses yang dibuat framework.
+
+Contoh:
+
+Permission
+Role
+Role Has Permission
+
+Framework menggunakan package Spatie Permission.
+
+3. Business Data
+
+Data transaksi aplikasi.
+
+Contoh:
+
+Customer
+Barang
+Invoice
+Penjualan
+
+Framework tidak pernah menyentuh data ini.
+
+4.2 Entity Relationship
+                 +------------------+
+                 | system_routes    |
+                 +------------------+
+                 | id               |
+                 | route_name       |
+                 | uri              |
+                 | methods          |
+                 | action           |
+                 | is_livewire      |
+                 +------------------+
+                          |
+                          |
+                          |
+                 route_name
+                          |
+                          |
+                 +------------------+
+                 | menus            |
+                 +------------------+
+                 | id               |
+                 | title            |
+                 | route_name       |
+                 | section          |
+                 | icon             |
+                 | parent_id        |
+                 | sort_order       |
+                 | is_sidebar       |
+                 | description      |
+                 +------------------+
+                          |
+            +-------------+--------------+
+            |                            |
+            |                            |
+     +--------------+           +----------------------+
+     | menu_actions |           | menu_route_permissions|
+     +--------------+           +----------------------+
+     | id           |           | id                   |
+     | menu_id      |           | menu_id              |
+     | action       |           | route_name           |
+     +--------------+           +----------------------+
+
+4.3 Tabel system_routes
+
+Tabel ini merupakan hasil sinkronisasi seluruh Route Laravel.
+
+Framework tidak pernah melakukan perubahan manual pada tabel ini.
+
+Struktur
+Field	Tipe	Keterangan
+id	bigint	Primary Key
+route_name	string	Nama Route Laravel
+uri	string	URI Route
+methods	string	GET, POST, PUT, DELETE
+action	string	Controller / Livewire Class
+is_livewire	boolean	Apakah Livewire
+created_at	timestamp	Created
+updated_at	timestamp	Updated
+
+Contoh Data
+
+Route
+dashboard
+barang.view
+customer.view
+transaksi.coolroom.view
+laporan.export.pdf
+4.4 Tabel menus
+
+Menyimpan seluruh konfigurasi Sidebar.
+
+Developer mengelola tabel ini melalui Menu Management.
+
+Struktur
+Field	Keterangan
+id	PK
+title	Nama Menu
+route_name	Route Laravel
+section	Kelompok Sidebar
+icon	Bootstrap Icon
+parent_id	Parent Menu
+sort_order	Urutan
+is_sidebar	Tampil Sidebar
+description	Catatan
+
+Contoh
+
+Title	Route
+Barang	barang.view
+Customer	customer.view
+Coolroom	transaksi.coolroom.view
+4.5 Tabel menu_actions
+
+Menyimpan Action yang dimiliki suatu Menu.
+
+Contoh.
+
+Menu
+
+Transaksi Coolroom
+
+Action
+
+View
+
+Store
+
+Update
+
+Delete
+
+Approve
+
+Struktur
+
+Field	Keterangan
+id	PK
+menu_id	FK Menu
+action	store/update/delete
+created_at	Timestamp
+
+Framework akan menghasilkan Permission.
+
+transaksi.coolroom.store
+
+transaksi.coolroom.update
+
+transaksi.coolroom.delete
+
+transaksi.coolroom.approve
+4.6 menu_route_permissions
+
+Digunakan untuk Route yang bukan Menu.
+
+Misalnya.
+
+laporan.export.pdf
+
+invoice.download
+
+customer.api.search
+
+Route ini tidak muncul pada Sidebar.
+
+Tetapi tetap muncul pada Role Management.
+
+Struktur
+
+Field	Keterangan
+id	PK
+menu_id	FK
+route_name	Route Laravel
+4.7 Tabel Spatie
+
+Framework menggunakan tabel bawaan.
+
+roles
+
+permissions
+
+model_has_roles
+
+model_has_permissions
+
+role_has_permissions
+
+Framework tidak mengubah struktur tabel Spatie.
+
+BAB 5
+Flow Framework
+
+Bab ini menjelaskan seluruh proses kerja framework.
+
+5.1 Flow Route
+
+Developer membuat Route.
+
+Route::livewire('/barang', BarangPage::class)
+    ->name('barang.view');
+
+atau
+
+Route::get('/laporan/export', ...)
+    ->name('laporan.export.pdf');
+
+↓
+
+Developer menjalankan.
+
+php artisan route:sync
+
+↓
+
+Framework membaca seluruh Named Route.
+
+↓
+
+Masuk ke.
+
+system_routes
+
+↓
+
+Selesai.
+
+Belum membuat Menu.
+
+Belum membuat Permission.
+
+5.2 Flow Menu
+
+Developer membuka.
+
+Menu Management
+
+↓
+
+Pilih Route.
+
+barang.view
+
+↓
+
+Isi.
+
+Nama
+Section
+Parent
+Icon
+Sidebar
+
+↓
+
+Klik Simpan.
+
+↓
+
+Masuk ke tabel.
+
+menus
+5.3 Flow Action
+
+Developer memilih.
+
+☑ View
+
+☑ Store
+
+☑ Delete
+
+☑ Print
+
+↓
+
+Framework menyimpan.
+
+menu_actions
+
+↓
+
+Belum membuat Permission.
+
+5.4 Flow Route Permission
+
+Developer memilih.
+
+laporan.export.pdf
+
+invoice.download
+
+↓
+
+Masuk ke.
+
+menu_route_permissions
+5.5 Flow Permission Sync
+
+Developer menjalankan.
+
+php artisan permission:sync
+
+↓
+
+Framework membaca.
+
+menus
+
+↓
+
+menu_actions
+
+↓
+
+menu_route_permissions
+
+↓
+
+Framework menghasilkan.
+
+barang.view
+
+barang.store
+
+barang.delete
+
+barang.print
+
+laporan.export.pdf
+
+↓
+
+Framework melakukan sinkronisasi ke tabel.
+
+permissions
+
+milik Spatie.
+
+5.6 Flow Role
+
+Client membuka.
+
+Role Management
+
+↓
+
+Centang.
+
+Barang View
+
+Barang Delete
+
+Barang Print
+
+↓
+
+Disimpan ke.
+
+role_has_permissions
+5.7 Flow Authorization
+
+Saat User Login.
+
+↓
+
+User membuka halaman.
+
+↓
+
+Middleware Spatie memeriksa.
+
+barang.view
+
+Jika lolos.
+
+↓
+
+User dapat membuka halaman.
+
+Saat User menekan tombol.
+
+Delete
+
+Controller atau Livewire memanggil.
+
+$this->authorize('barang.delete');
+
+↓
+
+Spatie memeriksa.
+
+↓
+
+Jika memiliki Permission.
+
+↓
+
+Action dijalankan.
+
+5.8 Flow Deployment
+
+Local
+
+↓
+
+Developer membuat Menu.
+
+↓
+
+Developer membuat Action.
+
+↓
+
+Developer menjalankan.
+
+php artisan permission:export
+
+↓
+
+Framework membuat file konfigurasi (format akhir akan kita tentukan: Seeder atau JSON).
+
+↓
+
+Commit Git
+
+↓
+
+Deploy VPS
+
+↓
+
+Jalankan import atau seeder.
+
+↓
+
+Database konfigurasi sama seperti Local.
+
+📌 Catatan Arsitektur (Menurutku Penting)
+
+Sebelum kita coding, ada satu keputusan desain yang menurutku perlu kita tetapkan di dokumen ini:
+
+permission:sync harus bersifat idempotent. Artinya, dijalankan berkali-kali tidak membuat permission ganda, hanya menambah, memperbarui, atau menghapus (opsional dengan --clean) sesuai konfigurasi.
+route:sync tidak boleh menghapus route yang hilang secara otomatis. Lebih aman memberi status seperti is_active = false atau menandainya sebagai tidak ditemukan agar programmer bisa meninjau perubahan. Ini mengurangi risiko kehilangan konfigurasi jika ada route yang sementara dihapus saat development.
+
+Kalau dua aturan ini kita tetapkan sejak awal, implementasi nanti akan jauh lebih aman dan stabil. Menurutku setelah BAB 4 dan 5 ini, kita sudah siap masuk ke tahap coding dengan fondasi yang jelas.
+
+
+isi milestone 8 hapus jika sudah done
+📘 Milestone 8 — Dynamic Authorization
+
+Aku akan pecah menjadi beberapa tahap kecil.
+
+Tahap 8.1 — Sidebar Permission Filter ⭐⭐⭐⭐⭐
+
+Target:
+
+Role Kasir
+
+Permission:
+✔ barang.view
+
+Sidebar
+
+✔ Barang
+
+❌ User
+
+❌ Role
+
+❌ Permission
+
+❌ Setting
+
+Framework nanti cukup membaca permission, tanpa @can di setiap menu.
+
+Tahap 8.2 — Route Authorization ⭐⭐⭐⭐⭐
+
+Misalnya user membuka:
+
+/system/roles
+
+Framework otomatis:
+
+403 Forbidden
+
+tanpa developer menulis:
+
+->middleware('permission:system.role.view')
+
+di setiap route.
+
+Tahap 8.3 — Livewire Guard ⭐⭐⭐⭐⭐
+
+Misalnya user berhasil membuka halaman.
+
+Tetapi menekan:
+
+Save
+Delete
+Export
+
+Framework otomatis mengecek permission.
+
+Contoh:
+
+public function save()
+{
+    ...
+}
+
+Developer tidak perlu lagi menulis:
+
+Gate::authorize(...)
+
+atau
+
+abort_unless(...)
+Tahap 8.4 — Controller Guard
+
+Kalau pakai Controller biasa.
+
+Misalnya:
+
+print()
+
+delete()
+
+export()
+
+langsung dicek framework.
+
+Tahap 8.5 — Blade Helper
+
+Misalnya:
+
+<x-button permission="barang.delete">
+
+Kalau tidak punya permission
+
+↓
+
+Button tidak tampil.
+
+Tapi...
+
+Aku ingin mengubah sedikit roadmap.
+
+Authorization bukan satu milestone.
+
+Aku akan buat seperti ini.
+
+Milestone 8
+
+8.1 Sidebar Permission Filter
+
+8.2 Route Authorization
+
+8.3 Livewire Authorization
+
+8.4 Controller Authorization
+
+8.5 Blade Helper
+
+Karena tiap bagian bisa di-commit sendiri.
+
+Menurutku kita mulai dari 8.1
+
+Kenapa?
+
+Karena hasilnya langsung kelihatan.
+
+Login sebagai Kasir.
+
+Sidebar berubah.
+
+Login sebagai Admin.
+
+Sidebar berubah lagi.
+
+Developer langsung merasa:
+
+"Wah framework ini memang bekerja."
+
+Sebelum coding, aku ingin lock satu aturan (FDR-009)
+
+Ini penting karena akan mempengaruhi semua tahap berikutnya.
+
+FDR-009 — Authorization Source
+
+Framework tidak akan menyimpan permission di tabel menus.
+
+Permission selalu diambil dari system_routes.route_name.
+
+Flow:
+
+Menu
+        │
+        ▼
+System Route
+        │
+        ▼
+Route Name
+        │
+        ▼
+convertPermission()
+        │
+        ▼
+Permission
+        │
+        ▼
+auth()->user()->can(...)
+
+Jadi:
+
+menus tetap hanya mengurus tampilan.
+system_routes menjadi sumber identitas halaman.
+PermissionSyncCommand tetap menjadi satu-satunya tempat yang mengubah route menjadi permission.
+
+Aku sengaja memilih ini supaya tidak ada duplikasi data. Kalau suatu hari nama route berubah, cukup jalankan:
+
+php artisan framework:route-sync
+php artisan framework:permission-sync

@@ -1,0 +1,283 @@
+Roadmap Sprint 1
+✅ Milestone 1: Migration + Model
+🟢 Milestone 2
+✓ RouteSyncCommand
+✓ Route Discovery
+
+⏳ Milestone 3: Testing route:sync
+⏳ Milestone 4: Commit Sprint 1
+
+@1.
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('system_routes', function (Blueprint $table) {
+
+            $table->id();
+
+            // Nama route Laravel
+            $table->string('route_name')->unique();
+
+            // URI route
+            $table->string('uri');
+
+            // GET|POST|PUT|DELETE
+            $table->string('methods');
+
+            // Controller / Livewire
+            $table->string('action')->nullable();
+
+            // Waktu terakhir disinkronkan
+            $table->timestamp('last_sync_at')->nullable();
+
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('system_routes');
+    }
+};
+
+@2.
+Sekarang kita masuk ke Milestone 2, yaitu membuat command pertama kita.
+
+Targetnya sederhana:
+
+Laravel Route
+      │
+      ▼
+php artisan route:sync
+      │
+      ▼
+system_routes
+
+Belum ada menu, permission, atau sidebar.
+
+Step 1 - Buat Command
+php artisan make:command RouteSyncCommand
+
+Laravel akan membuat:
+
+app/
+└── Console/
+    └── Commands/
+        └── RouteSyncCommand.php
+Step 2 - Ubah Signature
+protected $signature = 'route:sync';
+
+protected $description = 'Synchronize Laravel named routes';
+
+Sehingga nanti bisa dijalankan:
+
+php artisan route:sync
+Step 3 - Alur Kerja
+
+Sebelum coding, kita tentukan dulu alurnya.
+
+Ambil semua Route Laravel
+        │
+        ▼
+Loop satu per satu
+        │
+        ▼
+Apakah punya nama?
+        │
+    ┌── Tidak → Lewati
+    │
+    └── Ya
+          │
+          ▼
+Update atau Insert
+          │
+          ▼
+system_routes
+
+Sederhana sekali.
+
+Step 4 - Ambil Semua Route
+
+Laravel menyediakan:
+
+use Illuminate\Support\Facades\Route;
+
+$routes = Route::getRoutes();
+
+Variabel $routes berisi semua route yang sudah terdaftar.
+
+Misalnya:
+
+dashboard
+
+barang.view
+
+customer.view
+
+laporan.export.pdf
+Step 5 - Loop
+foreach ($routes as $route) {
+
+}
+Step 6 - Lewati Route Tanpa Nama
+
+Tidak semua route punya nama.
+
+Misalnya:
+
+Route::get('/test', function () {});
+
+Route seperti ini tidak kita simpan.
+
+Cukup:
+
+if (!$route->getName()) {
+    continue;
+}
+Step 7 - Simpan ke Database
+
+Di sinilah kita memakai updateOrCreate().
+
+SystemRoute::updateOrCreate(
+    [
+        'route_name' => $route->getName(),
+    ],
+    [
+        'uri'          => $route->uri(),
+        'methods'      => implode('|', $route->methods()),
+        'action'       => $route->getActionName(),
+        'last_sync_at' => now(),
+    ]
+);
+
+Kenapa updateOrCreate()?
+
+Karena command ini harus aman dijalankan berkali-kali.
+
+Misalnya:
+
+Hari ini
+
+barang.view
+customer.view
+
+Besok ditambah
+
+supplier.view
+
+Maka:
+
+barang diperbarui
+customer diperbarui
+supplier ditambahkan
+
+Tidak ada data ganda.
+
+Step 8 - Beri Informasi ke User
+
+Di akhir command:
+
+$this->info('Route synchronization completed.');
+
+Sehingga hasilnya:
+
+php artisan route:sync
+
+Route synchronization completed.
+
+@3
+🎯 Target Milestone 3
+
+Sebelumnya:
+
+Laravel Route
+
+↓
+
+Console
+
+Sekarang menjadi:
+
+Laravel Route
+
+↓
+
+RouteSyncCommand
+
+↓
+
+system_routes
+Step 1 - Import Model
+
+Tambahkan di atas.
+
+use App\Models\SystemRoute;
+
+Sekarang import menjadi kurang lebih:
+
+use App\Models\SystemRoute;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Route;
+
+📒 Catatan Progress (yang bisa kamu simpan)
+Sprint 1 - Route Discovery ✅
+ Membuat tabel system_routes
+ Membuat model SystemRoute
+ Membuat Artisan Command route:sync
+ Mengambil seluruh Named Route Laravel
+ Menyimpan route ke tabel system_routes menggunakan updateOrCreate()
+ Berhasil membuktikan konsep Route Discovery
+Sprint 2 - Menu Foundation (Mulai) 🚧
+ Menentukan arsitektur menus
+ Mendesain relasi menus -> system_routes
+ Mendesain dukungan parent_id untuk submenu
+ Mendesain sort_order untuk urutan menu
+ Mendesain is_sidebar untuk kontrol tampilan
+ Membuat Menu Model
+ Membuat CRUD Menu
+ Membuat dropdown Route dari system_routes
+
+done Jadi aku menyatakan milestone ini
+
+✅ SELESAI
+
+Hari ini kita sudah menyelesaikan:
+
+✅ system_routes
+✅ RouteSyncCommand
+✅ Sinkronisasi route
+✅ Desain menus
+✅ Migration menus
+✅ Model Menu
+✅ Relasi Menu → SystemRoute
+✅ Relasi SystemRoute → Menu
+✅ Self Relationship (parent & children)
+
+Milestone 6 — Menu List V2
+
+Target akhirnya nanti seperti ini.
+
+Menu Management
+
++ Tambah Menu
+
+------------------------------------------------
+
+Dashboard
+
+Master
+    Barang
+
+Transaksi
+    Penjualan
+
+------------------------------------------------
+
+Edit   Delete

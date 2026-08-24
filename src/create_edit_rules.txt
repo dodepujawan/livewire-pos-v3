@@ -1,0 +1,7 @@
+| Create            | Edit                   |
+| ----------------- | ---------------------- |
+| save()            | update()               |
+| Tidak ada mount() | Ada mount()            |
+| Tidak ada menuId  | Ada menuId             |
+| Form kosong       | Form terisi            |
+| Menu::create()    | Menu::find()->update() |

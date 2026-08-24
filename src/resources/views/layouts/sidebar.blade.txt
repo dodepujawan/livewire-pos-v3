@@ -1,0 +1,95 @@
+{{-- OVERLAY --}}
+<div
+    x-show="sidebarOpen"
+    @click="sidebarOpen = false"
+    x-transition.opacity
+    class="fixed inset-0 bg-black/50 z-40"
+></div>
+
+{{-- SIDEBAR --}}
+<div
+    class="fixed top-0 left-0 w-64 h-full bg-white shadow-lg z-50
+           transform transition-transform duration-300 flex flex-col"
+    :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+>
+
+    {{-- HEADER --}}
+    <div class="p-4 border-b flex justify-between items-center">
+        <span class="font-bold">POS SPA</span>
+
+        <button @click="sidebarOpen = false">✖</button>
+    </div>
+
+    {{-- MENU (SCROLLABLE) --}}
+    <nav class="flex-1 overflow-y-auto p-4 space-y-2 text-sm">
+
+        <!-- DASHBOARD -->
+        <a href="{{ route('dashboard') }}" wire:navigate
+           class="block px-2 py-2 rounded hover:bg-gray-100">
+            🏠 Dashboard
+        </a>
+
+        <!-- USER -->
+        <div x-data="{ open: false }">
+            <button
+                @click="open = !open"
+                class="w-full flex justify-between px-2 py-2 hover:bg-gray-100 rounded"
+            >
+                <span>👤 User</span>
+                <span x-text="open ? '-' : '+'"></span>
+            </button>
+
+            <div x-show="open" x-transition class="ml-4 mt-1">
+                <a href="{{ route('register-list') }}" wire:navigate
+                   class="block px-2 py-1 hover:bg-gray-100 rounded">
+                    List User
+                </a>
+                <a href="{{ route('register') }}" wire:navigate
+                   class="block px-2 py-1 hover:bg-gray-100 rounded">
+                    Register User
+                </a>
+            </div>
+        </div>
+
+        <!-- TRANSAKSI -->
+        <div x-data="{ open: false }">
+            <button
+                @click="open = !open"
+                class="w-full flex justify-between px-2 py-2 hover:bg-gray-100 rounded"
+            >
+                <span>🛒 Barang</span>
+                <span x-text="open ? '-' : '+'"></span>
+            </button>
+
+            <div x-show="open" x-transition class="ml-4 mt-1">
+                <a href="{{ route('barang-list') }}" wire:navigate class="block px-2 py-1 hover:bg-gray-100 rounded">
+                    List Barang
+                </a>
+                <a href="#" class="block px-2 py-1 hover:bg-gray-100 rounded">
+                    POS Admin
+                </a>
+            </div>
+        </div>
+
+        <!-- TRANSAKSI -->
+        <div x-data="{ open: false }">
+            <button
+                @click="open = !open"
+                class="w-full flex justify-between px-2 py-2 hover:bg-gray-100 rounded"
+            >
+                <span>🛒 Transaksi</span>
+                <span x-text="open ? '-' : '+'"></span>
+            </button>
+
+            <div x-show="open" x-transition class="ml-4 mt-1">
+                <a href="#" class="block px-2 py-1 hover:bg-gray-100 rounded">
+                    POS Kasir
+                </a>
+                <a href="#" class="block px-2 py-1 hover:bg-gray-100 rounded">
+                    POS Admin
+                </a>
+            </div>
+        </div>
+
+    </nav>
+</div>

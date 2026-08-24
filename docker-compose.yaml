@@ -1,0 +1,118 @@
+services:
+  app:
+    build: ./php
+    container_name: livewire_pos_v3        # ✏️ Ubah
+    volumes:
+      - ./src:/var/www/html/src
+      - ./logs/php:/var/log/php         # ✅ Tambahan log PHP-FPM
+    networks:
+      - laravel
+    depends_on:
+      - db
+    # restart: always                       # ✅ di VPS: auto hidup lagi kalau mati
+
+
+  db:
+    image: mysql:8.0.36
+    container_name: livewire_pos_db_v3       # ✏️ Ubah
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: latihan
+      MYSQL_USER: userku              # ✅ untuk navicat
+      MYSQL_PASSWORD: passku          # ✅ untuk navicat
+    ports:
+      - "3307:3306"                     # ✏️ Ubah
+    volumes:
+      - dbdata:/var/lib/mysql
+    networks:
+      - laravel
+    # restart: always                       # ✅ biar database gak gampang down
+
+  web:
+    image: nginx:1.27-alpine
+    container_name: livewire_pos_web_v3        # ✏️ Ubah
+    expose:
+      - "80"                           # ✅ untuk NPM (tidak dibuka langsung ke luar)
+    volumes:
+      - ./src:/var/www/html/src
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ./logs/nginx:/var/log/nginx    # ✅ Tambahan log Nginx
+    depends_on:
+      - app
+    networks:
+      - laravel
+    # restart: always                       # ✅ biar Nginx auto hidup di VPS
+
+  # 🆕 Tambahkan Nginx Proxy Manager (NPM)
+  nginxproxymanager:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: livewire_pos_npm_v3       # ✏️ Ubah
+    # restart: always
+    ports:
+      - "8090:80"      # HTTP (publik)
+      - "8091:81"      # Dashboard GUI
+      - "4443:443"    # HTTPS
+    volumes:
+      - ./npm_data:/data              # 🆕 Simpan konfigurasi GUI NPM
+      - ./npm_letsencrypt:/etc/letsencrypt  # 🆕 Simpan sertifikat SSL
+    networks:
+      - laravel                       # 🆕 Hubungkan ke jaringan yang sama biar bisa proxy ke "web"
+
+volumes:
+  dbdata:
+  npm_data:
+  npm_letsencrypt:
+
+networks:
+  laravel:
+    driver: bridge
+
+# [versi tanpa domain ssl]
+# version: "3.9"
+
+# services:
+#   app:
+#     build: ./php
+#     container_name: laravel_app
+#     volumes:
+#       - ./src:/var/www/html/src
+#     networks:
+#       - laravel
+#     depends_on:
+#       - db
+
+#   db:
+#     image: mysql:8.0.36
+#     container_name: laravel_db
+#     environment:
+#       MYSQL_ROOT_PASSWORD: root
+#       MYSQL_DATABASE: latihan
+#       MYSQL_USER: userku        # tetap ini
+#       MYSQL_PASSWORD: passku     # tetap ini
+#     ports:
+#       - "3307:3306"
+#     volumes:
+#       - dbdata:/var/lib/mysql
+#     networks:
+#       - laravel
+
+#   web:
+#     image: nginx:1.27-alpine
+#     container_name: laravel_web
+#     ports:
+#       - "8000:80"
+#     volumes:
+#       - ./src:/var/www/html/src
+#       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+#     depends_on:
+#       - app
+#     networks:
+#       - laravel
+
+# volumes:
+#   dbdata:
+
+# networks:
+#   laravel:
+#     driver: bridge
+# [versi tanpa domain ssl]
