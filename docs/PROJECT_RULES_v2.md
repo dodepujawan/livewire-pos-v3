@@ -77,23 +77,36 @@ lengakpanya bisa baca disisni path:docs/hak-akses-ai.md
 - Search gunakan debounce.
 - Jangan gunakan protected `$casts` pada Livewire Component.
 
-Input:
-- Search/barcode/autocomplete → `wire:model.live`
-- Qty/diskon/pembayaran → `wire:model.live.debounce.500ms`
-- Input biasa → `wire:model.blur`
-- Readonly → jangan gunakan `wire:model`
+### 7.1 Livewire Blade Directive Warning (CRITICAL)
+**Dilarang keras** menggunakan `@empty` / `@endempty` di Livewire component.
 
-Numeric:
-- Input boleh berupa string saat mengetik.
-- `""`/`null` dianggap 0.
-- Normalisasi sebelum operasi matematika.
-- Gunakan helper seperti `toFloat()` jika diperlukan.
+**Alasan:** Bug Livewire 4 — Livewire compiler generate kode PHP yang butuh variable `$__empty_0`, tapi variable ini tidak di-inisialisasi saat `@empty` dipakai di dalam nested `@foreach`.
 
-Keyboard:
-- Enter wajib `.prevent`.
-- Enter tidak submit form kecuali tombol Simpan.
-- Enter Kode Barang → `searchBarang()`.
-- Enter Qty → `addToCart()`.
+**Akibat:** Error `Undefined variable $__empty_0` di runtime. Error page Laravel juga corrupt (syntax error), jadi error asli tidak terlihat di browser.
+
+**Solusi:** Ganti `@empty` dengan pure Blade:
+```blade
+{{-- SALAH (bug Livewire 4) --}}
+@foreach($items as $item)
+    ...
+@empty
+    <p>Data kosong</p>
+@endforelse
+
+{{-- BENAR (compatible) --}}
+@if($items->isEmpty())
+    <p>Data kosong</p>
+@else
+    @foreach($items as $item)
+        ...
+    @endforeach
+@endif
+```
+
+**Rule:**
+- Hindari `@empty`, `@emptyforelse`, `@emptywhile` di Livewire component
+- Pakai `@if($collection->isEmpty())` / `@else` / `@endif` sebagai alternative
+- Jika pakai `@empty` dan error, langsung ganti ke `@if(isEmpty())`
 
 ## 8. POS UI/UX
 Desktop-first: 1920x1080, 1600x900, 1366x768.
@@ -205,7 +218,54 @@ catatn tambahan ketita pelru mengedit dan membuat file baru wajib tanya programm
 
 apbila butuh artisan jalankan docker compose exec app bash -> cd src -> artisan 
 
-"KATA KUNCI INSTANSI KEAMANAN OPERASIONAL:Dilarang Keras menjalankan perintah terminal yang bersifat merusak infrastruktur data seperti: DROP, DELETE, rm -rf pada file database, terraform destroy, atau pembersihan total data lokal.Jika mendeteksi galat koneksi database, wajib melaporkan kesalahan teks tersebut kepada pengguna dan dilarang mencoba memperbaiki status database dengan cara menghapus data atau mereset tabel secara otonom.Ikuti aturan Rule 13 (AI Workflow): Buat Mega Plan terlebih dahulu, jelaskan akar masalah, dan tunggu approval manual dari programmer sebelum mengubah kode apa pun."
+"KATA KUNCI INSTANSI KEAMANAN OPERASIONAL:Dilarang Keras menjalankan perintah terminal yang bersifat merusak infrastruktur data seperti: DROP, DELETE, rm -rf pada file database, terraform destroy, atau pembersihan total data lokal, atau migrate:fresh, migrate:refresh.Jika mendeteksi galat koneksi database, wajib melaporkan kesalahan teks tersebut kepada pengguna dan dilarang mencoba memperbaiki status database dengan cara menghapus data atau mereset tabel secara otonom.Ikuti aturan Rule 13 (AI Workflow): Buat Mega Plan terlebih dahulu, jelaskan akar masalah, dan tunggu approval manual dari programmer sebelum mengubah kode apa pun."
 
 dan juga baca ini
 .kiloignore
+
+## 16. Debugging & Error Handling (CRITICAL)
+
+### 16.1 Error Tidak Terlihat di Browser
+**Masalah:** Error page Laravel corrupt (syntax error di error page), jadi error asli tidak terlihat di browser.
+
+**Solusi:** Baca log file Laravel langsung:
+```bash
+docker compose exec app bash -c "cd src && tail -n 200 storage/logs/laravel.log"
+```
+
+**Log file:** `storage/logs/laravel.log`
+- Mencatat semua error lengkap: message, file, line number, stack trace
+- Format: `[timestamp] level.ERROR: message {"userId":X,"exception":"..."} `
+
+### 16.2 Compiled View Cache
+**Masalah:** Livewire compile blade ke PHP di `storage/framework/views/`. Cache ini bisa corrupt atau stale.
+
+**Solusi:** Clear cache jika error aneh-aneh:
+```bash
+docker compose exec app bash -c "cd src && rm -rf storage/framework/views/* storage/framework/cache/* storage/framework/sessions/* && php artisan optimize:clear && php artisan view:clear"
+```
+
+**Aman?** Ya, `storage/` adalah directory auto-generated Laravel. Isinya:
+- Compiled views (result dari compile blade) → bisa generate ulang
+- Cache (config, route) → auto-regenerate
+- Sessions (temporary) → session baru dibuat saat login
+
+**TIDAK ada di storage/:**
+- Source code (`src/`)
+- Database (`database/`)
+- Configuration (`config/`)
+- Migration (`database/migrations/`)
+
+### 16.3 Error Diagnosis Flow
+1. Baca `storage/logs/laravel.log` → lihat error message asli
+2. Cek compiled view di `storage/framework/views/` → cari line error
+3. Map ke source blade file → cari baris yang menyebabkan error
+4. Fix source blade, bukan compiled view
+
+### 16.4 Livewire-Specific Errors
+**Common bugs:**
+- `@empty` directive → ganti ke `@if($collection->isEmpty())`
+- Nested `@foreach` + `@empty` → pasti error di Livewire 4
+- Compiled view corrupt → clear `storage/framework/views/*`
+
+**Rule:** Jika error di Livewire component dan tidak jelas, clear cache dulu, lalu baca log.

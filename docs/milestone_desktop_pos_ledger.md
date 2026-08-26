@@ -84,10 +84,11 @@
 
 **Tujuan:** barang masuk & harga beli punya sumber asli.
 
-- [ ] Migration: `pembelian` + `pembelian_detail` (section 9.4 db doc).
-- [ ] UI `pembelian.list / .create / .edit` (module `transaksi.pembelian.*`).
-- [ ] Status `TERIMA` → `DB::transaction()`: `stok_mutasi` MASUK + update `barang.harga_beli` & `barang_stok`.
-- [ ] Aksi `transaksi.pembelian.receive`, `.cancel` → `$additionalPermissions`.
+- [x] Migration: `pembelian` + `pembelian_detail` (section 9.4 db doc).
+- [x] UI `pembelian.list / .create / .edit` (module `transaksi.pembelian.*`).
+- [x] Status `TERIMA` → `DB::transaction()`: `stok_mutasi` MASUK + update `barang.harga_beli` & `barang_stok`.
+- [x] Aksi `transaksi.pembelian.receive`, `.cancel` → `$additionalPermissions`.
+- [x] `cancelPembelian()` fix: jika status TERIMA, rollback stok (KELUAR) sebelum set BATAL.
 
 ---
 
@@ -95,13 +96,16 @@
 
 **Tujuan:** setiap uang tercatat 2 sisi, laporan keuangan jadi otomatis.
 
-- [ ] Migration: `akun`, `jurnal`, `jurnal_detail` (section 9.2–9.3 db doc).
-- [ ] Seed akun dasar: Kas, Persediaan, HPP, Penjualan, Beban, Utang, Modal.
-- [ ] Service `JurnalService`:
+- [x] Migration: `akun`, `jurnal`, `jurnal_detail` (section 9.2–9.3 db doc).
+- [x] Seed akun dasar: Kas, Persediaan, HPP, Penjualan, Beban, Utang, Modal.
+- [x] Service `JurnalService`:
   - Dari transaksi LUNAS → jurnal (Kas debet, Penjualan kredit, HPP debet, Persediaan kredit).
   - Dari pembelian TERIMA → jurnal (Persediaan debet, Utang/Hutang kredit).
-- [ ] UI `laporan.buku-besar.list`, `laporan.laba-rugi.list` (agregat dari `jurnal_detail`).
-- [ ] Aksi `laporan.laba-rugi.export` → `$additionalPermissions`.
+  - Refund → kebalikan jurnal penjualan.
+- [x] UI `laporan.buku-besar.list`, `laporan.laba-rugi.list` (agregat dari `jurnal_detail`).
+- [x] Aksi `laporan.laba-rugi.export` → `$additionalPermissions`.
+- [x] Update `transaksi-create` trigger `JurnalService::buatJurnalPenjualan()` saat status SELESAI.
+- [x] Update `pembelian-edit` trigger `JurnalService::buatJurnalPembelian()` saat receive.
 
 ---
 

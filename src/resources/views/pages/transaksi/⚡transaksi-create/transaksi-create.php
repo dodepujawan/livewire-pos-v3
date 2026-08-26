@@ -411,6 +411,10 @@ new class extends Component
                         ]);
                     }
                 }
+
+                if ($this->transStatus === 'SELESAI') {
+                    \App\Services\JurnalService::buatJurnalPenjualan($transaksi);
+                }
             });
 
             \DB::commit();

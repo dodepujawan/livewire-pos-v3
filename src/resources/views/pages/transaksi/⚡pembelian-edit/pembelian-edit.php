@@ -339,6 +339,8 @@ new class extends Component
                 }
             });
 
+            \App\Services\JurnalService::buatJurnalPembelian($pembelian);
+
             session()->flash('success', 'Pembelian berhasil diterima');
 
             $this->redirect(route('transaksi.pembelian.list'), navigate: true);
@@ -359,6 +361,32 @@ new class extends Component
 
         try {
             \DB::transaction(function () use ($pembelian) {
+                if ($pembelian->status === 'TERIMA') {
+                    foreach ($pembelian->details as $detail) {
+                        $barang = Barang::find($detail->barang_id);
+                        if ($barang) {
+                            $qtyPcs = (float) $detail->qty * ($detail->satuan->konversi ?? 1);
+
+                            StokMutasi::create([
+                                'barang_id' => $detail->barang_id,
+                                'cabang_id' => $pembelian->cabang_id,
+                                'tanggal' => now(),
+                                'tipe' => 'KELUAR',
+                                'qty' => $qtyPcs,
+                                'qty_satuan' => $detail->qty,
+                                'keterangan' => 'Cancel Pembelian ' . $pembelian->nomor_beli,
+                            ]);
+
+                            BarangStok::where([
+                                'barang_id' => $detail->barang_id,
+                                'cabang_id' => $pembelian->cabang_id,
+                            ])->decrement('stok', $qtyPcs);
+
+                            $barang->decrement('stok', $qtyPcs);
+                        }
+                    }
+                }
+
                 $pembelian->update(['status' => 'BATAL']);
             });
 

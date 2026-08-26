@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             CabangSeeder::class,
+            AkunSeeder::class,
             MenuSeeder::class,
             LauncherGroupSeeder::class,
             SuperAdminSeeder::class,

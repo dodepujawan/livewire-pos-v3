@@ -12,10 +12,10 @@
 | 0 | Persiapan | ✅ | Mega Plan & dokumentasi selesai |
 | 1 | Multi-Cabang | ✅ | Fondasi: tabel cabang, barang_stok, model, MFC, routes |
 | 2 | Master Barang & Satuan | ✅ | Tambah harga_beli, is_default |
-| 3 | POS Penjualan | 🔄 | Migration + model + transaksi-create + cancel |
-| 4 | Cash Ledger | 🔄 | kas_mutasi + laporan kas + refund cancel |
-| 5 | Pembelian & HPP | 🔄 | pembelian + pembelian_detail + receive stok |
-| 6 | Jurnal Akuntansi | ⏳ | Akun, jurnal, jurnal_detail |
+| 3 | POS Penjualan | ✅ | Migration + model + transaksi-create + cancel + kas_mutasi |
+| 4 | Cash Ledger | ✅ | kas_mutasi + laporan kas + refund cancel |
+| 5 | Pembelian & HPP | ✅ | pembelian + pembelian_detail + receive/cancel stok |
+| 6 | Jurnal Akuntansi | ✅ | Akun, jurnal, jurnal_detail + service + laporan laba-rugi |
 | 7 | Piutang, Hutang & Pajak | ⏳ | Piutang, hutang, pelunasan, PPN |
 | 8 | Laporan Gabungan & Final | ⏳ | Semua laporan + test |
 
@@ -185,12 +185,67 @@
 - `receivePembelian()` di `pembelian-edit` sudah ada tapi belum diuji langsung
 - Belum ada validasi `harga_beli` minimum saat create/edit
 - Menu sidebar belum ada entry untuk "Pembelian Barang"
+- **FIXED**: `cancelPembelian()` sekarang rollback stok jika pembelian sudah status TERIMA (KELUAR stok_mutasi + decrement barang_stok + decrement barang.stok)
 
 **Hint untuk tahap berikutnya:**
-- Lanjut **Tahap 6** — Jurnal Akuntansi: tabel `akun`, `jurnal`, `jurnal_detail`
-- Migration: `create_akun_table`, `create_jurnal_table`, `create_jurnal_detail_table`
-- Seed akun dasar: Kas, Persediaan, HPP, Penjualan, Beban, Utang, Modal
-- Service `JurnalService`: dari transaksi LUNAS → jurnal, dari pembelian TERIMA → jurnal
+- Lanjut **Tahap 7** — Piutang, Hutang & Pajak: tabel `piutang`, `hutang`, `pelunasan` + kolom `pajak` di transaksi & pembelian
+- Migration: `create_piutang_table`, `create_hutang_table`, `create_pelunasan_table`, `add_pajak_to_transaksi`, `add_pajak_to_pembelian`
+- UI `transaksi.piutang-list`, `transaksi.hutang-list` (list + tombol bayar)
+- Logic pelunasan: update sisa → jika 0 status LUNAS → insert kas_mutasi → insert jurnal
+- Additional Permissions: `transaksi.piutang.pay`, `transaksi.hutang.pay`
+
+### Tahap 6 — Jurnal Akuntansi (2026-08-26)
+
+**Selesai:**
+- 3 migration: `create_akun_table`, `create_jurnal_table`, `create_jurnal_detail_table`
+- Model `Akun`, `Jurnal`, `JurnalDetail` baru + relationships
+- Seeder `AkunSeeder` — 8 akun dasar: 1001 Kas, 1002 Piutang, 1003 Persediaan, 2001 Hutang, 3001 Modal, 4001 Penjualan, 5001 HPP, 6001 Beban Operasional
+- Service `JurnalService`:
+  - `buatJurnalPenjualan(Transaksi)` → Kas debet / Penjualan kredit / HPP debet / Persediaan kredit
+  - `buatJurnalPembelian(Pembelian)` → Persediaan debet / Hutang kredit
+  - `buatJurnalRefund(Transaksi)` → kebalikan jurnal penjualan
+- Update `transaksi-create`: trigger `JurnalService::buatJurnalPenjualan()` saat status SELESAI
+- Update `pembelian-edit`: trigger `JurnalService::buatJurnalPembelian()` saat receive
+- MFC `buku-besar-list`: filter nomor/keterangan + tipe akun + tanggal, tampilkan semua detail jurnal
+- MFC `laba-rugi-list`: filter tanggal, ringkasan pendapatan vs beban = laba/rugi bersih
+- Routes: `laporan.buku-besar.list`, `laporan.laba-rugi.list`
+- DatabaseSeeder: tambah AkunSeeder
+
+**File berubah:**
+- `src/database/migrations/2026_08_24_000012_create_akun_table.php` (BARU)
+- `src/database/migrations/2026_08_24_000013_create_jurnal_table.php` (BARU)
+- `src/database/migrations/2026_08_24_000014_create_jurnal_detail_table.php` (BARU)
+- `src/app/Models/Akun.php` (BARU)
+- `src/app/Models/Jurnal.php` (BARU)
+- `src/app/Models/JurnalDetail.php` (BARU)
+- `src/database/seeders/AkunSeeder.php` (BARU)
+- `src/database/seeders/DatabaseSeeder.php` (UPDATE)
+- `src/app/Services/JurnalService.php` (BARU)
+- `src/resources/views/pages/transaksi/⚡transaksi-create/transaksi-create.php` (UPDATE)
+- `src/resources/views/pages/transaksi/⚡pembelian-edit/pembelian-edit.php` (UPDATE)
+- `src/resources/views/pages/laporan/⚡buku-besar-list/buku-besar-list.php` (BARU)
+- `src/resources/views/pages/laporan/⚡buku-besar-list/buku-besar-list.blade.php` (BARU)
+- `src/resources/views/pages/laporan/⚡laba-rugi-list/laba-rugi-list.php` (BARU)
+- `src/resources/views/pages/laporan/⚡laba-rugi-list/laba-rugi-list.blade.php` (BARU)
+- `src/routes/web.php` (UPDATE)
+
+**Migration yang dibuat:**
+- `2026_08_24_000012_create_akun_table`
+- `2026_08_24_000013_create_jurnal_table`
+- `2026_08_24_000014_create_jurnal_detail_table`
+
+**Known Issues / TODO:**
+- Nomor jurnal format: JNL-SAL-{YYYYMMDD}-{seq} untuk penjualan, JNL-BEL-{YYYYMMDD}-{seq} untuk pembelian
+- Jurnal belum dibuat saat transaksi non-TUNAI (TRANSFER/QRIS) — bisa ditambahkan nanti
+- Menu sidebar belum ada entry untuk "Buku Besar" dan "Laba Rugi"
+- Belum ada export PDF/Excel untuk laporan laba rugi
+
+**Hint untuk tahap berikutnya:**
+- Lanjut **Tahap 7** — Piutang, Hutang & Pajak: tabel `piutang`, `hutang`, `pelunasan` + kolom `pajak` di transaksi & pembelian
+- Migration: `create_piutang_table`, `create_hutang_table`, `create_pelunasan_table`, `add_pajak_to_transaksi`, `add_pajak_to_pembelian`
+- UI `transaksi.piutang-list`, `transaksi.hutang-list` (list + tombol bayar)
+- Logic pelunasan: update sisa → jika 0 status LUNAS → insert kas_mutasi → insert jurnal
+- Additional Permissions: `transaksi.piutang.pay`, `transaksi.hutang.pay`
 
 ### Tahap 2 — Master Barang & Satuan (2026-08-24)
 

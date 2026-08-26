@@ -69,6 +69,8 @@ Route::prefix('system')->middleware(['auth', 'permission'])->name('system.')->gr
 
 Route::prefix('laporan')->middleware(['auth', 'permission'])->group(function () {
     Route::livewire('/kas', 'pages::laporan.kas-list')->name('laporan.kas.list');
+    Route::livewire('/buku-besar', 'pages::laporan.buku-besar-list')->name('laporan.buku-besar.list');
+    Route::livewire('/laba-rugi', 'pages::laporan.laba-rugi-list')->name('laporan.laba-rugi.list');
 });
 
 // Hilangkan ini saat awal middleware(['auth', 'permission'])
