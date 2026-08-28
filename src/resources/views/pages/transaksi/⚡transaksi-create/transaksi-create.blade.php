@@ -23,67 +23,8 @@
         {{-- Main Grid Layout --}}
         <div class="grid gap-2 h-full min-h-0" style="grid-template-columns: 300px minmax(0,1fr) 300px;">
 
-            {{-- Left Column: Header & Add Item (fixed 300px) --}}
+            {{-- Left Column: Add Item only (fixed 300px) --}}
             <div class="flex flex-col gap-2 min-h-0 overflow-y-auto pr-1">
-                {{-- Header Section --}}
-                <div class="bg-white rounded shadow p-3 shrink-0">
-                    <div class="space-y-2">
-                        {{-- Nomor Invoice --}}
-                        <div>
-                            <label class="block text-sm font-medium mb-1">No. Invoice</label>
-                            <input type="text" wire:model="transNoInvoice" readonly class="w-full border rounded px-3 py-1.5 bg-gray-100 text-sm">
-                            @error('transNoInvoice')
-                                <p class="text-red-500 text-sm mt-0.5">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        {{-- Tanggal --}}
-                        <div>
-                            <label class="block text-sm font-medium mb-1">Tanggal</label>
-                            <input type="date" wire:model="transTanggal" class="w-full border rounded px-3 py-1.5 text-sm">
-                            @error('transTanggal')
-                                <p class="text-red-500 text-sm mt-0.5">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        {{-- Customer --}}
-                        <div>
-                            <label class="block text-sm font-medium mb-1">Customer</label>
-                            <input type="text" wire:model="transCustomer" class="w-full border rounded px-3 py-1.5 text-sm" placeholder="Opsional">
-                            @error('transCustomer')
-                                <p class="text-red-500 text-sm mt-0.5">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        {{-- Cabang --}}
-                        <div>
-                            <label class="block text-sm font-medium mb-1">Cabang</label>
-                            <select wire:model="transCabangId" class="w-full border rounded px-3 py-1.5 text-sm">
-                                <option value="0">Pilih Cabang</option>
-                                @foreach($listCabang as $id => $nama)
-                                    <option value="{{ $id }}">{{ $nama }}</option>
-                                @endforeach
-                            </select>
-                            @error('transCabangId')
-                                <p class="text-red-500 text-sm mt-0.5">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        {{-- Metode Bayar --}}
-                        <div>
-                            <label class="block text-sm font-medium mb-1">Metode Bayar</label>
-                            <select wire:model="transMetodeBayar" class="w-full border rounded px-3 py-1.5 text-sm">
-                                <option value="TUNAI">Tunai</option>
-                                <option value="TRANSFER">Transfer</option>
-                                <option value="QRIS">QRIS</option>
-                            </select>
-                            @error('transMetodeBayar')
-                                <p class="text-red-500 text-sm mt-0.5">{{ $message }}</p>
-                            @enderror
-                        </div>
-                    </div>
-                </div>
-
                 {{-- Add Item Section --}}
                 <div class="bg-white rounded shadow p-3 shrink-0">
                     <h3 class="font-semibold mb-2 text-sm">Tambah Barang</h3>
@@ -240,63 +181,62 @@
                 @endif
             </div>
 
-            {{-- Right Column: Payment (fixed 300px) --}}
+            {{-- Right Column: Header + Payment (fixed 300px) --}}
             <div class="flex flex-col gap-2 min-h-0 overflow-y-auto pl-1">
-                {{-- Payment Section --}}
-                <div class="bg-white rounded shadow p-2 shrink-0">
-                    <h3 class="font-semibold mb-2 text-xs">Pembayaran</h3>
+                {{-- Header Section (moved from left) --}}
+                <div class="bg-white rounded shadow p-3 shrink-0">
                     <div class="space-y-2">
-                        {{-- Bayar Nominal --}}
+                        {{-- Nomor Invoice --}}
                         <div>
-                            <label class="block text-xs font-medium mb-1">Bayar</label>
-                            <input type="number" wire:model.live="transBayar" min="0" class="w-full border rounded px-2 py-1 text-xs">
-                            @error('transBayar')
-                                <p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>
+                            <label class="block text-sm font-medium mb-1">No. Invoice</label>
+                            <input type="text" wire:model="transNoInvoice" readonly class="w-full border rounded px-3 py-1.5 bg-gray-100 text-sm">
+                            @error('transNoInvoice')
+                                <p class="text-red-500 text-sm mt-0.5">{{ $message }}</p>
                             @enderror
                         </div>
 
-                        {{-- Kembalian --}}
+                        {{-- Tanggal --}}
                         <div>
-                            <label class="block text-xs font-medium mb-1">Kembali</label>
-                            <input type="text" readonly class="w-full border rounded px-2 py-1 bg-gray-100 text-xs" value="{{ number_format($transKembali, 0, ',', '.') }}">
-                        </div>
-
-                        {{-- Diskon Total --}}
-                        <div>
-                            <label class="block text-xs font-medium mb-1">Diskon Total</label>
-                            <input type="number" wire:model="transDiskonTotal" min="0" class="w-full border rounded px-2 py-1 text-xs">
-                            @error('transDiskonTotal')
-                                <p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>
+                            <label class="block text-sm font-medium mb-1">Tanggal</label>
+                            <input type="date" wire:model="transTanggal" class="w-full border rounded px-3 py-1.5 text-sm">
+                            @error('transTanggal')
+                                <p class="text-red-500 text-sm mt-0.5">{{ $message }}</p>
                             @enderror
                         </div>
 
-                        {{-- Pajak --}}
+                        {{-- Customer --}}
                         <div>
-                            <label class="block text-xs font-medium mb-1">Pajak (PPN)</label>
-                            <input type="number" wire:model="transPajak" min="0" class="w-full border rounded px-2 py-1 text-xs">
-                            @error('transPajak')
-                                <p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>
+                            <label class="block text-sm font-medium mb-1">Customer</label>
+                            <input type="text" wire:model="transCustomer" class="w-full border rounded px-3 py-1.5 text-sm" placeholder="Opsional">
+                            @error('transCustomer')
+                                <p class="text-red-500 text-sm mt-0.5">{{ $message }}</p>
                             @enderror
                         </div>
 
-                        {{-- Status --}}
+                        {{-- Cabang --}}
                         <div>
-                            <label class="block text-xs font-medium mb-1">Status</label>
-                            <select wire:model="transStatus" class="w-full border rounded px-2 py-1 text-xs">
-                                <option value="SELESAI">Selesai (Tunai/Lunas)</option>
-                                <option value="PIUTANG">Piutang (Belum Bayar)</option>
+                            <label class="block text-sm font-medium mb-1">Cabang</label>
+                            <select wire:model="transCabangId" class="w-full border rounded px-3 py-1.5 text-sm">
+                                <option value="0">Pilih Cabang</option>
+                                @foreach($listCabang as $id => $nama)
+                                    <option value="{{ $id }}">{{ $nama }}</option>
+                                @endforeach
                             </select>
-                            @error('transStatus')
-                                <p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>
+                            @error('transCabangId')
+                                <p class="text-red-500 text-sm mt-0.5">{{ $message }}</p>
                             @enderror
                         </div>
 
-                        {{-- Catatan --}}
+                        {{-- Metode Bayar --}}
                         <div>
-                            <label class="block text-xs font-medium mb-1">Catatan</label>
-                            <textarea wire:model="transCatatan" rows="2" class="w-full border rounded px-2 py-1 text-xs"></textarea>
-                            @error('transCatatan')
-                                <p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>
+                            <label class="block text-sm font-medium mb-1">Metode Bayar</label>
+                            <select wire:model="transMetodeBayar" class="w-full border rounded px-3 py-1.5 text-sm">
+                                <option value="TUNAI">Tunai</option>
+                                <option value="TRANSFER">Transfer</option>
+                                <option value="QRIS">QRIS</option>
+                            </select>
+                            @error('transMetodeBayar')
+                                <p class="text-red-500 text-sm mt-0.5">{{ $message }}</p>
                             @enderror
                         </div>
                     </div>
@@ -312,12 +252,73 @@
 
                 {{-- Action Buttons --}}
                 <div class="flex flex-col gap-2 shrink-0">
-                    <button type="submit" class="w-full px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold text-xs">Simpan</button>
+                    <button type="button" wire:click="openBayarModal" class="w-full px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold text-xs">Bayar</button>
                     <a href="{{ route('transaksi.penjualan.list') }}" wire:navigate class="w-full px-3 py-1.5 border rounded hover:bg-gray-50 text-center text-xs">Kembali</a>
                 </div>
             </div>
         </div>
     </form>
+
+    {{-- Bayar Modal --}}
+    @if($showBayarModal)
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" wire:click.self="$set('showBayarModal', false)">
+        <div class="w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-xl">
+            <div class="p-4">
+                <h2 class="text-base font-bold mb-3">Konfirmasi Pembayaran</h2>
+
+                {{-- Payment Card --}}
+                <div class="space-y-2 mb-3">
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Bayar</label>
+                        <input type="number" wire:model.live="transBayar" min="0" class="w-full border rounded px-2 py-1 text-xs">
+                        @error('transBayar')<p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Kembali</label>
+                        <input type="text" readonly class="w-full border rounded px-2 py-1 bg-gray-100 text-xs" value="{{ number_format($transKembali, 0, ',', '.') }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Diskon Total</label>
+                        <input type="number" wire:model="transDiskonTotal" min="0" class="w-full border rounded px-2 py-1 text-xs">
+                        @error('transDiskonTotal')<p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Pajak (PPN)</label>
+                        <input type="number" wire:model="transPajak" min="0" class="w-full border rounded px-2 py-1 text-xs">
+                        @error('transPajak')<p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Status</label>
+                        <select wire:model="transStatus" class="w-full border rounded px-2 py-1 text-xs">
+                            <option value="SELESAI">Selesai (Tunai/Lunas)</option>
+                            <option value="PIUTANG">Piutang (Belum Bayar)</option>
+                        </select>
+                        @error('transStatus')<p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1">Catatan</label>
+                        <textarea wire:model="transCatatan" rows="2" class="w-full border rounded px-2 py-1 text-xs"></textarea>
+                        @error('transCatatan')<p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>@enderror
+                    </div>
+                </div>
+
+                {{-- Grand Total in Modal --}}
+                <div class="p-2 border-t-2 border-blue-200 bg-gradient-to-r from-blue-50 to-blue-100 rounded mb-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-semibold text-blue-800">GRAND TOTAL</span>
+                        <span class="text-lg font-black text-blue-600">{{ number_format($transGrandTotal, 0, ',', '.') }}</span>
+                    </div>
+                </div>
+
+                {{-- Modal Buttons --}}
+                <div class="flex gap-2">
+                    <button type="button" wire:click="$set('showBayarModal', false)" class="flex-1 px-3 py-2 border rounded hover:bg-gray-50 text-xs">Kembali</button>
+                    <button type="submit" wire:click="saveTransaksi" class="flex-1 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold text-xs">Simpan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>
 @script
 <script>

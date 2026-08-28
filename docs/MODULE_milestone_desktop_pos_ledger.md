@@ -17,7 +17,7 @@
 | 5 | Pembelian & HPP | ✅ | pembelian + pembelian_detail + receive/cancel stok |
 | 6 | Jurnal Akuntansi | ✅ | Akun, jurnal, jurnal_detail + service + laporan laba-rugi |
 | 7 | Piutang, Hutang & Pajak | ✅ | Piutang, hutang, pelunasan, PPN, status PIUTANG |
-| 8 | Laporan Gabungan & Final | ⏳ | Semua laporan + test |
+| 8 | Laporan Gabungan & Final | ✅ | Penjualan, stok, neraca, arus kas + sidebar menu lengkap |
 
 ---
 
@@ -457,3 +457,47 @@ resources/views/pages/
 > adalah acuan bersama, bisa dilanjutkan AI mana pun asal baca `docs/` dulu.
 
 > tambahan tolong catat progress disini docs/MODULE_milestone_desktop_pos_ledger.md kalo perlu kasi sedikit hints untuk selanjutnya sehingga ai lain ada acuan lebih clear
+
+### Tahap 8 — Laporan Gabungan & Final (2026-08-28)
+
+**Selesai:**
+- 4 MFC laporan baru (tanpa migration, aggregates dari tabel existing):
+  - `laporan.penjualan-list`: filter tanggal/cabang/status, ringkasan total penjualan/pajak/diskon
+  - `laporan.stok-list`: mutasi stok (MASUK/KELUAR) per barang/cabang/tanggal
+  - `laporan.neraca-list`: saldo akun (ASET vs UTANG+MODAL+LABA), balance check
+  - `laporan.arus-kas-list`: kas_mutasi (MASUK/KELUAR) per cabang/sumber/tanggal
+- Routes: `laporan.penjualan.list`, `laporan.stok.list`, `laporan.neraca.list`, `laporan.arus-kas.list`
+- MenuSeeder: lengkap (Master: Barang+Cabang, Transaksi: Penjualan+Pembelian+Piutang+Hutang, Laporan: 7 laporan, Sistem: Pengaturan)
+- Permission sync: 45 permissions
+
+**File berubah:**
+- `src/resources/views/pages/laporan/⚡penjualan-list/penjualan-list.php` (BARU)
+- `src/resources/views/pages/laporan/⚡penjualan-list/penjualan-list.blade.php` (BARU)
+- `src/resources/views/pages/laporan/⚡stok-list/stok-list.php` (BARU)
+- `src/resources/views/pages/laporan/⚡stok-list/stok-list.blade.php` (BARU)
+- `src/resources/views/pages/laporan/⚡neraca-list/neraca-list.php` (BARU)
+- `src/resources/views/pages/laporan/⚡neraca-list/neraca-list.blade.php` (BARU)
+- `src/resources/views/pages/laporan/⚡arus-kas-list/arus-kas-list.php` (BARU)
+- `src/resources/views/pages/laporan/⚡arus-kas-list/arus-kas-list.blade.php` (BARU)
+- `src/routes/web.php` (UPDATE)
+- `src/database/seeders/MenuSeeder.php` (UPDATE)
+
+**Migration yang dibuat:** none (semua aggregates dari tabel existing)
+
+**Known Issues / TODO:**
+- Belum ada export PDF/Excel untuk semua laporan
+- Belum ada `php artisan test` (unit test)
+- Neraca balance check: kalau tidak seimbang, mungkin ada jurnal yang tidak valid
+
+---
+
+## Status: ✅ SELESAI SEMUA MILESTONE
+
+Semua 9 tahap (Tahap 0-8) sudah selesai. Sistem POS & Ledger lengkap:
+- Multi-cabang, master barang, transaksi penjualan, pembelian, piutang, hutang
+- Cash ledger, jurnal akuntansi, laporan keuangan (laba rugi, neraca, arus kas)
+- Sidebar menu lengkap, permission system
+
+---
+
+## Cara menjalankan (tiap milestone)

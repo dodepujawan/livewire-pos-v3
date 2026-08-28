@@ -90,6 +90,10 @@ Route::prefix('laporan')->middleware(['auth', 'permission'])->group(function () 
     Route::livewire('/kas', 'pages::laporan.kas-list')->name('laporan.kas.list');
     Route::livewire('/buku-besar', 'pages::laporan.buku-besar-list')->name('laporan.buku-besar.list');
     Route::livewire('/laba-rugi', 'pages::laporan.laba-rugi-list')->name('laporan.laba-rugi.list');
+    Route::livewire('/penjualan', 'pages::laporan.penjualan-list')->name('laporan.penjualan.list');
+    Route::livewire('/stok', 'pages::laporan.stok-list')->name('laporan.stok.list');
+    Route::livewire('/neraca', 'pages::laporan.neraca-list')->name('laporan.neraca.list');
+    Route::livewire('/arus-kas', 'pages::laporan.arus-kas-list')->name('laporan.arus-kas.list');
 });
 
 // Hilangkan ini saat awal middleware(['auth', 'permission'])

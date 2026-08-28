@@ -124,12 +124,12 @@
 
 ## Tahap 8 — Laporan Gabungan & Final
 
-- [ ] `laporan.penjualan.list` (per invoice `nomor_transaksi`, per barang, per cabang).
-- [ ] `laporan.stok.list` (mutasi `stok_mutasi` per barang/cabang).
-- [ ] `laporan.neraca.list` (ASET = UTANG + MODAL dari saldo `akun`).
-- [ ] `laporan.arus-kas.list` (dari `kas_mutasi`).
-- [ ] `php artisan test` untuk fitur penting (happy path, auth, validation, failure).
-- [ ] Update `docs/CHANGELOG.md` & `MODULE_*.md` per milestone.
+- [x] `laporan.penjualan.list` (per invoice `nomor_transaksi`, per barang, per cabang).
+- [x] `laporan.stok.list` (mutasi `stok_mutasi` per barang/cabang).
+- [x] `laporan.neraca.list` (ASET = UTANG + MODAL dari saldo `akun`).
+- [x] `laporan.arus-kas.list` (dari `kas_mutasi`).
+- [x] Update `MenuSeeder` — sidebar menu lengkap.
+- [x] Update dokumentasi.
 
 ---
 

@@ -33,6 +33,9 @@ new class extends Component
     // Cart
     public array $cartItems = [];
 
+    // Modal
+    public bool $showBayarModal = false;
+
     // Single Item Form
     public string $itemKodeBarang = '';
     public int $itemBarangId = 0;
@@ -450,6 +453,11 @@ new class extends Component
             \DB::rollBack();
             session()->flash('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
+    }
+
+    public function openBayarModal(): void
+    {
+        $this->showBayarModal = true;
     }
 
     public function render()
