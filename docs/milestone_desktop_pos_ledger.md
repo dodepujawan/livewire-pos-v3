@@ -113,11 +113,12 @@
 
 **Tujuan:** transaksi belum lunas & utang supplier tercatat.
 
-- [ ] Migration: `piutang`, `hutang`, tabel pelunasan (section 9.5 db doc) + kolom `pajak` di `transaksi` & `pembelian`.
-- [ ] UI `transaksi.piutang.*`, `transaksi.hutang.*` (list + pelunasan).
-- [ ] Saat pelunasan → `kas_mutasi` + `jurnal` + update sisa piutang/hutang.
-- [ ] Pajak masuk ke `jurnal` (akun PPN Masukan/Keluaran).
-- [ ] Aksi `*.pay`, `*.cancel` → `$additionalPermissions`.
+- [x] Migration: `piutang`, `hutang`, tabel pelunasan (section 9.5 db doc) + kolom `pajak` di `transaksi` & `pembelian`.
+- [x] UI `transaksi.piutang.*`, `transaksi.hutang.*` (list + pelunasan).
+- [x] Saat pelunasan → `kas_mutasi` + `jurnal` + update sisa piutang/hutang.
+- [x] Pajak masuk ke `jurnal` (akun PPN Masukan/Keluaran).
+- [x] Aksi `*.pay`, `*.cancel` → `$additionalPermissions`.
+- [x] Status transaksi PIUTANG → auto-create `piutang` record.
 
 ---
 

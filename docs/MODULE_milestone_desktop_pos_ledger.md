@@ -16,7 +16,7 @@
 | 4 | Cash Ledger | ✅ | kas_mutasi + laporan kas + refund cancel |
 | 5 | Pembelian & HPP | ✅ | pembelian + pembelian_detail + receive/cancel stok |
 | 6 | Jurnal Akuntansi | ✅ | Akun, jurnal, jurnal_detail + service + laporan laba-rugi |
-| 7 | Piutang, Hutang & Pajak | ⏳ | Piutang, hutang, pelunasan, PPN |
+| 7 | Piutang, Hutang & Pajak | ✅ | Piutang, hutang, pelunasan, PPN, status PIUTANG |
 | 8 | Laporan Gabungan & Final | ⏳ | Semua laporan + test |
 
 ---
@@ -241,11 +241,64 @@
 - Belum ada export PDF/Excel untuk laporan laba rugi
 
 **Hint untuk tahap berikutnya:**
-- Lanjut **Tahap 7** — Piutang, Hutang & Pajak: tabel `piutang`, `hutang`, `pelunasan` + kolom `pajak` di transaksi & pembelian
-- Migration: `create_piutang_table`, `create_hutang_table`, `create_pelunasan_table`, `add_pajak_to_transaksi`, `add_pajak_to_pembelian`
-- UI `transaksi.piutang-list`, `transaksi.hutang-list` (list + tombol bayar)
-- Logic pelunasan: update sisa → jika 0 status LUNAS → insert kas_mutasi → insert jurnal
-- Additional Permissions: `transaksi.piutang.pay`, `transaksi.hutang.pay`
+- Lanjut **Tahap 8** — Laporan Gabungan: laporan penjualan, stok, neraca, arus kas
+- MFC `laporan.penjualan-list`, `laporan.stok-list`, `laporan.neraca-list`, `laporan.arus-kas-list`
+- `php artisan test` untuk fitur penting
+
+### Tahap 7 — Piutang, Hutang & Pajak (2026-08-28)
+
+**Selesai:**
+- Fix migration dari Copilot (tambah `customer` di piutang, `supplier` di hutang, FK di pelunasan)
+- 5 migration: `create_piutang_table`, `create_hutang_table`, `create_pelunasan_table`, `add_pajak_to_transaksi`, `add_pajak_to_pembelian`
+- Model `Piutang`, `Hutang`, `Pelunasan` baru + relationships
+- Service `PelunasanService`: `processPelunasanPiutang()`, `processPelunasanHutang()`
+- Update `Transaksi` model (tambah `pajak` fillable + `piutang()` relation)
+- Update `Pembelian` model (tambah `pajak` fillable)
+- Update `transaksi-create`: input pajak, status selector (SELESAI/PIUTANG), auto-create piutang saat status PIUTANG
+- Update `pembelian-edit`: input pajak field
+- MFC `piutang-list`: filter + pelunasan modal (bayar piutang → kas_mutasi MASUK + jurnal)
+- MFC `hutang-list`: filter + pelunasan modal (bayar hutang → kas_mutasi KELUAR + jurnal)
+- Routes: `transaksi.piutang.list`, `transaksi.hutang.list` (sudah ada dari Copilot)
+- Permission sync: 38 permissions
+
+**File berubah:**
+- `src/database/migrations/2026_08_28_000001_create_piutang_table.php` (UPDATE)
+- `src/database/migrations/2026_08_28_000002_create_hutang_table.php` (UPDATE)
+- `src/database/migrations/2026_08_28_000003_create_pelunasan_table.php` (UPDATE)
+- `src/database/migrations/2026_08_28_000004_add_pajak_to_transaksi_table.php` (sudah OK)
+- `src/database/migrations/2026_08_28_000005_add_pajak_to_pembelian_table.php` (sudah OK)
+- `src/app/Models/Piutang.php` (BARU)
+- `src/app/Models/Hutang.php` (BARU)
+- `src/app/Models/Pelunasan.php` (BARU)
+- `src/app/Models/Transaksi.php` (UPDATE)
+- `src/app/Models/Pembelian.php` (UPDATE)
+- `src/app/Services/PelunasanService.php` (BARU)
+- `src/resources/views/pages/transaksi/⚡transaksi-create/transaksi-create.php` (UPDATE)
+- `src/resources/views/pages/transaksi/⚡transaksi-create/transaksi-create.blade.php` (UPDATE)
+- `src/resources/views/pages/transaksi/⚡pembelian-edit/pembelian-edit.php` (UPDATE)
+- `src/resources/views/pages/transaksi/⚡pembelian-edit/pembelian-edit.blade.php` (UPDATE)
+- `src/resources/views/pages/transaksi/⚡piutang-list/piutang-list.php` (BARU)
+- `src/resources/views/pages/transaksi/⚡piutang-list/piutang-list.blade.php` (BARU)
+- `src/resources/views/pages/transaksi/⚡hutang-list/hutang-list.php` (BARU)
+- `src/resources/views/pages/transaksi/⚡hutang-list/hutang-list.blade.php` (BARU)
+- `src/routes/web.php` (sudah ada dari Copilot)
+
+**Migration yang dibuat/di-fix:**
+- `2026_08_28_000001_create_piutang_table` (fix: tambah customer)
+- `2026_08_28_000002_create_hutang_table` (fix: tambah supplier)
+- `2026_08_28_000003_create_pelunasan_table` (fix: tambah FK ke piutang/hutang)
+- `2026_08_28_000004_add_pajak_to_transaksi_table` (sudah OK)
+- `2026_08_28_000005_add_pajak_to_pembelian_table` (sudah OK)
+
+**Known Issues / TODO:**
+- Menu sidebar belum ada entry untuk "Piutang" dan "Hutang" (perlu tambah via MenuSeeder)
+- Belum ada laporan neraca (Tahap 8)
+- Belum ada export PDF/Excel untuk laporan
+
+**Hint untuk tahap berikutnya:**
+- Lanjut **Tahap 8** — Laporan Gabungan: laporan penjualan, stok, neraca, arus kas
+- MFC `laporan.penjualan-list`, `laporan.stok-list`, `laporan.neraca-list`, `laporan.arus-kas-list`
+- `php artisan test` untuk fitur penting
 
 ### Tahap 2 — Master Barang & Satuan (2026-08-24)
 
@@ -279,3 +332,128 @@
 - Migration: `create_kas_mutasi_table`
 - UI Laporan Kas (`laporan.kas.list`): filter cabang, per tanggal, saldo akhir
 - Saat transaksi LUNAS tunai: insert `kas_mutasi` MASUK (`bayar`) + KELUAR (`kembali`)
+
+### Tahap 7 — Piutang, Hutang & Pajak
+
+**Tujuan:** transaksi belum lunas & utang supplier tercatat.
+
+### 1. Analisis & Persiapan
+- [ ] Baca dokumentasi database (section 9.5) untuk skema tabel piutang, hutang, dan pelunasan
+- [ ] Pastikan approval untuk migration dari programmer
+- [ ] Siapkan struktur folder MFC untuk komponen baru
+
+### 2. Migration
+- [ ] Migration: `piutang` (kolom: `id`, `cabang_id`, `transaksi_id`, `nomor_piutang`, `tanggal`, `jumlah`, `sisa`, `status`, `catatan`)
+- [ ] Migration: `hutang` (kolom: `id`, `cabang_id`, `pembelian_id`, `nomor_hutang`, `tanggal`, `jumlah`, `sisa`, `status`, `catatan`)
+- [ ] Migration: `pelunasan` (kolom: `id`, `cabang_id`, `jenis`, `referensi_id`, `tanggal`, `jumlah`, `metode_bayar`, `catatan`)
+- [ ] Migration: tambah kolom `pajak` di tabel `transaksi` (type: decimal(10,2))
+- [ ] Migration: tambah kolom `pajak` di tabel `pembelian` (type: decimal(10,2))
+
+### 3. Model & Relationship
+- [ ] Buat model `Piutang` dengan relasi ke `Cabang`, `Transaksi`
+- [ ] Buat model `Hutang` dengan relasi ke `Cabang`, `Pembelian`
+- [ ] Buat model `Pelunasan` dengan relasi ke `Cabang`, `Piutang`/`Hutang`
+- [ ] Tambahkan relationship di model `Transaksi` dan `Pembelian` untuk pajak
+- [ ] Tambahkan relationship di model `Cabang` untuk piutang dan hutang
+- [ ] Buat model `PelunasanDetail` jika diperlukan untuk riwayat pelunasan
+
+### 4. UI Components (Livewire)
+#### Struktur Folder Komponen
+```
+resources/views/pages/
+├── transaksi/
+│   ├── piutang-list.blade.php
+│   ├── piutang-create.blade.php
+│   ├── piutang-edit.blade.php
+│   ├── hutang-list.blade.php
+│   ├── hutang-create.blade.php
+│   ├── hutang-edit.blade.php
+│   └── pelunasan-create.blade.php
+```
+
+#### Komponen Transaksi Piutang
+- [ ] Route: `transaksi.piutang.list`, `transaksi.piutang.create`, `transaksi.piutang.edit`
+- [ ] Component: `pages::transaksi.piutang-list`, `pages::transaksi.piutang-create`, `pages::transaksi.piutang-edit`
+- [ ] UI: List piutang dengan filter berdasarkan cabang/tanggal/status
+- [ ] UI: Form create/edit piutang dengan input jumlah, tanggal, catatan
+- [ ] UI: Detail piutang dengan histori pelunasan
+- [ ] UI: Tombol pelunasan yang memicu modal pelunasan
+
+#### Komponen Transaksi Hutang
+- [ ] Route: `transaksi.hutang.list`, `transaksi.hutang.create`, `transaksi.hutang.edit`
+- [ ] Component: `pages::transaksi.hutang-list`, `pages::transaksi.hutang-create`, `pages::transaksi.hutang-edit`
+- [ ] UI: List hutang dengan filter berdasarkan cabang/tanggal/status
+- [ ] UI: Form create/edit hutang dengan input jumlah, tanggal, catatan
+- [ ] UI: Detail hutang dengan histori pelunasan
+- [ ] UI: Tombol pelunasan yang memicu modal pelunasan
+
+#### Komponen Pelunasan
+- [ ] Route: `transaksi.pelunasan.create`
+- [ ] Component: `pages::transaksi.pelunasan-create`
+- [ ] UI: Form pelunasan dengan pilihan referensi (piutang/hutang), jumlah, metode bayar
+- [ ] UI: Validasi jumlah tidak melebihi sisa piutang/hutang
+- [ ] UI: Tampilan detail referensi sebelum pelunasan
+- [ ] UI: Tombol konfirmasi pelunasan
+
+### 5. Business Logic
+- [ ] Service `PelunasanService` untuk mengelola pelunasan piutang/hutang
+- [ ] Saat pelunasan → update `kas_mutasi` + `jurnal` + update sisa piutang/hutang
+- [ ] Pajak masuk ke `jurnal` (akun PPN Masukan/Keluaran)
+- [ ] Validasi jumlah pelunasan tidak melebihi sisa piutang/hutang
+- [ ] Status piutang/hutang otomatis berubah menjadi LUNAS jika sisa = 0
+- [ ] Service `JurnalService` diperbarui untuk menangani pelunasan piutang/hutang
+- [ ] Validasi permission untuk setiap aksi pelunasan
+
+### 6. Permissions
+- [ ] Tambahkan `$additionalPermissions`:
+  - `transaksi.piutang.pay`
+  - `transaksi.piutang.cancel`
+  - `transaksi.hutang.pay`
+  - `transaksi.hutang.cancel`
+  - `transaksi.pelunasan.create`
+
+### 7. Testing
+- [ ] Test validasi input pelunasan
+- [ ] Test pelunasan piutang/hutang
+- [ ] Test jurnal otomatis
+- [ ] Test kas mutasi
+- [ ] Test pajak masuk ke jurnal
+- [ ] Test status otomatis LUNAS
+- [ ] Test validasi jumlah pelunasan
+- [ ] Test permission untuk setiap aksi
+
+### 8. Deployment
+- [ ] Jalankan `php artisan framework:permission-sync`
+- [ ] Jalankan `php artisan test` untuk fitur piutang/hutang
+- [ ] Update dokumentasi
+- [ ] Buat dokumentasi untuk cara penggunaan fitur piutang/hutang
+
+---
+
+## Tahap 8 — Laporan Gabungan & Final
+
+- [ ] `laporan.penjualan.list` (per invoice `nomor_transaksi`, per barang, per cabang).
+- [ ] `laporan.stok.list` (mutasi `stok_mutasi` per barang/cabang).
+- [ ] `laporan.neraca.list` (ASET = UTANG + MODAL dari saldo `akun`).
+- [ ] `laporan.arus-kas.list` (dari `kas_mutasi`).
+- [ ] `php artisan test` untuk fitur penting (happy path, auth, validation, failure).
+- [ ] Update `docs/CHANGELOG.md` & `MODULE_*.md` per milestone.
+
+---
+
+## Cara menjalankan (tiap milestone)
+
+1. Analisa & buat Mega Plan → tunggu approval.
+2. Buat migration (kalau sudah di-approve di Tahap 0).
+3. Buat Model + relationship.
+4. Buat Livewire MFC component + route (ikuti `module.resource.action`).
+4. Tambah `$additionalPermissions` untuk aksi bisnis.
+5. `DB::transaction()` untuk aksi multi-tabel.
+6. `php artisan framework:permission-sync`.
+7. Test: `php artisan test`.
+8. Update dokumentasi.
+
+> Ingat: jangan ubah migration/program inti tanpa approval. Dokumentasi ini
+> adalah acuan bersama, bisa dilanjutkan AI mana pun asal baca `docs/` dulu.
+
+> tambahan tolong catat progress disini docs/MODULE_milestone_desktop_pos_ledger.md kalo perlu kasi sedikit hints untuk selanjutnya sehingga ai lain ada acuan lebih clear

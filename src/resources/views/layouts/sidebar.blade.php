@@ -1,3 +1,17 @@
+<style>
+    /* Custom scrollbar — sidebar */
+    .sidebar-menu::-webkit-scrollbar { width: 5px; }
+    .sidebar-menu::-webkit-scrollbar-track { background: transparent; }
+    .sidebar-menu::-webkit-scrollbar-thumb {
+        background: rgba(251, 191, 36, 0.25);
+        border-radius: 999px;
+    }
+    .sidebar-menu::-webkit-scrollbar-thumb:hover { background: rgba(251, 191, 36, 0.5); }
+
+    /* Firefox */
+    .sidebar-menu { scrollbar-width: thin; scrollbar-color: rgba(251,191,36,0.35) transparent; }
+</style>
+
 <div>
     {{-- Overlay: klik di luar sidebar untuk menutup --}}
     <div
@@ -54,7 +68,12 @@
         </div>
 
         {{-- Menu --}}
-        <div class="flex-1 overflow-y-auto px-3 py-4">
+        <div
+            x-data="{}"
+            @keydown.arrow-up.prevent="document.querySelector('.sidebar-menu').scrollBy({top:-24,behavior:'smooth'})"
+            @keydown.arrow-down.prevent="document.querySelector('.sidebar-menu').scrollBy({top:24,behavior:'smooth'})"
+            class="flex-1 overflow-y-auto px-3 py-4 sidebar-menu"
+        >
             <p class="px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Navigasi</p>
             @livewire('components::sidebar')
         </div>

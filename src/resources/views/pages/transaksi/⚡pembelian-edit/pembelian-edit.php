@@ -24,6 +24,7 @@ new class extends Component
     public int $pembelianCabangId = 0;
     public string $pembelianSupplier = '';
     public $pembelianTotal = 0;
+    public $pembelianPajak = 0;
     public string $pembelianStatus = 'ORDER';
 
     public array $listCabang = [];
@@ -65,6 +66,7 @@ new class extends Component
         $this->pembelianCabangId = $pembelian->cabang_id;
         $this->pembelianSupplier = $pembelian->supplier;
         $this->pembelianTotal = (float) $pembelian->total;
+        $this->pembelianPajak = (float) ($pembelian->pajak ?? 0);
         $this->pembelianStatus = $pembelian->status;
 
         $this->loadCabangList();
@@ -270,6 +272,7 @@ new class extends Component
                     'supplier' => $this->pembelianSupplier,
                     'tanggal' => $this->pembelianTanggal,
                     'total' => $this->pembelianTotal,
+                    'pajak' => $this->pembelianPajak,
                 ]);
 
                 PembelianDetail::where('pembelian_id', $pembelian->id)->delete();

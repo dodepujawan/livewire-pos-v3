@@ -49,6 +49,25 @@ Route::prefix('transaksi/pembelian')->middleware(['auth', 'permission'])->name('
     Route::livewire('/{id}/edit', 'pages::transaksi.pembelian-edit')->name('edit');
 });
 
+// Piutang
+Route::prefix('transaksi/piutang')->middleware(['auth', 'permission'])->name('transaksi.piutang.')->group(function () {
+    Route::livewire('/', 'pages::transaksi.piutang-list')->name('list');
+    Route::livewire('/create', 'pages::transaksi.piutang-create')->name('create');
+    Route::livewire('/{id}/edit', 'pages::transaksi.piutang-edit')->name('edit');
+});
+
+// Hutang
+Route::prefix('transaksi/hutang')->middleware(['auth', 'permission'])->name('transaksi.hutang.')->group(function () {
+    Route::livewire('/', 'pages::transaksi.hutang-list')->name('list');
+    Route::livewire('/create', 'pages::transaksi.hutang-create')->name('create');
+    Route::livewire('/{id}/edit', 'pages::transaksi.hutang-edit')->name('edit');
+});
+
+// Pelunasan
+Route::prefix('transaksi/pelunasan')->middleware(['auth', 'permission'])->name('transaksi.pelunasan.')->group(function () {
+    Route::livewire('/create', 'pages::transaksi.pelunasan-create')->name('create');
+});
+
 //
 Route::prefix('transaksi')->middleware(['auth', 'permission'])->group(function () {
     Route::livewire('/', 'pages::transaksi.transaksi-list')->name('transaksi.penjualan.list');
@@ -85,12 +104,12 @@ Route::prefix('launcher-group')->middleware(['auth', 'permission'])->name('maste
 // php artisan make:livewire pages::master.MenuEdit --mfc
 // gpt-5.6-luna, gpt-5.6-terra, gpt-5.6-sol, gpt-5-mini, grok-4.3, DeepSeek-V4-Pro, DeepSeek-V4-Flash
 
-// Di Local
+// 1 Di Local
 // php artisan framework:route-sync
 // php artisan framework:permission-sync
 // php artisan framework:config-export
 
-// Di VPS
+// 2 Di VPS
 // git pull
 // php artisan framework:config-import
 

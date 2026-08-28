@@ -270,6 +270,27 @@
                             @enderror
                         </div>
 
+                        {{-- Pajak --}}
+                        <div>
+                            <label class="block text-xs font-medium mb-1">Pajak (PPN)</label>
+                            <input type="number" wire:model="transPajak" min="0" class="w-full border rounded px-2 py-1 text-xs">
+                            @error('transPajak')
+                                <p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        {{-- Status --}}
+                        <div>
+                            <label class="block text-xs font-medium mb-1">Status</label>
+                            <select wire:model="transStatus" class="w-full border rounded px-2 py-1 text-xs">
+                                <option value="SELESAI">Selesai (Tunai/Lunas)</option>
+                                <option value="PIUTANG">Piutang (Belum Bayar)</option>
+                            </select>
+                            @error('transStatus')
+                                <p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>
+                            @enderror
+                        </div>
+
                         {{-- Catatan --}}
                         <div>
                             <label class="block text-xs font-medium mb-1">Catatan</label>

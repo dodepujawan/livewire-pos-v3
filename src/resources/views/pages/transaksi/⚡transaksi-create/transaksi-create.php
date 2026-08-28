@@ -24,6 +24,7 @@ new class extends Component
     public $transBayar = 0;
     public $transKembali = 0;
     public $transDiskonTotal = 0;
+    public $transPajak = 0;
     public string $transCatatan = '';
 
     // Cabang list
@@ -50,6 +51,7 @@ new class extends Component
         'transCabangId' => 'required|exists:cabang,id',
         'transMetodeBayar' => 'required|in:TUNAI,TRANSFER,QRIS',
         'transBayar' => 'required|numeric|min:0',
+        'transPajak' => 'nullable|numeric|min:0',
         'itemKodeBarang' => 'nullable|string',
         'itemBarangId' => 'required|exists:barang,id',
         'itemBarangSatuanId' => 'required|exists:barang_satuan,id',
@@ -317,8 +319,15 @@ new class extends Component
             'transTanggal' => 'required|date',
             'transCabangId' => 'required|exists:cabang,id',
             'transMetodeBayar' => 'required|in:TUNAI,TRANSFER,QRIS',
-            'transBayar' => 'required|numeric|min:' . $this->transGrandTotal,
+            'transBayar' => 'required|numeric|min:0',
+            'transPajak' => 'nullable|numeric|min:0',
         ]);
+
+        // Validasi bayar minimal grand_total jika status SELESAI
+        if ($this->transStatus === 'SELESAI' && (float) $this->transBayar < (float) $this->transGrandTotal) {
+            session()->flash('error', 'Bayar harus minimal sama dengan Grand Total untuk transaksi Selesai');
+            return;
+        }
 
         if (empty($this->cartItems)) {
             session()->flash('error', 'Keranjang belanja kosong');
@@ -341,6 +350,7 @@ new class extends Component
                     'kembali' => $this->transKembali,
                     'grand_total' => $this->transGrandTotal,
                     'diskon_total' => $this->transDiskonTotal,
+                    'pajak' => $this->transPajak,
                     'catatan' => $this->transCatatan,
                 ]);
 
@@ -410,6 +420,20 @@ new class extends Component
                             'keterangan' => 'Kembalian ' . $this->transNoInvoice,
                         ]);
                     }
+                }
+
+                // Buat piutang jika status PIUTANG
+                if ($this->transStatus === 'PIUTANG') {
+                    \App\Models\Piutang::create([
+                        'cabang_id' => $this->transCabangId,
+                        'transaksi_id' => $transaksi->id,
+                        'customer' => $this->transCustomer,
+                        'nomor_piutang' => 'PTG-' . $this->transNoInvoice,
+                        'tanggal' => $this->transTanggal,
+                        'jumlah' => $this->transGrandTotal + (float) $this->transPajak,
+                        'sisa' => $this->transGrandTotal + (float) $this->transPajak,
+                        'status' => 'BELUM_LUNAS',
+                    ]);
                 }
 
                 if ($this->transStatus === 'SELESAI') {

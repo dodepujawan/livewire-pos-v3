@@ -218,6 +218,14 @@
                     </div>
                 </div>
 
+                {{-- Pajak --}}
+                <div class="bg-white rounded shadow p-2 shrink-0">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs font-semibold text-gray-700">Pajak (PPN)</label>
+                        <input type="number" wire:model="pembelianPajak" min="0" class="w-32 border rounded px-2 py-1 text-xs text-right" @if($pembelianStatus !== 'ORDER') disabled @endif>
+                    </div>
+                </div>
+
                 <div class="flex flex-col gap-2 shrink-0">
                     @if($pembelianStatus === 'ORDER')
                         <button type="submit" class="w-full px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold text-xs">Simpan Perubahan</button>

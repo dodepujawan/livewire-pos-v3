@@ -21,6 +21,7 @@ class Transaksi extends Model
         'kembali',
         'grand_total',
         'diskon_total',
+        'pajak',
         'catatan',
     ];
 
@@ -42,6 +43,12 @@ class Transaksi extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function piutang()
+    {
+        return $this->hasOne(Piutang::class);
+    }
+
     /** @use HasFactory<\Database\Factories\TransaksiFactory> */
     use HasFactory;
 }

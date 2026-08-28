@@ -4,18 +4,20 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Pembelian extends Model
+class Hutang extends Model
 {
-    protected $table = 'pembelian';
+    protected $table = 'hutang';
 
     protected $fillable = [
-        'nomor_beli',
         'cabang_id',
+        'pembelian_id',
         'supplier',
+        'nomor_hutang',
         'tanggal',
-        'total',
-        'pajak',
+        'jumlah',
+        'sisa',
         'status',
+        'catatan',
     ];
 
     protected $casts = [
@@ -27,8 +29,13 @@ class Pembelian extends Model
         return $this->belongsTo(Cabang::class);
     }
 
-    public function details()
+    public function pembelian()
     {
-        return $this->hasMany(PembelianDetail::class);
+        return $this->belongsTo(Pembelian::class);
+    }
+
+    public function pelunasan()
+    {
+        return $this->hasMany(Pelunasan::class, 'referensi_id');
     }
 }
