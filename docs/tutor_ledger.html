@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POPS PRO — Panduan Lengkap POS & Ledger</title>
+<style>
+  :root {
+    --sidebar-w: 280px;
+    --bg: #f8f9fa;
+    --sidebar-bg: #1a1a2e;
+    --sidebar-text: #e0e0e0;
+    --sidebar-active: #e94560;
+    --accent: #0f3460;
+    --accent-light: #16213e;
+    --text: #2d3436;
+    --text-light: #636e72;
+    --card-bg: #ffffff;
+    --border: #dfe6e9;
+    --green: #00b894;
+    --red: #d63031;
+    --blue: #0984e3;
+    --orange: #e17055;
+    --purple: #6c5ce7;
+    --yellow: #fdcb6e;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+
+  /* Sidebar */
+  .sidebar {
+    position: fixed; top: 0; left: 0; width: var(--sidebar-w); height: 100vh;
+    background: var(--sidebar-bg); color: var(--sidebar-text); overflow-y: auto;
+    z-index: 100; padding: 24px 0;
+  }
+  .sidebar-brand {
+    padding: 0 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 16px;
+  }
+  .sidebar-brand h1 { font-size: 1.3rem; color: #fff; }
+  .sidebar-brand h1 span { color: var(--sidebar-active); }
+  .sidebar-brand p { font-size: 0.75rem; color: #888; margin-top: 4px; }
+  .nav-section { padding: 8px 0; }
+  .nav-section-title {
+    padding: 8px 20px; font-size: 0.65rem; text-transform: uppercase;
+    letter-spacing: 1.5px; color: #666; font-weight: 700;
+  }
+  .nav-link {
+    display: block; padding: 8px 20px; color: var(--sidebar-text);
+    text-decoration: none; font-size: 0.88rem; border-left: 3px solid transparent;
+    transition: all 0.2s;
+  }
+  .nav-link:hover { background: rgba(255,255,255,0.05); color: #fff; }
+  .nav-link.active {
+    background: rgba(233,69,96,0.1); color: var(--sidebar-active);
+    border-left-color: var(--sidebar-active); font-weight: 600;
+  }
+  .nav-link .nav-icon { margin-right: 8px; width: 18px; text-align: center; }
+
+  /* Main content */
+  .main { margin-left: var(--sidebar-w); padding: 40px 48px 80px; max-width: 900px; }
+
+  /* Typography */
+  h1 { font-size: 2rem; margin-bottom: 8px; color: var(--accent); }
+  h2 { font-size: 1.5rem; margin: 48px 0 16px; padding-bottom: 8px; border-bottom: 2px solid var(--border); color: var(--accent); }
+  h3 { font-size: 1.2rem; margin: 32px 0 12px; color: var(--accent-light); }
+  h4 { font-size: 1rem; margin: 20px 0 8px; color: var(--text); }
+  p { margin-bottom: 12px; }
+  a { color: var(--blue); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Cards */
+  .card {
+    background: var(--card-bg); border-radius: 12px; padding: 24px;
+    margin: 16px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid var(--border);
+  }
+  .card-accent { border-left: 4px solid var(--accent); }
+  .card-green { border-left: 4px solid var(--green); }
+  .card-red { border-left: 4px solid var(--red); }
+  .card-blue { border-left: 4px solid var(--blue); }
+  .card-orange { border-left: 4px solid var(--orange); }
+  .card-purple { border-left: 4px solid var(--purple); }
+
+  /* Callout boxes */
+  .callout {
+    padding: 16px 20px; border-radius: 8px; margin: 16px 0;
+    font-size: 0.9rem;
+  }
+  .callout-info { background: #e3f2fd; border-left: 4px solid var(--blue); }
+  .callout-success { background: #e8f5e9; border-left: 4px solid var(--green); }
+  .callout-warning { background: #fff3e0; border-left: 4px solid var(--orange); }
+  .callout-danger { background: #fce4ec; border-left: 4px solid var(--red); }
+  .callout-title { font-weight: 700; margin-bottom: 4px; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9rem; }
+  th { background: var(--accent-light); color: #fff; padding: 10px 12px; text-align: left; font-weight: 600; }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  tr:hover { background: #f5f6fa; }
+
+  /* Code blocks */
+  pre {
+    background: #2d3436; color: #dfe6e9; padding: 16px 20px; border-radius: 8px;
+    overflow-x: auto; font-size: 0.85rem; line-height: 1.6; margin: 12px 0;
+  }
+  code { font-family: 'Fira Code', 'Consolas', monospace; }
+  .code-inline {
+    background: #f1f2f6; padding: 2px 6px; border-radius: 4px;
+    font-size: 0.85em; color: var(--red);
+  }
+
+  /* Flow diagram */
+  .flow {
+    display: flex; align-items: center; justify-content: center;
+    flex-wrap: wrap; gap: 8px; margin: 20px 0; padding: 20px;
+    background: #f8f9fa; border-radius: 8px;
+  }
+  .flow-step {
+    background: var(--accent); color: #fff; padding: 10px 16px;
+    border-radius: 8px; font-size: 0.85rem; font-weight: 600;
+    text-align: center; min-width: 100px;
+  }
+  .flow-step.green { background: var(--green); }
+  .flow-step.orange { background: var(--orange); }
+  .flow-step.purple { background: var(--purple); }
+  .flow-step.red { background: var(--red); }
+  .flow-arrow { font-size: 1.2rem; color: var(--text-light); }
+
+  /* Step list */
+  .steps { counter-reset: step; list-style: none; padding: 0; }
+  .steps li {
+    counter-increment: step; padding: 12px 0 12px 48px; position: relative;
+    border-bottom: 1px solid var(--border);
+  }
+  .steps li:last-child { border-bottom: none; }
+  .steps li::before {
+    content: counter(step); position: absolute; left: 0; top: 12px;
+    width: 32px; height: 32px; background: var(--accent); color: #fff;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.85rem;
+  }
+
+  /* Badge */
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 12px;
+    font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+  }
+  .badge-green { background: #e8f5e9; color: #2e7d32; }
+  .badge-red { background: #fce4ec; color: #c62828; }
+  .badge-blue { background: #e3f2fd; color: #1565c0; }
+  .badge-orange { background: #fff3e0; color: #e65100; }
+  .badge-purple { background: #f3e5f5; color: #6a1b9a; }
+
+  /* Visual table (journal) */
+  .journal-table {
+    width: 100%; border-collapse: collapse; margin: 12px 0;
+  }
+  .journal-table th { background: var(--accent-light); color: #fff; padding: 8px 12px; }
+  .journal-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  .journal-table .debit { color: var(--green); font-weight: 600; text-align: right; }
+  .journal-table .credit { color: var(--red); font-weight: 600; text-align: right; }
+
+  /* TOC */
+  .toc {
+    background: var(--card-bg); border-radius: 12px; padding: 24px;
+    margin: 24px 0; border: 1px solid var(--border);
+  }
+  .toc h3 { margin-top: 0; }
+  .toc ol { padding-left: 20px; }
+  .toc li { margin: 4px 0; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; padding: 24px 16px; }
+  }
+
+  /* Print */
+  @media print {
+    .sidebar { display: none; }
+    .main { margin-left: 0; }
+  }
+
+  /* Scrollbar */
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+
+  /* Section anchors */
+  section { scroll-margin-top: 20px; }
+
+  /* Highlight */
+  .highlight { background: #fffde7; padding: 2px 4px; border-radius: 3px; }
+
+  /* Comparison table */
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .compare-card {
+    background: var(--card-bg); border-radius: 12px; padding: 20px;
+    border: 1px solid var(--border);
+  }
+  .compare-card h4 { margin-top: 0; }
+
+  /* Equation */
+  .equation {
+    background: #f8f9fa; border: 1px solid var(--border); border-radius: 8px;
+    padding: 16px 24px; text-align: center; font-size: 1.1rem;
+    font-weight: 600; margin: 16px 0; color: var(--accent);
+  }
+
+  /* Status indicator */
+  .status-dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    margin-right: 6px;
+  }
+  .status-dot.green { background: var(--green); }
+  .status-dot.red { background: var(--red); }
+  .status-dot.blue { background: var(--blue); }
+  .status-dot.orange { background: var(--orange); }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR NAVIGATION -->
+<nav class="sidebar">
+  <div class="sidebar-brand">
+    <h1>POPS <span>PRO</span></h1>
+    <p>Panduan Lengkap POS & Ledger</p>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Dasar</div>
+    <a href="#pengantar" class="nav-link"><span class="nav-icon">📖</span> Pengantar</a>
+    <a href="#glosarium" class="nav-link"><span class="nav-icon">📚</span> Glosarium Akuntansi</a>
+    <a href="#konsep" class="nav-link"><span class="nav-icon">🧠</span> Konsep Utama</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Cara Pakai</div>
+    <a href="#master-data" class="nav-link"><span class="nav-icon">⚙️</span> Master Data</a>
+    <a href="#penjualan" class="nav-link"><span class="nav-icon">🛒</span> Transaksi Penjualan</a>
+    <a href="#pembelian" class="nav-link"><span class="nav-icon">📦</span> Pembelian Barang</a>
+    <a href="#piutang" class="nav-link"><span class="nav-icon">👤</span> Piutang & Hutang</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Akuntansi</div>
+    <a href="#jurnal" class="nav-link"><span class="nav-icon">📝</span> Jurnal & Double Entry</a>
+    <a href="#laporan" class="nav-link"><span class="nav-icon">📊</span> Laporan Keuangan</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Behind The Scenes</div>
+    <a href="#alur-otomatis" class="nav-link"><span class="nav-icon">⚡</span> Alur Otomatis</a>
+    <a href="#database" class="nav-link"><span class="nav-icon">🗄️</span> Struktur Database</a>
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+
+<!-- ====== PENGANTAR ====== -->
+<section id="pengantar">
+<h1>POPS PRO — Panduan Lengkap</h1>
+<p style="color: var(--text-light); font-size: 1.1rem;">POS (Point of Sale) + Ledger (Buku Kas) untuk toko multi-cabang. Panduan ini menjelaskan <strong>bagaimana cara pakai</strong> dan <strong>apa yang terjadi di balik layar</strong>.</p>
+
+<div class="toc">
+  <h3>Daftar Isi</h3>
+  <ol>
+    <li><a href="#glosarium">Glosarium Akuntansi</a> — Istilah penting yang perlu dipahami</li>
+    <li><a href="#konsep">Konsep Utama</a> — Double entry, debit/kredit, HPP</li>
+    <li><a href="#master-data">Cara Pakai: Master Data</a> — Setup cabang, barang, satuan</li>
+    <li><a href="#penjualan">Cara Pakai: Transaksi Penjualan</a> — Alur kasir dari A sampai Z</li>
+    <li><a href="#pembelian">Cara Pakai: Pembelian Barang</a> — Beli dari supplier, update stok</li>
+    <li><a href="#piutang">Cara Pakai: Piutang & Hutang</a> — Cicil, pelunasan, jurnal</li>
+    <li><a href="#jurnal">Jurnal & Double Entry</a> — Bagaimana jurnal bekerja</li>
+    <li><a href="#laporan">Laporan Keuangan</a> — Laba rugi, neraca, arus kas</li>
+    <li><a href="#alur-otomatis">Alur Otomatis di Belakang Layar</a> — Apa yang sistem lakukan</li>
+    <li><a href="#database">Struktur Database</a> — Tabel dan relasi</li>
+  </ol>
+</div>
+
+<div class="callout callout-info">
+  <div class="callout-title">📌 Cara baca panduan ini</div>
+  <p>Baca dari atas ke bawah. Bagian <strong>"Cara Pakai"</strong> untuk belajar operasional. Bagian <strong>"Akuntansi"</strong> untuk paham konsep. Bagian <strong>"Behind The Scenes"</strong> untuk paham arsitektur sistem.</p>
+</div>
+</section>
+
+<!-- ====== GLOSARIUM ====== -->
+<section id="glosarium">
+<h2>📚 Glosarium Akuntansi</h2>
+<p>Daftar istilah akuntansi yang dipakai di sistem ini, dengan penjelasan sederhana.</p>
+
+<table>
+  <thead><tr><th>Istilah</th><th>Arti Sederhana</th><th>Contoh di Sistem</th></tr></thead>
+  <tbody>
+    <tr><td><strong>POS</strong></td><td>Point of Sale = alat kasir</td><td>Halaman transaksi-create untuk jual barang</td></tr>
+    <tr><td><strong>Ledger</strong></td><td>Buku besar = catatan mutasi berurutan</td><td>Kas_mutasi (uang masuk/keluar), Stok_mutasi (stok masuk/keluar)</td></tr>
+    <tr><td><strong>Debit</strong></td><td>Sisi kiri jurnal = uang masuk / aset bertambah</td><td>Kas debet saat ada pembayaran masuk</td></tr>
+    <tr><td><strong>Kredit</strong></td><td>Sisi kanan jurnal = uang keluar / kewajiban bertambah</td><td>Hutang kredit saat beli barang tapi belum bayar</td></tr>
+    <tr><td><strong>Double Entry</strong></td><td>Setiap transaksi dicatat 2 sisi: debit = kredit</td><td>Jual Rp10.000 → Kas +10.000, Penjualan +10.000</td></tr>
+    <tr><td><strong>Jurnal</strong></td><td>Catatan transaksi akuntansi (bukan transaksi kasir)</td><td>JNL-SAL-20260826-0001 = jurnal penjualan #1</td></tr>
+    <tr><td><strong>HPP</strong></td><td>Harga Pokok Penjualan = biaya barang yang sudah terjual</td><td>Beli kopi Rp5.000, jual Rp10.000 → HPP = Rp5.000</td></tr>
+    <tr><td><strong>Laba/Rugi</strong></td><td>Pendapatan - Beban (HPP + Beban Operasional)</td><td>Penjualan Rp100.000 - HPP Rp50.000 = Laba Rp50.000</td></tr>
+    <tr><td><strong>Neraca</strong></td><td>Posisi keuangan: ASET = UTANG + MODAL</td><td>Kas+Stok = Utang+Modal (harus seimbang)</td></tr>
+    <tr><td><strong>Arus Kas</strong></td><td>Uang nyata masuk dan keluar (bukan laba)</td><td>Kas_mutasi: MASUK dari penjualan, KELUAR dari beli</td></tr>
+    <tr><td><strong>Piutang</strong></td><td>Uang yang HARUS DITERIMA (aset)</td><td>Customer belum bayar → piutang tercatat</td></tr>
+    <tr><td><strong>Hutang</strong></td><td>Uang yang HARUS DIBAYAR (liabilitas)</td><td>Supplier belum dibayar → hutang tercatat</td></tr>
+    <tr><td><strong>Chart of Accounts</strong></td><td>Daftar akun = "folder" untuk catat transaksi</td><td>1001 Kas, 4001 Penjualan, 5001 HPP</td></tr>
+    <tr><td><strong>Trial Balance</strong></td><td>Cek total debit = total kredit (seimbang)</td><td>Neraca balance check di laporan neraca</td></tr>
+    <tr><td><strong>COGS</strong></td><td>Cost of Goods Sold = sama dengan HPP</td><td>Harga beli barang yang sudah terjual</td></tr>
+    <tr><td><strong>Saldo</strong></td><td>Sisa yang belum lunas</td><td>Piutang sisa = jumlah - yang sudah dibayar</td></tr>
+    <tr><td><strong>Refund</strong></td><td>Kembalian uang ke customer (void transaksi)</td><td>Transaksi dibatalkan → uang kembali</td></tr>
+    <tr><td><strong>Pajak (PPN)</strong></td><td>Pajak pertambahan nilai</td><td>Kolom pajak di transaksi & pembelian</td></tr>
+  </tbody>
+</table>
+</section>
+
+<!-- ====== KONSEP UTAMA ====== -->
+<section id="konsep">
+<h2>🧠 Konsep Utama</h2>
+
+<h3>1. Double Entry — Aturan Emas Akuntansi</h3>
+<p>Setiap transaksi uang <strong>harus dicatat 2 sisi</strong>. Total debit <strong>harus sama</strong> dengan total kredit. Ini aturan dasar akuntansi yang sudah dipakai 500 tahun.</p>
+
+<div class="equation">Debit = Kredit</div>
+
+<div class="callout callout-info">
+  <div class="callout-title">Contoh sederhana: Jualan Rp10.000 tunai</div>
+  <p>Kamu jual barang Rp10.000. Uang masuk ke kas. Tapi di buku akuntansi, ini dicatat 2 sisi:</p>
+</div>
+
+<table class="journal-table">
+  <thead><tr><th>Akun</th><th>Debit</th><th>Kredit</th><th>Arti</th></tr></thead>
+  <tbody>
+    <tr><td>💰 Kas (1001)</td><td class="debit">10.000</td><td>-</td><td>Uang masuk ke kas</td></tr>
+    <tr><td>📈 Penjualan (4001)</td><td>-</td><td class="credit">10.000</td><td>Pendapatan tercatat</td></tr>
+    <tr><td colspan="4" style="text-align:center; font-weight:700;">Total: Debit 10.000 = Kredit 10.000 ✅</td></tr>
+  </tbody>
+</table>
+
+<h3>2. HPP (Harga Pokok Penjualan)</h3>
+<p><strong>HPP = biaya barang yang sudah terjual.</strong> Ini beda dengan "laba".</p>
+
+<div class="compare">
+  <div class="compare-card">
+    <h4>📦 Beli dari Supplier</h4>
+    <p>Beli 10 bungkus kopi dari supplier</p>
+    <p>Harga beli: <strong>Rp5.000/bungkus</strong></p>
+    <p>Total: <strong>Rp50.000</strong></p>
+    <p>Stok masuk: <strong>10 bungkus</strong></p>
+  </div>
+  <div class="compare-card">
+    <h4>🛒 Jual ke Customer</h4>
+    <p>Jual 10 bungkus kopi ke customer</p>
+    <p>Harga jual: <strong>Rp10.000/bungkus</strong></p>
+    <p>Total: <strong>Rp100.000</strong></p>
+    <p><strong>HPP = Rp50.000</strong> (biaya beli)</p>
+  </div>
+</div>
+
+<div class="equation">Laba = Penjualan - HPP = 100.000 - 50.000 = <strong>Rp50.000</strong></div>
+
+<div class="callout callout-warning">
+  <div class="callout-title">💡 Kenapa HPP penting?</div>
+  <p>Tanpa HPP, kamu cuma tahu "jual Rp100.000" tapi <strong>tidak tahu untung berapa</strong>. HPP = biaya asli barang yang keluar. Selisih jual - HPP = laba bersih.</p>
+</div>
+
+<h3>3. Piutang vs Hutang — Beda Konsep</h3>
+
+<div class="compare">
+  <div class="compare-card" style="border-top: 4px solid var(--green);">
+    <h4>👤 Piutang = ASET (hak)</h4>
+    <p><strong>Uang yang HARUS DITERIMA</strong></p>
+    <p>Customer beli barang, belum bayar</p>
+    <p>Ini <strong>hak</strong> kamu atas uang</p>
+    <p><span class="badge badge-green">ASET</span></p>
+    <p style="margin-top:8px; font-size:0.85rem; color:var(--text-light);">Auto-create dari transaksi dengan status <strong>PIUTANG</strong></p>
+  </div>
+  <div class="compare-card" style="border-top: 4px solid var(--red);">
+    <h4>🏪 Hutang = LIABILITAS (kewajiban)</h4>
+    <p><strong>Uang yang HARUS DIBAYAR</strong></p>
+    <p>Beli dari supplier, belum bayar</p>
+    <p>Ini <strong>kewajiban</strong> kamu</p>
+    <p><span class="badge badge-red">LIABILITAS</span></p>
+    <p style="margin-top:8px; font-size:0.85rem; color:var(--text-light);">Auto-create dari pembelian status <strong>TERIMA</strong></p>
+  </div>
+</div>
+
+<h3>4. Neraca — Balance Check</h3>
+<p>Rumus dasar akuntansi yang <strong>harus selalu seimbang</strong>:</p>
+
+<div class="equation">ASET = UTANG + MODAL</div>
+
+<p>Artinya: semua yang kamu punya (kas, stok, peralatan) harus sama dengan dari mana datangnya (utang ke supplier + modal kamu).</p>
+
+<div class="callout callout-success">
+  <div class="callout-title">✅ Kalau seimbang = data valid</div>
+  <p>Laporan neraca punya <strong>balance check otomatis</strong>. Kalau ASET = UTANG+MODAL, berarti semua jurnal tercatat benar. Kalau tidak seimbang, ada kesalahan pencatatan.</p>
+</div>
+</section>
+
+<!-- ====== MASTER DATA ====== -->
+<section id="master-data">
+<h2>⚙️ Cara Pakai: Master Data</h2>
+<p>Sebelum transaksi, setup dulu data dasar.</p>
+
+<h3>1. Master Cabang</h3>
+<p>Sistem mendukung <strong>multi-cabang</strong>. Setiap toko/cabang punya stok terpisah, kas terpisah, laporan terpisah.</p>
+
+<div class="steps">
+  <li>Klik menu <strong>Master → Cabang</strong></li>
+  <li>Klik <strong>+ Tambah Cabang</strong></li>
+  <li>Isi: nama cabang, alamat</li>
+  <li>Simpan → cabang siap dipakai</li>
+</div>
+
+<div class="callout callout-info">
+  <div class="callout-title">💡 Kenapa multi-cabang?</div>
+  <p>Setiap cabang punya <strong>stok sendiri</strong>, <strong>kas sendiri</strong>, dan <strong>laporan sendiri</strong>. Jadi kalau ada 3 cabang, laporan tidak tercampur.</p>
+</div>
+
+<h3>2. Master Barang</h3>
+<p>Setiap barang punya <strong>harga beli</strong> (untuk HPP) dan <strong>multi-satuan</strong> (pcs, dus, karton, dll).</p>
+
+<div class="steps">
+  <li>Klik menu <strong>Master → Barang</strong></li>
+  <li>Klik <strong>+ Tambah Barang</strong></li>
+  <li>Isi: kode barang, nama, harga beli</li>
+  <li>Tambah <strong>satuan</strong>: pcs (konversi 1), dus (konversi 12), dll</li>
+  <li>Tandai <strong>satuan default</strong> (yang tampil di kasir)</li>
+  <li>Simpan</li>
+</div>
+
+<div class="callout callout-info">
+  <div class="callout-title">📦 Contoh multi-satuan</div>
+  <pre>Aqua 1 galon
+├── Satuan: pcs  | konversi: 1  | harga jual: Rp5.000 | harga beli: Rp4.000
+└── Satuan: dus  | konversi: 12 | harga jual: Rp55.000| harga beli: Rp48.000
+
+Stok: 100 pcs = 8 dus + 4 pcs</pre>
+</div>
+
+<h3>3. Register Kasir</h3>
+<p>Kasir = user yang operasional. Setiap kasir punya <strong>cabang default</strong>.</p>
+
+<div class="steps">
+  <li>Klik menu <strong>Auth → Register</strong></li>
+  <li>Isi: username, password, nama, pilih cabang</li>
+  <li>Simpan → kasir siap login</li>
+</div>
+
+<div class="callout callout-warning">
+  <div class="callout-title">⚠️ Permission</div>
+  <p>Setiap user punya <strong>hak akses</strong> yang bisa diatur. Kasir mungkin hanya bisa transaksi, admin bisa kelola master data. Permission disinkronisasi otomatis dari route naming.</p>
+</div>
+</section>
+
+<!-- ====== PENJUALAN ====== -->
+<section id="penjualan">
+<h2>🛒 Cara Pakai: Transaksi Penjualan</h2>
+<p>Ini alur lengkap kasir dari buka aplikasi sampai transaksi selesai.</p>
+
+<h3>Alur Kasir (Step by Step)</h3>
+
+<div class="flow">
+  <div class="flow-step">Buka Kasir</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step">Scan/Ketik Barang</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step">Masuk Keranjang</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step">Input Bayar</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step green">Simpan</div>
+</div>
+
+<div class="steps">
+  <li><strong>Pilih cabang</strong> (default = cabang kasir yang login). Pilih cabang lain kalau mau jual di cabang berbeda.</li>
+  <li><strong>Scan atau ketik kode barang</strong> → sistem auto-fill nama, harga, stok. Tekan Enter untuk tambah ke keranjang.</li>
+  <li><strong>Atur qty & satuan</strong> → sistem hitung subtotal otomatis. Bisa pilih satuan berbeda (pcs vs dus).</li>
+  <li><strong>Tambah barang</strong> → klik "+ Tambah ke Keranjang" atau tekan Enter di qty.</li>
+  <li><strong>Input bayar</strong> → sistem auto-hitung kembalian. Kalau kurang, sistem minta bayar lebih.</li>
+  <li><strong>Pilih status</strong>:
+    <ul style="margin-left:20px; margin-top:4px;">
+      <li><strong>Selesai (Tunai/Lunas)</strong> → bayar langsung, stok turun, jurnal tercatat</li>
+      <li><strong>Piutang (Belum Bayar)</strong> → belum bayar, piutang tercatat, stok tetap turun</li>
+    </ul>
+  </li>
+  <li><strong>Klik Simpan</strong> → sistem proses semua di belakang layar (lihat section "Alur Otomatis")</li>
+</div>
+
+<h3>Status Transaksi</h3>
+<table>
+  <thead><tr><th>Status</th><th>Arti</th><th>Stok</th><th>Jurnal</th><th>Kas Mutasi</th></tr></thead>
+  <tbody>
+    <tr><td><span class="badge badge-green">SELESAI</span></td><td>Bayar langsung, selesai</td><td>Turun otomatis</td><td>✅ Dicatat</td><td>Masuk (bayar) + Keluar (kembali)</td></tr>
+    <tr><td><span class="badge badge-orange">PIUTANG</span></td><td>Belum bayar, catat piutang</td><td>Turun otomatis</td><td>✅ Dicatat</td><td>Tidak ada (belum ada uang)</td></tr>
+    <tr><td><span class="badge badge-red">BATAL</span></td><td>Void transaksi</td><td>Kembali (rollback)</td><td>✅ Refund dicatat</td><td>Keluar (bayar) + Masuk (kembali)</td></tr>
+  </tbody>
+</table>
+
+<div class="callout callout-success">
+  <div class="callout-title">💡 Tips Kasir</div>
+  <p><strong>Scan kode barang</strong> lebih cepat dari ketik manual. Tekan Enter di kolom kode barang untuk auto-search. Tekan Enter di qty untuk langsung tambah ke keranjang.</p>
+</div>
+</section>
+
+<!-- ====== PEMBELIAN ====== -->
+<section id="pembelian">
+<h2>📦 Cara Pakai: Pembelian Barang</h2>
+<p>Pembelian = beli barang dari <strong>supplier</strong> (bukan dari customer). Ini yang bikin stok <strong>masuk</strong> dan harga beli tercatat.</p>
+
+<h3>Alur Pembelian</h3>
+
+<div class="flow">
+  <div class="flow-step purple">Buat PO (ORDER)</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step">Tambah Barang</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step orange">Terima (TERIMA)</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step green">Stok Masuk</div>
+</div>
+
+<div class="steps">
+  <li>Klik menu <strong>Transaksi → Pembelian</strong></li>
+  <li>Klik <strong>+ Tambah Pembelian</strong></li>
+  <li>Isi: nomor PO, tanggal, supplier</li>
+  <li>Scan/ketik barang → pilih satuan → input qty & harga beli</li>
+  <li>Input <strong>pajak</strong> (PPN) jika ada</li>
+  <li>Simpan → status = <strong>ORDER</strong></li>
+  <li>Kembali ke list pembelian → klik <strong>"Terima Pembelian"</strong></li>
+  <li>Sistem: stok MASUK, harga beli barang diupdate, jurnal tercatat</li>
+</div>
+
+<h3>Perbedaan Penjualan vs Pembelian</h3>
+<table>
+  <thead><tr><th>Aspek</th><th>Penjualan</th><th>Pembelian</th></tr></thead>
+  <tbody>
+    <tr><td>Sumber</td><td>Customer → toko</td><td>Supplier → toko</td></tr>
+    <tr><td>Stok</td><td>KELUAR (turun)</td><td>MASUK (naik)</td></tr>
+    <tr><td>Uang</td><td>Masuk (bayar customer)</td><td>Keluar (bayar supplier)</td></tr>
+    <tr><td>Harga</td><td>Harga jual → pendapatan</td><td>Harga beli → HPP</td></tr>
+    <tr><td>Status</td><td>SELESAI / PIUTANG / BATAL</td><td>ORDER / TERIMA / BATAL</td></tr>
+    <tr><td>Auto-create</td><td>Piutang (status PIUTANG)</td><td>Hutang (setelah TERIMA)</td></tr>
+  </tbody>
+</table>
+
+<div class="callout callout-warning">
+  <div class="callout-title">⚠️ Jangan skip "Terima"</div>
+  <p>Pembelian tidak langsung masuk stok. Status <strong>ORDER</strong> = baru order, <strong>TERIMA</strong> = barang sudah datang & stok masuk. Kalau skip "Terima", stok tidak bertambah.</p>
+</div>
+</section>
+
+<!-- ====== PIUTANG & HUTANG ====== -->
+<section id="piutang">
+<h2>👤 Cara Pakai: Piutang & Hutang</h2>
+
+<h3>Piutang (Uang yang Harus Diterima)</h3>
+<p>Piutang auto-create saat transaksi dengan status <strong>PIUTANG</strong>. Customer belum bayar, tapi barang sudah keluar.</p>
+
+<div class="steps">
+  <li>Klik menu <strong>Transaksi → Piutang</strong></li>
+  <li>Lihat daftar piutang: customer, jumlah, sisa, status</li>
+  <li>Klik tombol <strong>"Bayar"</strong> di baris piutang yang mau dilunasi</li>
+  <li>Input <strong>jumlah bayar</strong> (bisa partial atau full)</li>
+  <li>Pilih <strong>metode bayar</strong>: Tunai / Transfer / QRIS</li>
+  <li>Konfirmasi → sistem: sisa piutang berkurang, kas_mutasi MASUK, jurnal tercatat</li>
+  <li>Jika sisa = 0 → status otomatis <strong>LUNAS</strong></li>
+</div>
+
+<h3>Hutang (Uang yang Harus Dibayar)</h3>
+<p>Hutang auto-create saat pembelian status <strong>TERIMA</strong>. Toko sudah terima barang, tapi belum bayar supplier.</p>
+
+<div class="steps">
+  <li>Klik menu <strong>Transaksi → Hutang</strong></li>
+  <li>Lihat daftar hutang: supplier, jumlah, sisa, status</li>
+  <li>Klik tombol <strong>"Bayar"</strong> di baris hutang yang mau dilunasi</li>
+  <li>Input <strong>jumlah bayar</strong></li>
+  <li>Pilih <strong>metode bayar</strong></li>
+  <li>Konfirmasi → sistem: sisa hutang berkurang, kas_mutasi KELUAR, jurnal tercatat</li>
+  <li>Jika sisa = 0 → status otomatis <strong>LUNAS</strong></li>
+</div>
+
+<h3>Pelunasan — Apa yang Terjadi?</h3>
+
+<div class="flow">
+  <div class="flow-step purple">Input Jumlah</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step">Validasi Sisa</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step">Update Sisa</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step green">Kas Mutasi</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step purple">Jurnal</div>
+</div>
+
+<div class="callout callout-info">
+  <div class="callout-title">📊 Contoh Pelunasan Piutang Rp50.000</div>
+  <table class="journal-table">
+    <thead><tr><th>Akun</th><th>Debit</th><th>Kredit</th><th>Arti</th></tr></thead>
+    <tbody>
+      <tr><td>💰 Kas (1001)</td><td class="debit">50.000</td><td>-</td><td>Uang masuk dari customer</td></tr>
+      <tr><td>👤 Piutang (1002)</td><td>-</td><td class="credit">50.000</td><td>Piutang berkurang</td></tr>
+      <tr><td colspan="4" style="text-align:center;">Kas_mutasi: MASUK Rp50.000 (sumber: PELUNASAN_PIUTANG)</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="callout callout-warning">
+  <div class="callout-title">⚠️ Validasi</div>
+  <p>Jumlah pelunasan <strong>tidak boleh melebihi sisa</strong>. Kalau customer bayar Rp60.000 tapi sisa piutang Rp50.000, sistem tolak.</p>
+</div>
+</section>
+
+<!-- ====== JURNAL ====== -->
+<section id="jurnal">
+<h2>📝 Jurnal & Double Entry</h2>
+
+<h3>Apa Itu Jurnal?</h3>
+<p><strong>Jurnal = catatan akuntansi</strong>. Bukan transaksi kasir, tapi catatan <em>dampak keuangan</em> dari transaksi.</p>
+
+<div class="callout callout-info">
+  <div class="callout-title">🔑 Perbedaan Transaksi vs Jurnal</div>
+  <table>
+    <thead><tr><th>Aspek</th><th>Transaksi</th><th>Jurnal</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Apa</strong></td><td>Data operasional (kasir)</td><td>Data keuangan (akuntan)</td></tr>
+      <tr><td><strong>Isi</strong></td><td>Invoice, barang, bayar, kembali</td><td>Akun, debit, kredit</td></tr>
+      <tr><td><strong>Siapa pakai</strong></td><td>Kasir</td><td>Akuntan / Laporan</td></tr>
+      <tr><td><strong>Format</strong></td><td>1 baris per invoice</td><td>Banyak baris per jurnal (2-4 baris)</td></tr>
+      <tr><td><strong>Contoh</strong></td><td>TRX-001: Jual kopi 10 bungkus, Rp10.000</td><td>JNL-SAL-001: Kas +10.000, Penjualan +10.000</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3>Jurnal Otomatis dari Transaksi</h3>
+<p>Sistem <strong>otomatis buat jurnal</strong> setiap kali transaksi disimpan. Kamu tidak perlu entry manual.</p>
+
+<h4>Contoh 1: Jualan Tunai Rp10.000 (HPP Rp5.000)</h4>
+<p>Sistem buat 1 jurnal dengan 4 baris:</p>
+<table class="journal-table">
+  <thead><tr><th>Akun</th><th>Kode</th><th>Debit</th><th>Kredit</th><th>Arti</th></tr></thead>
+  <tbody>
+    <tr><td>💰 Kas</td><td>1001</td><td class="debit">10.000</td><td>-</td><td>Uang masuk</td></tr>
+    <tr><td>📈 Penjualan</td><td>4001</td><td>-</td><td class="credit">10.000</td><td>Pendapatan tercatat</td></tr>
+    <tr><td>📦 HPP</td><td>5001</td><td class="debit">5.000</td><td>-</td><td>Biaya barang terjual</td></tr>
+    <tr><td>📦 Persediaan</td><td>1003</td><td>-</td><td class="credit">5.000</td><td>Stok berkurang</td></tr>
+    <tr><td colspan="5" style="text-align:center; font-weight:700;">Total: Debit 15.000 = Kredit 15.000 ✅</td></tr>
+  </tbody>
+</table>
+
+<h4>Contoh 2: Beli dari Supplier Rp50.000 (belum bayar)</h4>
+<p>Sistem buat 1 jurnal saat pembelian di-TERIMA:</p>
+<table class="journal-table">
+  <thead><tr><th>Akun</th><th>Kode</th><th>Debit</th><th>Kredit</th><th>Arti</th></tr></thead>
+  <tbody>
+    <tr><td>📦 Persediaan</td><td>1003</td><td class="debit">50.000</td><td>-</td><td>Stok bertambah</td></tr>
+    <tr><td>🏪 Hutang</td><td>2001</td><td>-</td><td class="credit">50.000</td><td>Utang ke supplier</td></tr>
+    <tr><td colspan="5" style="text-align:center; font-weight:700;">Total: Debit 50.000 = Kredit 50.000 ✅</td></tr>
+  </tbody>
+</table>
+
+<h4>Contoh 3: Pelunasan Piutang Rp30.000</h4>
+<table class="journal-table">
+  <thead><tr><th>Akun</th><th>Kode</th><th>Debit</th><th>Kredit</th><th>Arti</th></tr></thead>
+  <tbody>
+    <tr><td>💰 Kas</td><td>1001</td><td class="debit">30.000</td><td>-</td><td>Uang dari customer masuk</td></tr>
+    <tr><td>👤 Piutang</td><td>1002</td><td>-</td><td class="credit">30.000</td><td>Piutang berkurang</td></tr>
+    <tr><td colspan="5" style="text-align:center; font-weight:700;">Total: Debit 30.000 = Kredit 30.000 ✅</td></tr>
+  </tbody>
+</table>
+
+<h4>Contoh 4: Pelunasan Hutang Rp20.000</h4>
+<table class="journal-table">
+  <thead><tr><th>Akun</th><th>Kode</th><th>Debit</th><th>Kredit</th><th>Arti</th></tr></thead>
+  <tbody>
+    <tr><td>🏪 Hutang</td><td>2001</td><td class="debit">20.000</td><td>-</td><td>Utang berkurang</td></tr>
+    <tr><td>💰 Kas</td><td>1001</td><td>-</td><td class="credit">20.000</td><td>Uang keluar bayar supplier</td></tr>
+    <tr><td colspan="5" style="text-align:center; font-weight:700;">Total: Debit 20.000 = Kredit 20.000 ✅</td></tr>
+  </tbody>
+</table>
+
+<h3>Akun Dasar (Chart of Accounts)</h3>
+<p>Sistem sudah punya 8 akun dasar yang di-seed otomatis:</p>
+<table>
+  <thead><tr><th>Kode</th><th>Nama Akun</th><th>Tipe</th><th>Arti</th></tr></thead>
+  <tbody>
+    <tr><td>1001</td><td>Kas</td><td><span class="badge badge-blue">ASET</span></td><td>Uang tunai di tangan</td></tr>
+    <tr><td>1002</td><td>Piutang</td><td><span class="badge badge-blue">ASET</span></td><td>Uang yang harus diterima</td></tr>
+    <tr><td>1003</td><td>Persediaan</td><td><span class="badge badge-blue">ASET</span></td><td>Nilai stok barang</td></tr>
+    <tr><td>2001</td><td>Hutang</td><td><span class="badge badge-red">UTANG</span></td><td>Utang ke supplier</td></tr>
+    <tr><td>3001</td><td>Modal</td><td><span class="badge badge-purple">MODAL</span></td><td>Modal pemilik</td></tr>
+    <tr><td>4001</td><td>Penjualan</td><td><span class="badge badge-green">PENDAPATAN</span></td><td>Pendapatan dari jual</td></tr>
+    <tr><td>5001</td><td>HPP</td><td><span class="badge badge-orange">BEBAN</span></td><td>Biaya barang terjual</td></tr>
+    <tr><td>6001</td><td>Beban Operasional</td><td><span class="badge badge-orange">BEBAN</span></td><td>Beban lain (listrik, dll)</td></tr>
+  </tbody>
+</table>
+
+<div class="callout callout-success">
+  <div class="callout-title">💡 Cara baca jurnal</div>
+  <p><strong>Debit</strong> = sisi kiri = uang masuk / aset bertambah / beban bertambah.<br>
+  <strong>Kredit</strong> = sisi kanan = uang keluar / kewajiban bertambah / pendapatan bertambah.<br>
+  <strong>Aturan:</strong> Total debit <strong>harus sama</strong> dengan total kredit. Kalau tidak = ada kesalahan.</p>
+</div>
+</section>
+
+<!-- ====== LAPORAN ====== -->
+<section id="laporan">
+<h2>📊 Laporan Keuangan</h2>
+<p>Semua laporan <strong>otomatis dari data</strong>. Tidak perlu entry manual. Filter per tanggal, cabang, atau status.</p>
+
+<h3>1. Laporan Kas (Cash Ledger)</h3>
+<p>Catat semua uang masuk & keluar. Inti "buku kas".</p>
+<table>
+  <thead><tr><th>Sumber</th><th>Tipe</th><th>Arti</th></tr></thead>
+  <tbody>
+    <tr><td>PENJUALAN</td><td>MASUK</td><td>Uang dari pembayaran customer</td></tr>
+    <tr><td>PENJUALAN</td><td>KELUAR</td><td>Kembalian ke customer</td></tr>
+    <tr><td>REFUND</td><td>KELUAR + MASUK</td><td>Void transaksi (uang keluar + masuk kembali)</td></tr>
+    <tr><td>PELUNASAN_PIUTANG</td><td>MASUK</td><td>Customer bayar piutang</td></tr>
+    <tr><td>PELUNASAN_HUTANG</td><td>KELUAR</td><td>Bayar hutang ke supplier</td></tr>
+  </tbody>
+</table>
+
+<h3>2. Laporan Penjualan</h3>
+<p>Ringkasan semua transaksi penjualan. Filter per tanggal, cabang, status.</p>
+<ul>
+  <li>Total penjualan, total pajak, total diskon</li>
+  <li>Per invoice: nomor, customer, cabang, subtotal, diskon, pajak, grand total</li>
+  <li>Status: Selesai / Piutang / Batal</li>
+</ul>
+
+<h3>3. Laporan Stok (Mutasi Stok)</h3>
+<p>Catat semua stok masuk & keluar. Traceable ke transaksi asli.</p>
+<ul>
+  <li>Stok MASUK: dari pembelian (TERIMA)</li>
+  <li>Stok KELUAR: dari penjualan (SELESAI/PIUTANG)</li>
+  <li>Per barang, per cabang, per tanggal</li>
+  <li>Keterangan: "Transaksi TRX-001", "Pembelian PO-001", dll</li>
+</ul>
+
+<h3>4. Laporan Laba Rugi</h3>
+<p>Hitung untung/rugi periode. Otomatis dari jurnal.</p>
+<div class="equation">Laba = Pendapatan (Penjualan) - Beban (HPP + Beban Operasional)</div>
+
+<table>
+  <thead><tr><th>Item</th><th>Sumber</th><th>Arti</th></tr></thead>
+  <tbody>
+    <tr><td>Pendapatan</td><td>Akun 4001 (Penjualan) — total kredit</td><td>Uang dari jual barang</td></tr>
+    <tr><td>HPP</td><td>Akun 5001 (HPP) — total debit</td><td>Biaya barang terjual</td></tr>
+    <tr><td>Beban Operasional</td><td>Akun 6001 — total debit</td><td>Biaya lain (listrik, sewa, dll)</td></tr>
+    <tr><td><strong>Laba Bersih</strong></td><td>Pendapatan - HPP - Beban</td><td><strong>Untung atau Rugi</strong></td></tr>
+  </tbody>
+</table>
+
+<h3>5. Laporan Neraca (Balance Sheet)</h3>
+<p>Posisi keuangan: apa yang dimiliki vs dari mana asalnya.</p>
+
+<div class="equation">ASET = UTANG + MODAL + LABA</div>
+
+<table>
+  <thead><tr><th>Sisi</th><th>Akun</th><th>Arti</th></tr></thead>
+  <tbody>
+    <tr><td rowspan="3"><strong>ASET</strong></td><td>Kas (1001)</td><td>Uang tunai</td></tr>
+    <tr><td>Piutang (1002)</td><td>Uang yang harus diterima</td></tr>
+    <tr><td>Persediaan (1003)</td><td>Nilai stok barang</td></tr>
+    <tr><td rowspan="2"><strong>UTANG</strong></td><td>Hutang (2001)</td><td>Utang ke supplier</td></tr>
+    <tr><td>Modal (3001)</td><td>Modal pemilik</td></tr>
+    <tr><td colspan="2"><strong>Laba Bersih</strong></td><td>Pendapatan - Beban</td></tr>
+    <tr><td colspan="3" style="text-align:center; font-weight:700;">Total ASET = Total UTANG + MODAL + LABA ✅</td></tr>
+  </tbody>
+</table>
+
+<div class="callout callout-success">
+  <div class="callout-title">✅ Balance Check</div>
+  <p>Laporan neraca punya <strong>balance check otomatis</strong>. Kalau ASET = UTANG+MODAL+LABA, berarti data valid. Kalau tidak seimbang, ada kesalahan pencatatan (jurnal tidak balance, transaksi hilang, dll).</p>
+</div>
+
+<h3>6. Laporan Arus Kas</h3>
+<p>Uang nyata masuk & keluar. Beda dengan laba-rugi (laba bisa non-kas, arus kas = uang nyata).</p>
+<ul>
+  <li>Filter per cabang, sumber, tanggal</li>
+  <li>Total masuk, total keluar, net cash flow</li>
+  <li>Setiap baris = 1 mutasi uang (bayar, kembali, pelunasan, dll)</li>
+</ul>
+
+<h3>7. Buku Besar</h3>
+<p>Semua jurnal per akun. Untuk audit detail tiap akun.</p>
+<ul>
+  <li>Filter: nomor jurnal, keterangan, tipe akun, tanggal</li>
+  <li>Setiap baris: tanggal, no jurnal, akun, debit, kredit, keterangan</li>
+  <li>Bisa trace: jurnal → transaksi → detail barang</li>
+</ul>
+</section>
+
+<!-- ====== ALUR OTOMATIS ====== -->
+<section id="alur-otomatis">
+<h2>⚡ Alur Otomatis di Belakang Layar</h2>
+<p>Setiap aksi yang kamu lakukan di UI, sistem lakukan <strong>banyak hal otomatis</strong> di belakang layar. Ini yang terjadi.</p>
+
+<h3>A. Saat Simpan Transaksi Penjualan (Status: SELESAI)</h3>
+
+<div class="flow">
+  <div class="flow-step">Input Kasir</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step">Simpan Transaksi</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step">Simpan Detail</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step green">Stok Turun</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step green">Kas Mutasi</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step purple">Jurnal</div>
+</div>
+
+<table>
+  <thead><tr><th>#</th><th>Aksi</th><th>Tabel yang diubah</th><th>Detail</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>Simpan header</td><td><code>transaksi</code></td><td>nomor_transaksi, tanggal, cabang, customer, grand_total, bayar, kembali, status</td></tr>
+    <tr><td>2</td><td>Simpan baris</td><td><code>transaksi_detail</code></td><td>barang, qty, harga, harga_beli (snapshot), nama_barang (snapshot)</td></tr>
+    <tr><td>3</td><td>Catat stok keluar</td><td><code>stok_mutasi</code></td><td>tipe=KELUAR, qty=qty_pcs, keterangan="Transaksi TRX-001"</td></tr>
+    <tr><td>4</td><td>Update stok cabang</td><td><code>barang_stok</code></td><td>stok -= qty_pcs per cabang</td></tr>
+    <tr><td>5</td><td>Update stok global</td><td><code>barang</code></td><td>stok -= qty_pcs</td></tr>
+    <tr><td>6</td><td>Catat uang masuk</td><td><code>kas_mutasi</code></td><td>tipe=MASUK, sumber=PENJUALAN, jumlah=bayar</td></tr>
+    <tr><td>7</td><td>Catat uang keluar (kembali)</td><td><code>kas_mutasi</code></td><td>tipe=KELUAR, sumber=PENJUALAN, jumlah=kembali</td></tr>
+    <tr><td>8</td><td>Buat jurnal penjualan</td><td><code>jurnal</code> + <code>jurnal_detail</code></td><td>Kas debet, Penjualan kredit, HPP debet, Persediaan kredit</td></tr>
+  </tbody>
+</table>
+
+<h3>B. Saat Terima Pembelian</h3>
+
+<div class="flow">
+  <div class="flow-step">Klik "Terima"</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step green">Stok Masuk</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step">Update Harga Beli</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step purple">Jurnal Pembelian</div>
+</div>
+
+<table>
+  <thead><tr><th>#</th><th>Aksi</th><th>Tabel yang diubah</th><th>Detail</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>Update status</td><td><code>pembelian</code></td><td>status: ORDER → TERIMA</td></tr>
+    <tr><td>2</td><td>Catat stok masuk</td><td><code>stok_mutasi</code></td><td>tipe=MASUK, qty=qty_pcs, keterangan="Pembelian PO-001"</td></tr>
+    <tr><td>3</td><td>Update stok cabang</td><td><code>barang_stok</code></td><td>stok += qty_pcs per cabang</td></tr>
+    <tr><td>4</td><td>Update stok global</td><td><code>barang</code></td><td>stok += qty_pcs</td></tr>
+    <tr><td>5</td><td>Update harga beli</td><td><code>barang</code></td><td>harga_beli = harga beli aktual dari pembelian</td></tr>
+    <tr><td>6</td><td>Buat jurnal pembelian</td><td><code>jurnal</code> + <code>jurnal_detail</code></td><td>Persediaan debet, Hutang kredit</td></tr>
+  </tbody>
+</table>
+
+<h3>C. Saat Pelunasan Piutang</h3>
+
+<table>
+  <thead><tr><th>#</th><th>Aksi</th><th>Tabel yang diubah</th><th>Detail</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>Update sisa piutang</td><td><code>piutang</code></td><td>sisa -= jumlah bayar, status=LUNAS jika sisa=0</td></tr>
+    <tr><td>2</td><td>Catat pelunasan</td><td><code>pelunasan</code></td><td>jenis=PIUTANG, referensi_id=piutang_id, jumlah, metode_bayar</td></tr>
+    <tr><td>3</td><td>Catat uang masuk</td><td><code>kas_mutasi</code></td><td>tipe=MASUK, sumber=PELUNASAN_PIUTANG, jumlah=bayar</td></tr>
+    <tr><td>4</td><td>Buat jurnal</td><td><code>jurnal</code> + <code>jurnal_detail</code></td><td>Kas debet, Piutang kredit</td></tr>
+  </tbody>
+</table>
+
+<h3>D. Saat Batal Transaksi (Cancel)</h3>
+
+<table>
+  <thead><tr><th>#</th><th>Aksi</th><th>Tabel yang diubah</th><th>Detail</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>Update status</td><td><code>transaksi</code></td><td>status: SELESAI → BATAL</td></tr>
+    <tr><td>2</td><td>Kembalikan stok</td><td><code>stok_mutasi</code> + <code>barang_stok</code> + <code>barang</code></td><td>tipe=MASUK, stok += qty</td></tr>
+    <tr><td>3</td><td>Kembalikan uang (kalau tunai)</td><td><code>kas_mutasi</code></td><td>KELUAR (bayar) + MASUK (kembali), sumber=REFUND</td></tr>
+    <tr><td>4</td><td>Buat jurnal refund</td><td><code>jurnal</code> + <code>jurnal_detail</code></td><td>Kebalikan jurnal penjualan</td></tr>
+  </tbody>
+</table>
+</section>
+
+<!-- ====== DATABASE ====== -->
+<section id="database">
+<h2>🗄️ Struktur Database</h2>
+<p>Ringkasan tabel-tabel utama dan relasi antar tabel.</p>
+
+<h3>Tabel Master</h3>
+<table>
+  <thead><tr><th>Tabel</th><th>Fungsi</th><th>Kolom Penting</th></tr></thead>
+  <tbody>
+    <tr><td><code>cabang</code></td><td>Data cabang/toko</td><td>kode_cabang, nama_cabang, alamat, is_aktif</td></tr>
+    <tr><td><code>barang</code></td><td>Master barang</td><td>kode_barang, nama_barang, stok, <strong>harga_beli</strong></td></tr>
+    <tr><td><code>barang_satuan</code></td><td>Satuan barang (pcs, dus, dll)</td><td>barang_id, nama_satuan, konversi, harga_jual, <strong>harga_beli</strong>, is_default</td></tr>
+    <tr><td><code>barang_stok</code></td><td>Stok per cabang</td><td>barang_id, cabang_id, stok</td></tr>
+    <tr><td><code>akun</code></td><td>Chart of Accounts</td><td>kode_akun, nama_akun, tipe (ASET/UTANG/MODAL/PENDAPATAN/BEBAN)</td></tr>
+  </tbody>
+</table>
+
+<h3>Tabel Transaksi</h3>
+<table>
+  <thead><tr><th>Tabel</th><th>Fungsi</th><th>Kolom Penting</th></tr></thead>
+  <tbody>
+    <tr><td><code>transaksi</code></td><td>Header penjualan</td><td>nomor_transaksi, tanggal, cabang_id, user_id, customer, status, metode_bayar, bayar, kembali, diskon_total, <strong>pajak</strong></td></tr>
+    <tr><td><code>transaksi_detail</code></td><td>Baris penjualan</td><td>transaksi_id, barang_id, qty, harga, <strong>harga_beli</strong> (snapshot), <strong>nama_barang</strong> (snapshot), <strong>nama_satuan</strong> (snapshot)</td></tr>
+    <tr><td><code>pembelian</code></td><td>Header pembelian</td><td>nomor_beli, tanggal, cabang_id, supplier, total, <strong>pajak</strong>, status (ORDER/TERIMA/BATAL)</td></tr>
+    <tr><td><code>pembelian_detail</code></td><td>Baris pembelian</td><td>pembelian_id, barang_id, qty, <strong>harga_beli</strong>, subtotal</td></tr>
+    <tr><td><code>piutang</code></td><td>Piutang customer</td><td>transaksi_id, customer, jumlah, sisa, status (BELUM_LUNAS/LUNAS)</td></tr>
+    <tr><td><code>hutang</code></td><td>Hutang supplier</td><td>pembelian_id, supplier, jumlah, sisa, status (BELUM_LUNAS/LUNAS)</td></tr>
+    <tr><td><code>pelunasan</code></td><td>Riwayat pelunasan</td><td>cabang_id, jenis (PIUTANG/HUTANG), referensi_id, jumlah, metode_bayar</td></tr>
+  </tbody>
+</table>
+
+<h3>Tabel Ledger</h3>
+<table>
+  <thead><tr><th>Tabel</th><th>Fungsi</th><th>Kolom Penting</th></tr></thead>
+  <tbody>
+    <tr><td><code>stok_mutasi</code></td><td>Mutasi stok (masuk/keluar)</td><td>barang_id, cabang_id, transaksi_id, tipe (MASUK/KELUAR), qty, qty_satuan, keterangan</td></tr>
+    <tr><td><code>kas_mutasi</code></td><td>Mutasi uang (cash ledger)</td><td>cabang_id, tanggal, tipe (MASUK/KELUAR), sumber, transaksi_id, jumlah, keterangan</td></tr>
+    <tr><td><code>jurnal</code></td><td>Jurnal umum</td><td>tanggal, nomor_jurnal (unique), keterangan, transaksi_id, cabang_id</td></tr>
+    <tr><td><code>jurnal_detail</code></td><td>Detail jurnal (debit/kredit)</td><td>jurnal_id, akun_id, debit, kredit</td></tr>
+  </tbody>
+</table>
+
+<h3>Relasi Antar Tabel</h3>
+<div class="flow">
+  <div class="flow-step">cabang</div>
+  <span class="flow-arrow">├→</span>
+  <div class="flow-step">transaksi</div>
+  <span class="flow-arrow">├→</span>
+  <div class="flow-step">transaksi_detail</div>
+  <span class="flow-arrow">├→</span>
+  <div class="flow-step">stok_mutasi</div>
+  <span class="flow-arrow">└→</span>
+  <div class="flow-step">jurnal</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step">jurnal_detail</div>
+</div>
+<div class="flow">
+  <div class="flow-step">cabang</div>
+  <span class="flow-arrow">├→</span>
+  <div class="flow-step">pembelian</div>
+  <span class="flow-arrow">├→</span>
+  <div class="flow-step">pembelian_detail</div>
+  <span class="flow-arrow">├→</span>
+  <div class="flow-step">stok_mutasi</div>
+  <span class="flow-arrow">└→</span>
+  <div class="flow-step">jurnal</div>
+</div>
+<div class="flow">
+  <div class="flow-step">transaksi</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step">piutang</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step">pelunasan</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step green">kas_mutasi</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step purple">jurnal</div>
+</div>
+<div class="flow">
+  <div class="flow-step">pembelian</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step">hutang</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step">pelunasan</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step red">kas_mutasi</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step purple">jurnal</div>
+</div>
+
+<div class="callout callout-info">
+  <div class="callout-title">🔗 Semua jalan ke jurnal</div>
+  <p>Setiap transaksi keuangan (jual, beli, pelunasan, refund) <strong>akhirnya tercatat di jurnal</strong>. Jurnal → laporan laba rugi, neraca, buku besar. Ini yang bikin laporan keuangan otomatis.</p>
+</div>
+</section>
+
+<!-- ====== RINGKASAN ====== -->
+<section id="ringkasan">
+<h2> Ringkasan</h2>
+
+<div class="card card-green">
+  <h3>✅ Apa yang sudah kamu pahami?</h3>
+  <ul style="margin-left:20px;">
+    <li><strong>POS</strong> = kasir catat jualan (barang → keranjang → bayar → simpan)</li>
+    <li><strong>Pembelian</strong> = beli dari supplier (ORDER → TERIMA → stok masuk)</li>
+    <li><strong>HPP</strong> = biaya barang terjual (beli Rp5.000, jual Rp10.000 → HPP Rp5.000)</li>
+    <li><strong>Laba</strong> = Penjualan - HPP (Rp10.000 - Rp5.000 = Rp5.000)</li>
+    <li><strong>Piutang</strong> = uang yang HARUS DITERIMA (customer belum bayar)</li>
+    <li><strong>Hutang</strong> = uang yang HARUS DIBAYAR (belum bayar supplier)</li>
+    <li><strong>Jurnal</strong> = catatan 2 sisi (debit = kredit), otomatis dari transaksi</li>
+    <li><strong>Neraca</strong> = ASET = UTANG + MODAL (harus seimbang)</li>
+    <li><strong>Kas Mutasi</strong> = catat uang masuk/keluar nyata</li>
+    <li><strong>Laporan</strong> = ringkasan otomatis dari data (tidak perlu entry manual)</li>
+  </ul>
+</div>
+
+<div class="card card-blue">
+  <h3>📌 Alur Singkat</h3>
+  <div class="flow">
+    <div class="flow-step">Setup</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step green">Beli Barang</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step">Stok Masuk</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step orange">Jual Barang</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step purple">Uang Masuk</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step green">Laporan</div>
+  </div>
+  <p style="margin-top:12px;">Setiap langkah <strong>otomatis catat di jurnal</strong>. Laporan keuangan jadi otomatis.</p>
+</div>
+
+<div class="callout callout-warning">
+  <div class="callout-title">💡 Tips Belajar</div>
+  <ol style="margin-left:20px; margin-top:8px;">
+    <li>Coba <strong>beli barang</strong> dulu → lihat stok masuk di laporan stok</li>
+    <li>Coba <strong>jual barang</strong> → lihat uang masuk di laporan kas</li>
+    <li>Buka <strong>laporan laba rugi</strong> → lihat laba dari penjualan - HPP</li>
+    <li>Buka <strong>laporan neraca</strong> → cek balance check (harus ✅)</li>
+    <li>Buka <strong>buku besar</strong> → trace jurnal dari transaksi</li>
+  </ol>
+</div>
+
+</section>
+
+<!-- Footer -->
+<div style="margin-top:60px; padding-top:20px; border-top:1px solid var(--border); text-align:center; color:var(--text-light); font-size:0.85rem;">
+  <p>POPS PRO — Panduan Lengkap POS & Ledger</p>
+  <p>Dibuat untuk pembelajaran. Sistem: Laravel 13 + Livewire 4 + MySQL</p>
+  <p style="margin-top:8px;">Last updated: Agustus 2026</p>
+</div>
+
+</div><!-- end main -->
+
+<script>
+// Active nav link on scroll
+const sections = document.querySelectorAll('section');
+const navLinks = document.querySelectorAll('.nav-link');
+
+function updateActiveNav() {
+  let current = '';
+  sections.forEach(section => {
+    const sectionTop = section.offsetTop - 100;
+    if (window.scrollY >= sectionTop) {
+      current = section.getAttribute('id');
+    }
+  });
+  navLinks.forEach(link => {
+    link.classList.remove('active');
+    if (link.getAttribute('href') === '#' + current) {
+      link.classList.add('active');
+    }
+  });
+}
+
+window.addEventListener('scroll', updateActiveNav);
+updateActiveNav();
+
+// Smooth scroll
+navLinks.forEach(link => {
+  link.addEventListener('click', function(e) {
+    e.preventDefault();
+    const target = document.querySelector(this.getAttribute('href'));
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+});
+</script>
+
+</body>
+</html>

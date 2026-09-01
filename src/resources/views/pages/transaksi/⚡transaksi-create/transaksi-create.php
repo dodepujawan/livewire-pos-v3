@@ -33,7 +33,13 @@ new class extends Component
     // Cart
     public array $cartItems = [];
 
-    // Modal
+    // Search Modal
+    public bool $showSearchModal = false;
+    public array $searchResults = [];
+    public int $selectedIndex = 0;
+    public string $searchKeyword = '';
+
+    // Bayar Modal
     public bool $showBayarModal = false;
 
     // Single Item Form
@@ -69,6 +75,29 @@ new class extends Component
         $this->generateInvoiceNumber();
         $this->loadCabangList();
         $this->setDefaultCabang();
+    }
+
+    // Keyboard event handler untuk modal
+    public function handleSearchModalKeydown(string $key): void
+    {
+        if (!$this->showSearchModal) return;
+
+        switch ($key) {
+            case 'ArrowUp':
+                $this->moveSelectionUp();
+                break;
+            case 'ArrowDown':
+                $this->moveSelectionDown();
+                break;
+            case 'Enter':
+                if (isset($this->searchResults[$this->selectedIndex])) {
+                    $this->selectBarangFromSearch($this->searchResults[$this->selectedIndex]['id']);
+                }
+                break;
+            case 'Escape':
+                $this->closeSearchModal();
+                break;
+        }
     }
 
     private function loadCabangList(): void
@@ -109,20 +138,79 @@ new class extends Component
 
     public function searchBarang(): void
     {
-        $this->validate([
-            'itemKodeBarang' => 'required|string',
-        ]);
+        $keyword = trim($this->itemKodeBarang);
 
-        $barang = Barang::where('kode_barang', strtoupper($this->itemKodeBarang))
-            ->with('satuan')
-            ->first();
-
-        if (!$barang) {
-            session()->flash('error', 'Barang tidak ditemukan');
-            $this->resetItemForm();
+        // Jika input kosong, langsung buka modal untuk menampilkan semua barang
+        if (empty($keyword)) {
+            $this->searchBarangLike('');
             return;
         }
 
+        $keyword = strtoupper($keyword);
+        $this->searchKeyword = $keyword;
+
+        // Cari exact match pertama
+        $barang = Barang::where('kode_barang', $keyword)
+            ->with('satuan')
+            ->first();
+
+        if ($barang) {
+            $this->loadBarang($barang);
+            $this->dispatch('focus-qty');
+            return;
+        }
+
+        // Jika tidak ditemukan exact, search dengan LIKE
+        $this->searchBarangLike($keyword);
+    }
+
+    public function searchBarangLike(string $keyword = ''): void
+    {
+        $query = Barang::with('satuan')
+            ->orderBy('kode_barang');
+
+        if (!empty($keyword)) {
+            $query->where(function($q) use ($keyword) {
+                $q->where('kode_barang', 'LIKE', "%{$keyword}%")
+                  ->orWhere('nama_barang', 'LIKE', "%{$keyword}%");
+            });
+        }
+
+        $this->searchResults = $query->limit(50)->get()->map(function($barang) {
+            $defaultSatuan = $barang->satuan->firstWhere('konversi', 1) ?? $barang->satuan->first();
+            return [
+                'id' => $barang->id,
+                'kode_barang' => $barang->kode_barang,
+                'nama_barang' => $barang->nama_barang,
+                'stok' => $barang->stok,
+                'satuan_list' => $barang->satuan->toArray(),
+                'default_harga' => $defaultSatuan ? $defaultSatuan->harga_jual : 0,
+                'default_satuan_id' => $defaultSatuan ? $defaultSatuan->id : 0,
+                'default_satuan_nama' => $defaultSatuan ? $defaultSatuan->nama_satuan : '',
+            ];
+        })->toArray();
+
+        if (count($this->searchResults) > 0) {
+            $this->selectedIndex = 0;
+            $this->showSearchModal = true;
+        } else {
+            session()->flash('error', 'Barang tidak ditemukan');
+            $this->resetItemForm();
+        }
+    }
+
+    public function selectBarangFromSearch(int $barangId): void
+    {
+        $barang = Barang::with('satuan')->find($barangId);
+        if ($barang) {
+            $this->loadBarang($barang);
+            $this->closeSearchModal();
+            $this->dispatch('focus-qty');
+        }
+    }
+
+    private function loadBarang(Barang $barang): void
+    {
         $this->itemBarangId = $barang->id;
         $this->itemNamaBarang = $barang->nama_barang;
         $this->itemStok = $barang->stok;
@@ -138,8 +226,28 @@ new class extends Component
             $this->itemHarga = $defaultSatuan->harga_jual;
             $this->calculateItemSubtotal();
         }
+    }
 
-        $this->dispatch('focus-qty');
+    public function closeSearchModal(): void
+    {
+        $this->showSearchModal = false;
+        $this->searchResults = [];
+        $this->selectedIndex = 0;
+        $this->searchKeyword = '';
+    }
+
+    public function moveSelectionUp(): void
+    {
+        if ($this->selectedIndex > 0) {
+            $this->selectedIndex--;
+        }
+    }
+
+    public function moveSelectionDown(): void
+    {
+        if ($this->selectedIndex < count($this->searchResults) - 1) {
+            $this->selectedIndex++;
+        }
     }
 
     public function updatedItemBarangSatuanId(): void

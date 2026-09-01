@@ -26,7 +26,23 @@
             {{-- Left Column: Add Item only (fixed 300px) --}}
             <div class="flex flex-col gap-2 min-h-0 overflow-y-auto pr-1">
                 {{-- Add Item Section --}}
-                <div class="bg-white rounded shadow p-3 shrink-0">
+                <div class="bg-white rounded shadow p-3 shrink-0"
+                     x-data="{ navFlow: ['qty-input','satuan-input','diskon-input','tambah-button'],
+                              handleNav(event) {
+                                  if (event.key !== 'Enter' || @this.get('showSearchModal') || @this.get('showBayarModal')) return;
+                                  event.preventDefault();
+                                  this.navNext(event.target.id ?? '');
+                              },
+                              navNext(id) {
+                                  const idx = this.navFlow.indexOf(id);
+                                  if (idx === -1) return;
+                                  if (id === 'tambah-button') {
+                                     $wire.addToCart();
+                                     return;
+                                  }
+                                  document.getElementById(this.navFlow[idx + 1]).focus();
+                              } }"
+                     x-on:keydown="handleNav">
                     <h3 class="font-semibold mb-2 text-sm">Tambah Barang</h3>
                     <div class="space-y-2">
                         {{-- Kode Barang --}}
@@ -38,7 +54,7 @@
                                 wire:keydown.enter.prevent="searchBarang"
                                 id="kode-barang-input"
                                 class="w-full border rounded px-3 py-1.5 text-sm"
-                                placeholder="Scan/ketik kode..."
+                                placeholder="Scan/ketik kode (kosong + Enter untuk semua barang)..."
                             >
                             @error('itemKodeBarang')
                                 <p class="text-red-500 text-sm mt-0.5">{{ $message }}</p>
@@ -60,7 +76,6 @@
                                 <input
                                     type="number"
                                     wire:model.live.debounce.500ms="itemQty"
-                                    wire:keydown.enter.prevent="addToCart"
                                     id="qty-input"
                                     min="1"
                                     class="w-full border rounded px-3 py-1.5 text-sm"
@@ -74,7 +89,7 @@
                             {{-- Satuan --}}
                             <div>
                                 <label class="block text-sm font-medium mb-1">Satuan</label>
-                                <select wire:model.live.debounce.500ms="itemBarangSatuanId" class="w-full border rounded px-3 py-1.5 text-sm" @disabled(empty($itemSatuanList))>
+                                <select wire:model.live.debounce.500ms="itemBarangSatuanId" id="satuan-input" class="w-full border rounded px-3 py-1.5 text-sm" @disabled(empty($itemSatuanList))>
                                     <option value="0">Pilih</option>
                                     @foreach($itemSatuanList as $satuan)
                                         <option value="{{ $satuan['id'] }}">{{ $satuan['nama_satuan'] }}</option>
@@ -94,7 +109,7 @@
                             {{-- Diskon --}}
                             <div>
                                 <label class="block text-sm font-medium mb-1">Diskon</label>
-                                <input type="number" wire:model.live.debounce.500ms="itemDiskon" min="0" class="w-full border rounded px-3 py-1.5 text-sm">
+                                <input type="number" wire:model.live.debounce.500ms="itemDiskon" id="diskon-input" min="0" class="w-full border rounded px-3 py-1.5 text-sm">
                                 @error('itemDiskon')
                                     <p class="text-red-500 text-sm mt-0.5">{{ $message }}</p>
                                 @enderror
@@ -108,7 +123,7 @@
                         </div>
 
                         {{-- Button Tambah --}}
-                        <button type="button" wire:click="addToCart" class="w-full px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm" @if(!$itemNamaBarang) disabled @endif>+ Tambah ke Keranjang</button>
+                        <button type="button" @click="$wire.addToCart()" id="tambah-button" class="w-full px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm" @if(!$itemNamaBarang) disabled @endif>+ Tambah ke Keranjang</button>
                     </div>
                 </div>
             </div>
@@ -259,6 +274,109 @@
         </div>
     </form>
 
+    {{-- Search Modal --}}
+    @if($showSearchModal)
+    <div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50"
+         x-data="{
+             handleKeydown(event) {
+                 if (event.key === 'ArrowUp' || event.key === 'ArrowDown' || event.key === 'Enter' || event.key === 'Escape') {
+                     event.preventDefault();
+                     @this.handleSearchModalKeydown(event.key);
+                 }
+             }
+         }"
+         x-on:keydown.window="handleKeydown"
+         wire:keydown.escape="$set('showSearchModal', false)"
+         wire:click.self="$set('showSearchModal', false)">
+        <div class="w-full max-w-4xl mx-4 max-h-[80vh] overflow-hidden rounded-xl bg-white shadow-2xl flex flex-col">
+            <div class="p-4 border-b bg-gray-50">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-base font-bold text-gray-800">Pilih Barang</h2>
+                    <button type="button" @click="$wire.set('showSearchModal', false)" class="px-3 py-1 text-sm border rounded hover:bg-gray-100">
+                        ESC (Tutup)
+                    </button>
+                </div>
+                <div class="mt-2">
+                    <div class="flex items-center gap-2">
+                        <input type="text"
+                               wire:model.live.debounce.300ms="searchKeyword"
+                               class="flex-1 border rounded px-3 py-1.5 text-sm"
+                               placeholder="Ketik untuk filter..."
+                               autofocus>
+                        <span class="text-sm text-gray-500">
+                            {{ count($searchResults) }} hasil
+                        </span>
+                    </div>
+                    <div class="mt-1 text-xs text-gray-500">
+                        Gunakan ↑ ↓ untuk navigasi, Enter untuk pilih, ESC untuk tutup
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-100 sticky top-0">
+                        <tr>
+                            <th class="px-4 py-2 text-left">Kode</th>
+                            <th class="px-4 py-2 text-left">Nama Barang</th>
+                            <th class="px-4 py-2 text-right">Stok</th>
+                            <th class="px-4 py-2 text-right">Harga</th>
+                            <th class="px-4 py-2 text-left">Satuan</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($searchResults as $index => $result)
+                            <tr wire:key="search-result-{{ $result['id'] }}"
+                                class="cursor-pointer transition-all duration-150 {{ $selectedIndex === $index ? 'bg-blue-50 border-l-4 border-blue-500 shadow-sm' : 'hover:bg-gray-50' }}"
+                                x-on:dblclick="$wire.selectBarangFromSearch({{ $result['id'] }})"
+                                x-on:click="$wire.set('selectedIndex', {{ $index }})"
+                                :class="{ 'bg-blue-50 border-l-4 border-blue-500 shadow-sm': {{ $selectedIndex }} === {{ $index }} }">
+                                <td class="px-4 py-2 font-mono text-sm">{{ $result['kode_barang'] }}</td>
+                                <td class="px-4 py-2">{{ $result['nama_barang'] }}</td>
+                                <td class="px-4 py-2 text-right">{{ $result['stok'] }}</td>
+                                <td class="px-4 py-2 text-right font-medium">{{ number_format($result['default_harga'], 0, ',', '.') }}</td>
+                                <td class="px-4 py-2">{{ $result['default_satuan_nama'] }}</td>
+                            </tr>
+                        @endforeach
+                        @if(empty($searchResults) || count($searchResults) === 0)
+                            <tr>
+                                <td colspan="5" class="px-4 py-8 text-center text-gray-500">
+                                    Tidak ada barang ditemukan
+                                </td>
+                            </tr>
+                        @endif
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="p-3 border-t bg-gray-50">
+                <div class="flex justify-between items-center text-sm">
+                    <div class="text-gray-600">
+                        @if(isset($searchResults[$selectedIndex]))
+                            Terpilih: <span class="font-semibold">{{ $searchResults[$selectedIndex]['nama_barang'] }}</span>
+                        @else
+                            Pilih barang dengan navigasi keyboard
+                        @endif
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="button"
+                                @click="$wire.set('showSearchModal', false)"
+                                class="px-4 py-1.5 border rounded hover:bg-gray-100 text-sm">
+                            Batal
+                        </button>
+                        @if(isset($searchResults[$selectedIndex]))
+                            <button type="button"
+                                    @click="$wire.selectBarangFromSearch({{ $searchResults[$selectedIndex]['id'] }})"
+                                    class="px-4 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium text-sm">
+                                Pilih Barang (Enter)
+                            </button>
+                        @endif
+                    </div>
+</div>
+            </div>
+    </div>
+    @endif
+
     {{-- Bayar Modal --}}
     @if($showBayarModal)
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" wire:click.self="$set('showBayarModal', false)">
@@ -315,23 +433,25 @@
                     <button type="button" wire:click="$set('showBayarModal', false)" class="flex-1 px-3 py-2 border rounded hover:bg-gray-50 text-xs">Kembali</button>
                     <button type="submit" wire:click="saveTransaksi" class="flex-1 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold text-xs">Simpan</button>
                 </div>
+</div>
             </div>
         </div>
     </div>
     @endif
 </div>
+
 @script
 <script>
-document.addEventListener('livewire:init', () => {
-    document.getElementById('kode-barang-input').focus();
-
-    @this.on('focus-qty', () => {
-        document.getElementById('qty-input').focus();
+    $wire.on('focus-qty', () => {
+        setTimeout(() => {
+            document.getElementById('qty-input')?.focus();
+        }, 50);
     });
 
-    @this.on('focus-kode-barang', () => {
-        document.getElementById('kode-barang-input').focus();
+    $wire.on('focus-kode-barang', () => {
+        setTimeout(() => {
+            document.getElementById('kode-barang-input')?.focus();
+        }, 50);
     });
-});
 </script>
 @endscript

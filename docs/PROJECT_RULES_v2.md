@@ -57,7 +57,7 @@ Contoh:
 - `master.barang.delete`
 
 Jangan membuat nama route/permission sembarangan karena digunakan Permission Engine.
-lengakpanya bisa baca disisni path:docs/hak-akses-ai.md
+lengakpanya bisa baca disisni, tolong baca !!! PATH: docs/hak-akses-ai.md
 
 ## 5. Authorization
 - Jangan membuat sistem role/permission baru.
@@ -131,12 +131,12 @@ Cart:
 - Update Livewire seminimal mungkin.
 
 ## 9. UI Components
-- Maksimalkan `resources/views/components/`.
+- Maksimalkan gunakan attribute kayak tabel button dari path: `resources/views/components/`.
 - Reuse component existing sebelum membuat baru.
 - Gunakan TailwindCSS + Alpine.js.
 - Jangan membuat markup UI berulang tanpa alasan.
 - UI change tidak boleh mengubah business logic tanpa alasan.
-- ketika ada fungsi simpan update dan delete maka maximalakan component/form/loading
+- ketika ada fungsi simpan update dan delete maka maximalkan component/form/loading
 
 ## 10. Transactions & Error Handling
 Jika satu operasi bisnis mengubah beberapa tabel, gunakan `DB::transaction()`.

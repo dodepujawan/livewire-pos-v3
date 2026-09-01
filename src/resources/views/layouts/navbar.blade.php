@@ -48,7 +48,11 @@
                     <img src="{{ asset('gambar/pops_only.png') }}" alt="POPS" class="h-6 w-6 object-contain">
                 </div>
                 <div class="leading-tight">
-                    <div class="text-xs font-bold text-white tracking-wide">POPS</div>
+                    {{-- <div class="text-xs font-bold text-white tracking-wide">POPS</div> --}}
+                    <div class="flex items-baseline gap-1.5">
+                        <span class="text-xs font-bold tracking-wide text-white">POPS</span>
+                        <span class="text-[10px] font-semibold uppercase tracking-widest text-amber-400/90">Pro</span>
+                    </div>
                     <div class="text-[10px] text-amber-200/70">Cashier &amp; Ledger</div>
                 </div>
             </div>
