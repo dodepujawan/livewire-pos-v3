@@ -1,4 +1,4 @@
-<div class="h-screen p-3 overflow-hidden">
+<div class="h-screen p-1 overflow-hidden">
     {{-- Header --}}
     <div class="flex items-center justify-between mb-2">
         <div>
@@ -6,6 +6,13 @@
         </div>
         <a href="{{ route('transaksi.penjualan.list') }}" wire:navigate class="px-3 py-1.5 border rounded hover:bg-gray-50 text-sm mr-1 mt-1">Kembali</a>
     </div>
+
+    @if($showDraftBanner)
+    <div class="mb-2 p-2 rounded bg-yellow-100 text-yellow-800 text-sm flex justify-between items-center">
+        <span>Melanjutkan Draft: {{ $transNoInvoice }}</span>
+        <button type="button" wire:click="newDraft" class="px-2 py-1 bg-yellow-600 text-white rounded text-xs hover:bg-yellow-700">Buat Draft Baru</button>
+    </div>
+    @endif
 
     @if (session('success'))
         <div class="mb-2 p-2 rounded bg-green-100 text-green-800 text-sm">

@@ -4,9 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Transaksi extends Model
 {
+    use HasFactory;
+    use SoftDeletes;
+
     protected $table = 'transaksi';
 
     protected $fillable = [
@@ -23,10 +27,16 @@ class Transaksi extends Model
         'diskon_total',
         'pajak',
         'catatan',
+        'deleted_by',
+        'delete_reason',
     ];
 
     protected $casts = [
         'tanggal' => 'date',
+    ];
+
+    protected $dates = [
+        'deleted_at',
     ];
 
     public function details()
@@ -49,6 +59,8 @@ class Transaksi extends Model
         return $this->hasOne(Piutang::class);
     }
 
-    /** @use HasFactory<\Database\Factories\TransaksiFactory> */
-    use HasFactory;
+    public function deletedBy()
+    {
+        return $this->belongsTo(User::class, 'deleted_by');
+    }
 }
