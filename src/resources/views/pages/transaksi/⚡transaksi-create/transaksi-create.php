@@ -38,6 +38,12 @@ new class extends Component
     public bool $isDraft = false;
     public bool $showDraftBanner = false;
 
+    // Undo delete (untuk toast BATAL)
+    public array $lastDeletedItem = [];
+    public bool $showUndoToast = false;
+    public ?int $lastDeletedDraftId = null;
+    public string $lastDeletedDraftInvoice = '';
+
     // Search Modal
     public bool $showSearchModal = false;
     public array $searchResults = [];
@@ -123,11 +129,21 @@ new class extends Component
         }
     }
 
+    // ============================================================
+    // DRAFT LIFECYCLE
+    // ============================================================
+
+    /**
+     * Cari draft aktif milik user+cabang yang masih berlaku.
+     * Draft aktif = status DRAFT + deleted_at IS NULL.
+     * Jika ditemukan, muat data ke form agar kasir bisa melanjutkan.
+     */
     private function loadExistingDraft(): void
     {
         $userId = Auth::id();
         if (!$userId) return;
 
+        // Hanya ambil draft yang belum di-soft-delete
         $draft = Transaksi::where('status', 'DRAFT')
             ->whereNull('deleted_at')
             ->where('cabang_id', $this->transCabangId)
@@ -151,8 +167,11 @@ new class extends Component
             $this->transBayar = (float) $draft->bayar;
             $this->transKembali = (float) $draft->kembali;
             $this->transGrandTotal = (float) $draft->grand_total;
-            $this->transStatus = $draft->status;
+            // Status draft di-load sebagai SELESAI di form bayar,
+            // karena draft hanya temporary sampai bayar.
+            $this->transStatus = 'SELESAI';
 
+            // Load detail barang dari draft ke cart
             $this->cartItems = [];
             foreach ($draft->details as $detail) {
                 $this->cartItems[] = [
@@ -162,22 +181,29 @@ new class extends Component
                     'nama_satuan' => $detail->nama_satuan,
                     'qty' => (int) $detail->qty,
                     'harga' => $detail->harga,
-                    'diskon' => $detail->diskon,
-                    'subtotal' => $detail->subtotal,
-                    'qty_pcs' => $detail->qty_pcs,
+                    'diskon' => $this->formatNumber((float) $detail->diskon),
+                    'subtotal' => $this->formatNumber((float) $detail->subtotal),
+                    'qty_pcs' => (int) $detail->qty_pcs,
                 ];
             }
         }
     }
 
+    /**
+     * Generate nomor invoice baru (TRX-YYYYMMDD-XXXX).
+     * Hanya dipanggil saat membuat draft PERTAMA.
+     * Setelah ada draft, nomor invoice tetap sama sampai bayar atau hapus.
+     */
     private function generateInvoiceNumber(): string
     {
         $today = now()->format('Ymd');
+        // Ambil transaksi terakhir (berapa nomor yang sudah terpakai)
         $lastInvoice = Transaksi::whereDate('tanggal', today())
             ->orderBy('id', 'desc')
             ->first();
 
         if ($lastInvoice) {
+            // Ambil 4 digit terakhir, +1, pad dengan 0 di depan
             $lastNumber = (int) substr($lastInvoice->nomor_transaksi, -4);
             $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
         } else {
@@ -187,12 +213,22 @@ new class extends Component
         return 'TRX-' . $today . '-' . $newNumber;
     }
 
+    /**
+     * Simpan state keranjang ke tabel transaksi + transaksi_detail.
+     *
+     * @param bool $isFirstItem  true hanya saat barang PERTAMA kali ditambahkan.
+     *                          Hanya saat $isFirstItem = true, nomor invoice baru dibuat.
+     *                          Untuk barang berikutnya, nomor invoice tetap (pakai draftId).
+     */
     private function saveDraft(bool $isFirstItem = false): void
     {
         $userId = Auth::id();
 
+        // JIKA SUDAH ADA DRAFT (barang kedua, ketiga, ...)
         if ($this->draftId) {
             $transaksi = Transaksi::find($this->draftId);
+
+            // Jika draft somehow hilang dari DB, buat draft baru
             if (!$transaksi) {
                 $this->draftId = null;
                 $this->isDraft = false;
@@ -200,6 +236,7 @@ new class extends Component
                 return;
             }
 
+            // Update ringkasan transaksi (header saja)
             $transaksi->update([
                 'customer' => $this->transCustomer,
                 'grand_total' => $this->transGrandTotal,
@@ -208,6 +245,8 @@ new class extends Component
                 'catatan' => $this->transCatatan,
             ]);
 
+            // Hapus detail lama, ganti dengan detail terbaru dari cart
+            // (lebih aman daripada update satu-per-satu karena cart bisa berubah total)
             $transaksi->details()->delete();
             foreach ($this->cartItems as $item) {
                 $transaksi->details()->create([
@@ -223,9 +262,13 @@ new class extends Component
                     'nama_satuan' => $item['nama_satuan'],
                 ]);
             }
-        } else {
+        }
+        // JIKA BELUM ADA DRAFT (barang PERTAMA)
+        else {
+            // Hanya generate invoice saat barang pertama
             $invoiceNumber = $isFirstItem ? $this->generateInvoiceNumber() : '';
 
+            // Buat transaksi DRAFT baru
             $transaksi = Transaksi::create([
                 'nomor_transaksi' => $invoiceNumber,
                 'tanggal' => $this->transTanggal,
@@ -242,11 +285,13 @@ new class extends Component
                 'catatan' => $this->transCatatan,
             ]);
 
+            // Simpan id draft agar update berikutnya pakai ini
             $this->draftId = $transaksi->id;
             $this->isDraft = true;
-            $this->showDraftBanner = false;
+            $this->showDraftBanner = false; // draft baru, bukan melanjutkan
             $this->transNoInvoice = $invoiceNumber;
 
+            // Simpan setiap barang dari cart ke transaksi_detail
             foreach ($this->cartItems as $item) {
                 $barang = Barang::find($item['barang_id']);
                 $hargaBeli = $barang ? ($barang->harga_beli ?? 0) : 0;
@@ -268,7 +313,12 @@ new class extends Component
         }
     }
 
-    private function clearDraft(): void
+    /**
+     * Soft-delete draft saat keranjang menjadi kosong.
+     * Tidak menghapus row dari DB, hanya menandai deleted_at.
+     * deleted_by dan delete_reategy otomatis diisi.
+     */
+    private function clearDraft(bool $resetUndo = true): void
     {
         if ($this->draftId) {
             $transaksi = Transaksi::find($this->draftId);
@@ -283,6 +333,13 @@ new class extends Component
 
         $this->draftId = null;
         $this->isDraft = false;
+        $this->showDraftBanner = false;
+        if ($resetUndo) {
+            $this->showUndoToast = false;
+            $this->lastDeletedItem = [];
+            $this->lastDeletedDraftId = null;
+            $this->lastDeletedDraftInvoice = '';
+        }
         $this->transNoInvoice = '';
         $this->transCustomer = '';
         $this->transGrandTotal = 0;
@@ -293,10 +350,15 @@ new class extends Component
         $this->transCatatan = '';
     }
 
+    /**
+     * Tombol "Buat Draft Baru" di UI.
+     * Hapus draft lama (jika ada), reset form ke kondisi awal.
+     */
     public function newDraft(): void
     {
         $this->showDraftBanner = false;
         $this->clearDraft();
+        $this->transTanggal = now()->format('Y-m-d');
         $this->cartItems = [];
         $this->resetItemForm();
     }
@@ -445,6 +507,18 @@ new class extends Component
             : (float) $value;
     }
 
+    /**
+     * Format angka untuk display: hilangkan .00 jika bilangan bulat.
+     * Contoh: 5000.00 → "5000", 2500.50 → "2500.5", 0 → "0"
+     */
+    private function formatNumber(float $value): string
+    {
+        if ($value == (int) $value) {
+            return (string) (int) $value;
+        }
+        return rtrim(rtrim((string) $value, '0'), '.');
+    }
+
     private function calculateItemSubtotal(): void
     {
         $harga = (float) $this->itemHarga;
@@ -454,6 +528,11 @@ new class extends Component
         $this->itemSubtotal = ($harga * $qty) - $diskon;
     }
 
+    /**
+     * Tambah barang ke keranjang, lalu SIMPAN LANGSUNG ke database via saveDraft().
+     * Parameter $isFirstItem = true hanya saat ini item PERTAMA di session ini,
+     * agar nomor invoice baru dibuat tepat sekali.
+     */
     public function addToCart(): void
     {
         $this->validate([
@@ -471,11 +550,13 @@ new class extends Component
 
         $qtyPcs = (int) $this->itemQty * $satuan->konversi;
 
+        // Cek stok tersedia
         if ($barang->stok < $qtyPcs) {
             session()->flash('error', 'Stok tidak mencukupi. Stok tersedia: ' . $barang->stok . ' pcs');
             return;
         }
 
+        // Cek apakah barang sudah ada di cart (qty dijumlahkan, tidak dobel)
         $existingIndex = null;
         foreach ($this->cartItems as $index => $item) {
             if ($item['barang_id'] === $this->itemBarangId && $item['barang_satuan_id'] === $this->itemBarangSatuanId) {
@@ -485,6 +566,7 @@ new class extends Component
         }
 
         if ($existingIndex !== null) {
+            // Barang sudah ada — tambah qty
             $newQty = (int) $this->cartItems[$existingIndex]['qty'] + (int) $this->itemQty;
             $newQtyPcs = $newQty * $satuan->konversi;
 
@@ -497,9 +579,10 @@ new class extends Component
             $this->cartItems[$existingIndex]['qty_pcs'] = $newQtyPcs;
             $this->cartItems[$existingIndex]['subtotal'] = $newQty * $satuan->harga_jual;
         } else {
+            // Barang baru — tambah ke cart
             $qty = (int) $this->itemQty;
-            $diskon = (float) $this->itemDiskon;
-            $subtotal = (float) $this->itemSubtotal;
+            $diskon = $this->formatNumber((float) $this->itemDiskon);
+            $subtotal = $this->formatNumber((float) $this->itemSubtotal);
 
             $this->cartItems[] = [
                 'barang_id' => $this->itemBarangId,
@@ -514,25 +597,112 @@ new class extends Component
             ];
         }
 
+        // Hitung ulang total dan reset form input
         $this->calculateGrandTotal();
         $this->resetItemForm();
         $this->dispatch('focus-kode-barang');
+
+        // SIMPAN KE DB: true hanya jika ini barang PERTAMA dan belum ada draftId
         $this->saveDraft(empty($this->cartItems) === false && $this->draftId === null);
     }
 
+    /**
+     * Hapus satu item dari keranjang.
+     * - Simpan item yang dihapus ke lastDeletedItem untuk undo.
+     * - Tampilkan toast undo (hideUndoToast() akan dipanggil oleh JS setelah 2 detik).
+     * - Jika cart masih ada item: update draft yang ada (saveDraft).
+     * - Jika cart KOSONG: soft-delete draft (clearDraft).
+     *   deleted_at, deleted_by, delete_reason akan terisi.
+     */
     public function removeFromCart(int $index): void
     {
+        if (!isset($this->cartItems[$index])) {
+            return;
+        }
+
+        // Simpan item yang akan dihapus untuk undo
+        $this->lastDeletedItem = $this->cartItems[$index];
+        $this->lastDeletedItem['_index'] = $index;
+        $this->lastDeletedDraftId = null;
+        $this->lastDeletedDraftInvoice = '';
+
+        // Hapus dari cart
         unset($this->cartItems[$index]);
         $this->cartItems = array_values($this->cartItems);
         $this->calculateGrandTotal();
 
+        // Tampilkan toast undo
+        $this->showUndoToast = true;
+        $this->dispatch('undo-toast-shown');
+
+        // Simpan ke DB
         if (empty($this->cartItems)) {
-            $this->clearDraft();
+            // Draft dihapus dari daftar aktif, tetapi state undo harus tetap ada
+            // agar tombol Batal dapat memulihkan draft yang sama.
+            $this->lastDeletedDraftId = $this->draftId;
+            $this->lastDeletedDraftInvoice = $this->transNoInvoice;
+            $this->clearDraft(resetUndo: false);
         } else {
             $this->saveDraft();
         }
     }
 
+    /**
+     * Undo hapus item — kembalikan item yang baru saja dihapus.
+     * Dipanggil dari tombol BATAL di toast.
+     */
+    public function undoRemove(): void
+    {
+        if (!empty($this->lastDeletedItem)) {
+            $index = $this->lastDeletedItem['_index'];
+            $item = $this->lastDeletedItem;
+
+            if ($this->lastDeletedDraftId) {
+                $draft = Transaksi::withTrashed()->find($this->lastDeletedDraftId);
+                if ($draft) {
+                    $draft->update([
+                        'deleted_at' => null,
+                        'deleted_by' => null,
+                        'delete_reason' => null,
+                    ]);
+                    $this->draftId = $draft->id;
+                    $this->isDraft = true;
+                    $this->transNoInvoice = $this->lastDeletedDraftInvoice;
+                }
+            }
+
+            // Kembalikan item ke posisi semula
+            unset($item['_index']);
+            array_splice($this->cartItems, $index, 0, [$item]);
+
+            $this->calculateGrandTotal();
+            $this->saveDraft();
+        }
+
+        $this->showUndoToast = false;
+        $this->lastDeletedItem = [];
+        $this->lastDeletedDraftId = null;
+        $this->lastDeletedDraftInvoice = '';
+        $this->dispatch('undo-toast-hidden');
+    }
+
+    /**
+     * Tutup toast undo setelah 2 detik (dipanggil oleh JS).
+     */
+    public function hideUndoToast(): void
+    {
+        $this->showUndoToast = false;
+        $this->lastDeletedItem = [];
+        $this->lastDeletedDraftId = null;
+        $this->lastDeletedDraftInvoice = '';
+        $this->dispatch('undo-toast-hidden');
+    }
+
+    /**
+     * Livewire otomatis panggil ini setiap kali user edit qty/diskons di tabel keranjang.
+     * Setelah validasi, SAVE LANGSUNG ke DB via saveDraft() atau clearDraft()
+     * agar data tidak hilang saat browser crash.
+     */
     public function updatedCartItems(): void
     {
         foreach ($this->cartItems as $index => $item) {
@@ -540,6 +710,7 @@ new class extends Component
             $diskon = $this->toFloat($item['diskon'] ?? 0);
             $harga = (float) ($item['harga'] ?? 0);
 
+            // Qty tidak boleh kurang dari 1
             if ($qty < 1) {
                 $qty = 1;
                 $this->cartItems[$index]['qty'] = 1;
@@ -548,6 +719,7 @@ new class extends Component
             $satuan = BarangSatuan::find($item['barang_satuan_id']);
             $qtyPcs = $satuan ? $qty * $satuan->konversi : $qty;
 
+            // Cek stok, jika kurang batasi qty maksimal
             $barang = Barang::find($item['barang_id']);
             if ($barang && $barang->stok < $qtyPcs) {
                 session()->flash('error', 'Stok tidak mencukupi untuk ' . $item['nama_barang']);
@@ -558,7 +730,7 @@ new class extends Component
             }
 
             $subtotal = ($harga * $qty) - $diskon;
-            $this->cartItems[$index]['subtotal'] = $subtotal;
+            $this->cartItems[$index]['subtotal'] = $this->formatNumber((float) $subtotal);
             $this->cartItems[$index]['qty_pcs'] = $qtyPcs;
         }
 
@@ -568,6 +740,8 @@ new class extends Component
         $grandTotal = (float) $this->transGrandTotal;
         $this->transKembali = $bayar - $grandTotal;
 
+        // SIMPAN KE DB: jika cart kosong → soft delete draft
+        // jika cart ada → update draft yang sudah ada
         if (empty($this->cartItems)) {
             $this->clearDraft();
         } else {
@@ -598,6 +772,14 @@ new class extends Component
         $this->itemSubtotal = 0;
     }
 
+    /**
+     * FINALIZE: Konversi DRAFT → SELESAI / PIUTANG.
+     * Ini yang dipanggil saat kasir klik "Bayar" → "Simpan".
+     * Tidak membuat baris baru — update row DRAFT yang sudah ada:
+     *   - Ubah status DRAFT → SELESAI (atau PIUTANG)
+     *   - Kurangi stok, buat stok_mutasi, buat kas_mutasi, buat piutang, jurnal
+     * Setelah ini, draftId tetap ada tapi status sudah SELESAI/PIUTANG.
+     */
     public function saveTransaksi(): void
     {
         $this->validate([
@@ -846,6 +1028,7 @@ new class extends Component
     public function openBayarModal(): void
     {
         $this->showBayarModal = true;
+        $this->dispatch('focus-bayar');
     }
 
     public function render()

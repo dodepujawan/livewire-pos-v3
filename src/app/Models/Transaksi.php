@@ -27,6 +27,7 @@ class Transaksi extends Model
         'diskon_total',
         'pajak',
         'catatan',
+        'deleted_at',
         'deleted_by',
         'delete_reason',
     ];

@@ -26,6 +26,22 @@
         </div>
     @endif
 
+    {{-- Toast Undo Hapus Item --}}
+    @if($showUndoToast && !empty($lastDeletedItem))
+    <div class="fixed inset-0 z-50 flex items-center justify-center">
+        <div class="bg-white border border-gray-200 shadow-xl rounded-lg p-4 flex items-center gap-4 max-w-sm">
+            <span class="text-sm text-gray-700">Item dihapus.</span>
+            <button type="button"
+                wire:click="undoRemove"
+                class="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold px-3 py-1.5 rounded text-sm">
+                Batal
+            </button>
+        </div>
+    </div>
+    @endif
+
+    <x-form.loading wire:target="saveTransaksi" />
+
     <form wire:submit.prevent="saveTransaksi" class="h-[calc(100vh-60px)]">
         {{-- Main Grid Layout --}}
         <div class="grid gap-2 h-full min-h-0" style="grid-template-columns: 300px minmax(0,1fr) 300px;">
@@ -170,24 +186,33 @@
                                         <td class="px-2 py-1.5 text-xs">{{ $index + 1 }}</td>
                                         <td class="px-2 py-1.5 text-xs">{{ $item['nama_barang'] }}</td>
                                         <td class="px-2 py-1.5 text-xs">{{ $item['nama_satuan'] }}</td>
-                                        <td class="px-2 py-1.5 text-right text-xs">
+                                        <td class="px-2 py-1.5 text-right text-xs w-20">
                                             <input
-                                                type="number"
-                                                wire:model.live.debounce.300ms="cartItems.{{ $index }}.qty"
+                                                type="text"
+                                                inputmode="numeric"
+                                                wire:model.live.debounce.500ms="cartItems.{{ $index }}.qty"
                                                 min="1"
-                                                class="w-full text-right border rounded px-1 py-0.5 text-xs"
+                                                class="w-16 text-right border rounded px-1 py-0.5 text-xs"
                                             >
                                         </td>
-                                        <td class="px-2 py-1.5 text-right text-xs">{{ number_format($item['harga'], 0, ',', '.') }}</td>
                                         <td class="px-2 py-1.5 text-right text-xs">
+                                            {{-- Harga satuan dari DB, tampilkan tanpa desimal --}}
+                                            {{ number_format((float) $item['harga'], 0, ',', '.') }}
+                                        </td>
+                                        <td class="px-2 py-1.5 text-right text-xs w-24">
                                             <input
-                                                type="number"
-                                                wire:model.live.debounce.300ms="cartItems.{{ $index }}.diskon"
+                                                type="text"
+                                                inputmode="numeric"
+                                                wire:model.live.debounce.500ms="cartItems.{{ $index }}.diskon"
                                                 min="0"
-                                                class="w-full text-right border rounded px-1 py-0.5 text-xs"
+                                                placeholder="0"
+                                                class="w-20 text-right border rounded px-1 py-0.5 text-xs"
                                             >
                                         </td>
-                                        <td class="px-2 py-1.5 text-right text-xs">{{ number_format($item['subtotal'], 0, ',', '.') }}</td>
+                                        <td class="px-2 py-1.5 text-right text-xs">
+                                            {{-- Subtotal sudah di-format tanpa desimal --}}
+                                            {{ number_format((float) $item['subtotal'], 0, ',', '.') }}
+                                        </td>
                                         <td class="px-2 py-1.5 text-center">
                                             <button type="button" wire:click="removeFromCart({{ $index }})" class="px-1.5 py-0.5 bg-red-500 text-white rounded hover:bg-red-600 text-xs">Hapus</button>
                                         </td>
@@ -395,7 +420,8 @@
                 <div class="space-y-2 mb-3">
                     <div>
                         <label class="block text-xs font-medium mb-1">Bayar</label>
-                        <input type="number" wire:model.live="transBayar" min="0" class="w-full border rounded px-2 py-1 text-xs">
+                        <input id="bayar-input" type="number" wire:model.live="transBayar" min="0" class="w-full border rounded px-2 py-1 text-xs"
+                               x-on:keydown.enter.prevent="document.getElementById('diskon-total-input')?.focus()">
                         @error('transBayar')<p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>@enderror
                     </div>
                     <div>
@@ -404,17 +430,20 @@
                     </div>
                     <div>
                         <label class="block text-xs font-medium mb-1">Diskon Total</label>
-                        <input type="number" wire:model="transDiskonTotal" min="0" class="w-full border rounded px-2 py-1 text-xs">
+                        <input id="diskon-total-input" type="number" wire:model="transDiskonTotal" min="0" class="w-full border rounded px-2 py-1 text-xs"
+                               x-on:keydown.enter.prevent="document.getElementById('pajak-input')?.focus()">
                         @error('transDiskonTotal')<p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>@enderror
                     </div>
                     <div>
                         <label class="block text-xs font-medium mb-1">Pajak (PPN)</label>
-                        <input type="number" wire:model="transPajak" min="0" class="w-full border rounded px-2 py-1 text-xs">
+                        <input id="pajak-input" type="number" wire:model="transPajak" min="0" class="w-full border rounded px-2 py-1 text-xs"
+                               x-on:keydown.enter.prevent="document.getElementById('status-input')?.focus()">
                         @error('transPajak')<p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>@enderror
                     </div>
                     <div>
                         <label class="block text-xs font-medium mb-1">Status</label>
-                        <select wire:model="transStatus" class="w-full border rounded px-2 py-1 text-xs">
+                        <select id="status-input" wire:model="transStatus" class="w-full border rounded px-2 py-1 text-xs"
+                                x-on:keydown.enter.prevent="document.getElementById('catatan-input')?.focus()">
                             <option value="SELESAI">Selesai (Tunai/Lunas)</option>
                             <option value="PIUTANG">Piutang (Belum Bayar)</option>
                         </select>
@@ -422,7 +451,8 @@
                     </div>
                     <div>
                         <label class="block text-xs font-medium mb-1">Catatan</label>
-                        <textarea wire:model="transCatatan" rows="2" class="w-full border rounded px-2 py-1 text-xs"></textarea>
+                        <textarea id="catatan-input" wire:model="transCatatan" rows="2" class="w-full border rounded px-2 py-1 text-xs"
+                                  x-on:keydown.enter.prevent="$wire.saveTransaksi()"></textarea>
                         @error('transCatatan')<p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>@enderror
                     </div>
                 </div>
@@ -438,7 +468,10 @@
                 {{-- Modal Buttons --}}
                 <div class="flex gap-2">
                     <button type="button" wire:click="$set('showBayarModal', false)" class="flex-1 px-3 py-2 border rounded hover:bg-gray-50 text-xs">Kembali</button>
-                    <button type="submit" wire:click="saveTransaksi" class="flex-1 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold text-xs">Simpan</button>
+                    <button type="submit" wire:loading.attr="disabled" wire:target="saveTransaksi" class="flex-1 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold text-xs disabled:cursor-not-allowed disabled:opacity-60">
+                        <span wire:loading.remove wire:target="saveTransaksi">Simpan</span>
+                        <span wire:loading wire:target="saveTransaksi">Menyimpan...</span>
+                    </button>
                 </div>
 </div>
             </div>
@@ -459,6 +492,29 @@
         setTimeout(() => {
             document.getElementById('kode-barang-input')?.focus();
         }, 50);
+    });
+
+    $wire.on('focus-bayar', () => {
+        setTimeout(() => {
+            document.getElementById('bayar-input')?.focus();
+            document.getElementById('bayar-input')?.select();
+        }, 50);
+    });
+
+    // Auto-hide undo toast after 2 seconds
+    let undoTimer = null;
+
+    $wire.on('undo-toast-shown', () => {
+        if (undoTimer) clearTimeout(undoTimer);
+        undoTimer = setTimeout(() => {
+            $wire.hideUndoToast();
+        }, 2000);
+    });
+
+    // Cancel timer if user clicks BATAL
+    $wire.on('undo-toast-hidden', () => {
+        if (undoTimer) clearTimeout(undoTimer);
+        undoTimer = null;
     });
 </script>
 @endscript
