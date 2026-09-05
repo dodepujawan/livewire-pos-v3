@@ -3,6 +3,11 @@
     <div class="flex items-center justify-between mb-2">
         <div>
             <h1 class="text-lg font-bold">Edit Transaksi</h1>
+            @if($isDraftMode)
+                <p class="mt-1 text-xs font-medium text-yellow-700">Mengedit Draft: {{ $transNoInvoice }} | Perubahan tersimpan otomatis</p>
+            @else
+                <p class="mt-1 text-xs text-gray-500">Mengedit transaksi final: {{ $transNoInvoice }} | Perubahan disimpan saat klik Simpan</p>
+            @endif
         </div>
         <a href="{{ route('transaksi.penjualan.list') }}" wire:navigate class="px-3 py-1.5 border rounded hover:bg-gray-50 text-sm mr-1 mt-1">Kembali</a>
     </div>
@@ -18,6 +23,8 @@
             {{ session('error') }}
         </div>
     @endif
+
+    <x-form.loading wire:target="saveTransaksi" />
 
     <form wire:submit.prevent="saveTransaksi" class="h-[calc(100vh-60px)]">
         {{-- Main Grid Layout --}}
@@ -48,14 +55,26 @@
                         {{-- Kode Barang --}}
                         <div>
                             <label class="block text-sm font-medium mb-1">Kode Barang</label>
-                            <input
-                                type="text"
-                                wire:model.live="itemKodeBarang"
-                                wire:keydown.enter.prevent="searchBarang"
-                                id="kode-barang-input"
-                                class="w-full border rounded px-3 py-1.5 text-sm"
-                                placeholder="Scan/ketik kode (kosong + Enter untuk semua barang)..."
-                            >
+                            <div class="relative">
+                                <input
+                                    type="text"
+                                    wire:model="itemKodeBarang"
+                                    wire:keydown.enter.prevent="searchBarang"
+                                    wire:loading.attr="disabled"
+                                    wire:target="searchBarang"
+                                    id="kode-barang-input"
+                                    class="w-full border rounded px-3 py-1.5 pr-10 text-sm disabled:cursor-wait disabled:bg-gray-100"
+                                    placeholder="Scan/ketik kode (kosong + Enter untuk semua barang)..."
+                                >
+                                <span wire:loading wire:target="searchBarang"
+                                      class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-blue-600"
+                                      aria-label="Mencari barang" role="status">
+                                    <svg class="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                    </svg>
+                                </span>
+                            </div>
                             @error('itemKodeBarang')
                                 <p class="text-red-500 text-sm mt-0.5">{{ $message }}</p>
                             @enderror
@@ -390,7 +409,8 @@
                 <div class="space-y-2 mb-3">
                     <div>
                         <label class="block text-xs font-medium mb-1">Bayar</label>
-                        <input type="number" wire:model.live="transBayar" min="0" class="w-full border rounded px-2 py-1 text-xs">
+                        <input id="bayar-input" type="number" wire:model.live="transBayar" min="0" class="w-full border rounded px-2 py-1 text-xs"
+                               x-on:keydown.enter.prevent="document.getElementById('diskon-total-input')?.focus()">
                         @error('transBayar')<p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>@enderror
                     </div>
                     <div>
@@ -399,17 +419,20 @@
                     </div>
                     <div>
                         <label class="block text-xs font-medium mb-1">Diskon Total</label>
-                        <input type="number" wire:model="transDiskonTotal" min="0" class="w-full border rounded px-2 py-1 text-xs">
+                        <input id="diskon-total-input" type="number" wire:model="transDiskonTotal" min="0" class="w-full border rounded px-2 py-1 text-xs"
+                               x-on:keydown.enter.prevent="document.getElementById('pajak-input')?.focus()">
                         @error('transDiskonTotal')<p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>@enderror
                     </div>
                     <div>
                         <label class="block text-xs font-medium mb-1">Pajak (PPN)</label>
-                        <input type="number" wire:model="transPajak" min="0" class="w-full border rounded px-2 py-1 text-xs">
+                        <input id="pajak-input" type="number" wire:model="transPajak" min="0" class="w-full border rounded px-2 py-1 text-xs"
+                               x-on:keydown.enter.prevent="document.getElementById('status-input')?.focus()">
                         @error('transPajak')<p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>@enderror
                     </div>
                     <div>
                         <label class="block text-xs font-medium mb-1">Status</label>
-                        <select wire:model="transStatus" class="w-full border rounded px-2 py-1 text-xs">
+                        <select id="status-input" wire:model="transStatus" class="w-full border rounded px-2 py-1 text-xs"
+                                x-on:keydown.enter.prevent="document.getElementById('catatan-input')?.focus()">
                             <option value="SELESAI">Selesai (Tunai/Lunas)</option>
                             <option value="PIUTANG">Piutang (Belum Bayar)</option>
                         </select>
@@ -417,7 +440,8 @@
                     </div>
                     <div>
                         <label class="block text-xs font-medium mb-1">Catatan</label>
-                        <textarea wire:model="transCatatan" rows="2" class="w-full border rounded px-2 py-1 text-xs"></textarea>
+                        <textarea id="catatan-input" wire:model="transCatatan" rows="2" class="w-full border rounded px-2 py-1 text-xs"
+                                  x-on:keydown.enter.prevent="$wire.saveTransaksi()"></textarea>
                         @error('transCatatan')<p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>@enderror
                     </div>
                 </div>
@@ -433,7 +457,10 @@
                 {{-- Modal Buttons --}}
                 <div class="flex gap-2">
                     <button type="button" wire:click="$set('showBayarModal', false)" class="flex-1 px-3 py-2 border rounded hover:bg-gray-50 text-xs">Kembali</button>
-                    <button type="submit" wire:click="saveTransaksi" class="flex-1 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold text-xs">Simpan</button>
+                    <button type="button" wire:click="saveTransaksi" wire:loading.attr="disabled" wire:target="saveTransaksi" class="flex-1 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold text-xs disabled:cursor-not-allowed disabled:opacity-60">
+                        <span wire:loading.remove wire:target="saveTransaksi">Simpan</span>
+                        <span wire:loading wire:target="saveTransaksi">Menyimpan...</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -451,6 +478,13 @@
     $wire.on('focus-kode-barang', () => {
         setTimeout(() => {
             document.getElementById('kode-barang-input')?.focus();
+        }, 50);
+    });
+
+    $wire.on('focus-bayar', () => {
+        setTimeout(() => {
+            document.getElementById('bayar-input')?.focus();
+            document.getElementById('bayar-input')?.select();
         }, 50);
     });
 </script>

@@ -151,6 +151,7 @@
   .badge-blue { background: #e3f2fd; color: #1565c0; }
   .badge-orange { background: #fff3e0; color: #e65100; }
   .badge-purple { background: #f3e5f5; color: #6a1b9a; }
+  .badge-yellow { background: #fffde7; color: #8d6e00; }
 
   /* Visual table (journal) */
   .journal-table {
@@ -238,6 +239,7 @@
     <div class="nav-section-title">Cara Pakai</div>
     <a href="#master-data" class="nav-link"><span class="nav-icon">⚙️</span> Master Data</a>
     <a href="#penjualan" class="nav-link"><span class="nav-icon">🛒</span> Transaksi Penjualan</a>
+    <a href="#draft" class="nav-link"><span class="nav-icon">📝</span> Draft & Lifecycle</a>
     <a href="#pembelian" class="nav-link"><span class="nav-icon">📦</span> Pembelian Barang</a>
     <a href="#piutang" class="nav-link"><span class="nav-icon">👤</span> Piutang & Hutang</a>
   </div>
@@ -268,9 +270,10 @@
   <ol>
     <li><a href="#glosarium">Glosarium Akuntansi</a> — Istilah penting yang perlu dipahami</li>
     <li><a href="#konsep">Konsep Utama</a> — Double entry, debit/kredit, HPP</li>
-    <li><a href="#master-data">Cara Pakai: Master Data</a> — Setup cabang, barang, satuan</li>
-    <li><a href="#penjualan">Cara Pakai: Transaksi Penjualan</a> — Alur kasir dari A sampai Z</li>
-    <li><a href="#pembelian">Cara Pakai: Pembelian Barang</a> — Beli dari supplier, update stok</li>
+     <li><a href="#master-data">Cara Pakai: Master Data</a> — Setup cabang, barang, satuan</li>
+     <li><a href="#penjualan">Cara Pakai: Transaksi Penjualan</a> — Alur kasir dari A sampai Z</li>
+     <li><a href="#draft">Draft & Lifecycle Transaksi</a> — Apa yang terjadi sebelum dan sesudah bayar</li>
+     <li><a href="#pembelian">Cara Pakai: Pembelian Barang</a> — Beli dari supplier, update stok</li>
     <li><a href="#piutang">Cara Pakai: Piutang & Hutang</a> — Cicil, pelunasan, jurnal</li>
     <li><a href="#jurnal">Jurnal & Double Entry</a> — Bagaimana jurnal bekerja</li>
     <li><a href="#laporan">Laporan Keuangan</a> — Laba rugi, neraca, arus kas</li>
@@ -493,6 +496,7 @@ Stok: 100 pcs = 8 dus + 4 pcs</pre>
 <table>
   <thead><tr><th>Status</th><th>Arti</th><th>Stok</th><th>Jurnal</th><th>Kas Mutasi</th></tr></thead>
   <tbody>
+    <tr><td><span class="badge badge-yellow">DRAFT</span></td><td>Keranjang sementara, belum dibayar</td><td>Tidak berubah</td><td>Belum dicatat</td><td>Belum ada</td></tr>
     <tr><td><span class="badge badge-green">SELESAI</span></td><td>Bayar langsung, selesai</td><td>Turun otomatis</td><td>✅ Dicatat</td><td>Masuk (bayar) + Keluar (kembali)</td></tr>
     <tr><td><span class="badge badge-orange">PIUTANG</span></td><td>Belum bayar, catat piutang</td><td>Turun otomatis</td><td>✅ Dicatat</td><td>Tidak ada (belum ada uang)</td></tr>
     <tr><td><span class="badge badge-red">BATAL</span></td><td>Void transaksi</td><td>Kembali (rollback)</td><td>✅ Refund dicatat</td><td>Keluar (bayar) + Masuk (kembali)</td></tr>
@@ -502,6 +506,121 @@ Stok: 100 pcs = 8 dus + 4 pcs</pre>
 <div class="callout callout-success">
   <div class="callout-title">💡 Tips Kasir</div>
   <p><strong>Scan kode barang</strong> lebih cepat dari ketik manual. Tekan Enter di kolom kode barang untuk auto-search. Tekan Enter di qty untuk langsung tambah ke keranjang.</p>
+</div>
+</section>
+
+<!-- ====== DRAFT & LIFECYCLE ====== -->
+<section id="draft">
+<h2>📝 Draft & Lifecycle Transaksi</h2>
+<p>Draft adalah <strong>keranjang yang disimpan sementara</strong>. Draft membantu kasir melanjutkan pekerjaan tanpa membuat transaksi final terlalu cepat.</p>
+
+<div class="callout callout-info">
+  <div class="callout-title">🔑 Prinsip terpenting</div>
+  <p><strong>Draft bukan penjualan final.</strong> Selama status masih <code class="code-inline">DRAFT</code>, stok, kas, piutang, dan jurnal belum berubah. Dampak ke stok dan akuntansi baru terjadi saat kasir menyelesaikan pembayaran.</p>
+</div>
+
+<h3>Alur Besar dari Draft sampai Final</h3>
+<div class="flow">
+  <div class="flow-step blue">Tambah Barang</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step">Simpan Draft</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step orange">Review & Bayar</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step green">Finalisasi</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step purple">Ledger & Jurnal</div>
+</div>
+
+<h3>1. Saat Barang Masuk ke Keranjang</h3>
+<p>Sistem membuat atau memperbarui header transaksi dengan status <strong>DRAFT</strong>, kemudian menyimpan setiap barang ke <code class="code-inline">transaksi_detail</code>.</p>
+<table>
+  <thead><tr><th>Yang dilakukan</th><th>Yang belum dilakukan</th></tr></thead>
+  <tbody>
+    <tr><td>Validasi barang, satuan, qty, dan stok yang tersedia</td><td>Stok belum dikurangi</td></tr>
+    <tr><td>Simpan nomor invoice dan detail keranjang</td><td>Belum ada kas masuk</td></tr>
+    <tr><td>Subtotal dan grand total dihitung ulang</td><td>Belum ada piutang</td></tr>
+    <tr><td>Draft bisa dilanjutkan setelah halaman dibuka ulang</td><td>Belum ada jurnal akuntansi</td></tr>
+  </tbody>
+</table>
+
+<h3>2. Saat Draft Diedit</h3>
+<p>Pada halaman create maupun edit draft, perubahan keranjang dapat disimpan otomatis. Ini aman karena draft belum memengaruhi saldo stok dan laporan keuangan.</p>
+<ul style="margin-left:20px;">
+  <li>Tambah barang → detail draft diperbarui.</li>
+  <li>Ubah qty atau diskon → subtotal dan grand total dihitung ulang.</li>
+  <li>Hapus barang → detail draft diperbarui.</li>
+  <li>Hapus item terakhir → draft di-soft-delete dengan <code class="code-inline">deleted_at</code>.</li>
+</ul>
+
+<div class="callout callout-warning">
+  <div class="callout-title">🗑️ Soft delete draft</div>
+  <p>Draft yang dihapus tidak langsung hilang dari database. Kolom <code class="code-inline">deleted_at</code> diisi tanggal penghapusan, sehingga sistem tahu bahwa invoice tersebut pernah ada. Query draft aktif hanya mengambil data dengan <code class="code-inline">deleted_at IS NULL</code>. Nomor invoice yang sudah pernah dipakai tetap tidak boleh digunakan ulang.</p>
+</div>
+
+<h3>3. Saat Draft Dibayar</h3>
+<div class="steps">
+  <li>Kasir membuka modal pembayaran dan memilih status <strong>SELESAI</strong> atau <strong>PIUTANG</strong>.</li>
+  <li>Sistem memvalidasi ulang input pembayaran dan sebaiknya memvalidasi ulang stok.</li>
+  <li>Header draft berubah dari <strong>DRAFT</strong> menjadi status final.</li>
+  <li>Detail transaksi dipastikan tersimpan.</li>
+  <li>Stok dikurangi dan dicatat sebagai mutasi <strong>KELUAR</strong>.</li>
+  <li>Jika lunas, kas masuk dicatat. Jika piutang, saldo piutang dibuat.</li>
+  <li>Jika status <strong>SELESAI</strong>, jurnal penjualan dan HPP dibuat.</li>
+</div>
+
+<table>
+  <thead><tr><th>Hasil Pembayaran</th><th>Status</th><th>Stok</th><th>Dampak Keuangan</th></tr></thead>
+  <tbody>
+    <tr><td>Bayar langsung</td><td><span class="badge badge-green">SELESAI</span></td><td>Keluar</td><td>Kas, penjualan, HPP, dan jurnal</td></tr>
+    <tr><td>Belum bayar</td><td><span class="badge badge-orange">PIUTANG</span></td><td>Keluar</td><td>Piutang dan jurnal penjualan</td></tr>
+  </tbody>
+</table>
+
+<h3>4. Batal Draft vs Batal Transaksi Final</h3>
+<div class="compare">
+  <div class="compare-card" style="border-top: 4px solid var(--yellow);">
+    <h4>📝 Batal Draft</h4>
+    <p>Draft belum pernah mengurangi stok.</p>
+    <ul style="margin-left:20px;">
+      <li>Tidak meminta alasan wajib dari kasir.</li>
+      <li>Hanya mengisi <code class="code-inline">deleted_at</code>.</li>
+      <li>Stok tidak berubah.</li>
+      <li>Tidak membuat jurnal atau kas mutasi.</li>
+    </ul>
+  </div>
+  <div class="compare-card" style="border-top: 4px solid var(--red);">
+    <h4>✅ Batal Transaksi Final</h4>
+    <p>Transaksi sudah memengaruhi stok dan keuangan.</p>
+    <ul style="margin-left:20px;">
+      <li>Kasir wajib mengisi alasan.</li>
+      <li>Status berubah menjadi <strong>BATAL</strong>.</li>
+      <li>Stok dikembalikan.</li>
+      <li>Kas, piutang, jurnal, dan refund perlu direkonsiliasi.</li>
+    </ul>
+  </div>
+</div>
+
+<h3>Diagram Sederhana di Belakang Layar</h3>
+<pre>Keranjang kasir
+    │
+    ▼
+transaksi (status DRAFT) ─── transaksi_detail
+    │
+    ├── Hapus terakhir → deleted_at terisi → bukan draft aktif
+    │
+    └── Bayar
+          │
+          ├── transaksi.status = SELESAI / PIUTANG
+          ├── stok_mutasi = KELUAR
+          ├── barang.stok berkurang
+          ├── kas_mutasi MASUK (jika lunas)
+          ├── piutang dibuat (jika belum bayar)
+          └── jurnal + jurnal_detail dibuat</pre>
+
+<div class="callout callout-success">
+  <div class="callout-title">✅ Cara mengingatnya</div>
+  <p><strong>Draft menyimpan niat.</strong> Pembayaran mengubah niat menjadi transaksi nyata. Ledger dan jurnal hanya boleh mencatat kejadian yang benar-benar sudah terjadi.</p>
 </div>
 </section>
 
@@ -900,7 +1019,7 @@ Stok: 100 pcs = 8 dus + 4 pcs</pre>
 <table>
   <thead><tr><th>Tabel</th><th>Fungsi</th><th>Kolom Penting</th></tr></thead>
   <tbody>
-    <tr><td><code>transaksi</code></td><td>Header penjualan</td><td>nomor_transaksi, tanggal, cabang_id, user_id, customer, status, metode_bayar, bayar, kembali, diskon_total, <strong>pajak</strong></td></tr>
+    <tr><td><code>transaksi</code></td><td>Header penjualan</td><td>nomor_transaksi, tanggal, cabang_id, user_id, customer, status, metode_bayar, bayar, kembali, diskon_total, <strong>pajak</strong>, deleted_at, deleted_by, delete_reason</td></tr>
     <tr><td><code>transaksi_detail</code></td><td>Baris penjualan</td><td>transaksi_id, barang_id, qty, harga, <strong>harga_beli</strong> (snapshot), <strong>nama_barang</strong> (snapshot), <strong>nama_satuan</strong> (snapshot)</td></tr>
     <tr><td><code>pembelian</code></td><td>Header pembelian</td><td>nomor_beli, tanggal, cabang_id, supplier, total, <strong>pajak</strong>, status (ORDER/TERIMA/BATAL)</td></tr>
     <tr><td><code>pembelian_detail</code></td><td>Baris pembelian</td><td>pembelian_id, barang_id, qty, <strong>harga_beli</strong>, subtotal</td></tr>
@@ -988,6 +1107,8 @@ Stok: 100 pcs = 8 dus + 4 pcs</pre>
     <li><strong>Laba</strong> = Penjualan - HPP (Rp10.000 - Rp5.000 = Rp5.000)</li>
     <li><strong>Piutang</strong> = uang yang HARUS DITERIMA (customer belum bayar)</li>
     <li><strong>Hutang</strong> = uang yang HARUS DIBAYAR (belum bayar supplier)</li>
+    <li><strong>Draft</strong> = keranjang tersimpan sementara; belum mengurangi stok dan belum membuat jurnal</li>
+    <li><strong>Soft delete</strong> = data tidak dihapus fisik; <code class="code-inline">deleted_at</code> menjadi penanda bahwa data tidak aktif</li>
     <li><strong>Jurnal</strong> = catatan 2 sisi (debit = kredit), otomatis dari transaksi</li>
     <li><strong>Neraca</strong> = ASET = UTANG + MODAL (harus seimbang)</li>
     <li><strong>Kas Mutasi</strong> = catat uang masuk/keluar nyata</li>

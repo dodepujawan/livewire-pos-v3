@@ -37,6 +37,7 @@ new class extends Component
 
     // Cart
     public array $cartItems = [];
+    public bool $isDraftMode = false;
 
     // Search Modal
     public bool $showSearchModal = false;
@@ -87,6 +88,11 @@ new class extends Component
         $this->transCabangId = $transaksi->cabang_id;
         $this->transMetodeBayar = $transaksi->metode_bayar;
         $this->transStatus = $transaksi->status;
+        $this->isDraftMode = $transaksi->status === 'DRAFT';
+        if ($this->isDraftMode) {
+            // Status pembayaran dipilih saat draft difinalisasi.
+            $this->transStatus = 'SELESAI';
+        }
         $this->transBayar = (float) $transaksi->bayar;
         $this->transKembali = (float) $transaksi->kembali;
         $this->transGrandTotal = (float) $transaksi->grand_total;
@@ -112,6 +118,44 @@ new class extends Component
         }
 
         $this->calculateGrandTotal();
+    }
+
+    private function saveDraftState(): void
+    {
+        if (!$this->isDraftMode) {
+            return;
+        }
+
+        $transaksi = Transaksi::findOrFail($this->transaksiId);
+        $transaksi->update([
+            'tanggal' => $this->transTanggal,
+            'cabang_id' => $this->transCabangId,
+            'customer' => $this->transCustomer,
+            'status' => 'DRAFT',
+            'metode_bayar' => $this->transMetodeBayar,
+            'grand_total' => $this->transGrandTotal,
+            'diskon_total' => $this->transDiskonTotal,
+            'pajak' => $this->transPajak,
+            'catatan' => $this->transCatatan,
+        ]);
+
+        $transaksi->details()->delete();
+        foreach ($this->cartItems as $item) {
+            $barang = Barang::find($item['barang_id']);
+
+            $transaksi->details()->create([
+                'barang_id' => $item['barang_id'],
+                'barang_satuan_id' => $item['barang_satuan_id'],
+                'qty' => $item['qty'],
+                'harga' => $item['harga'],
+                'diskon' => $item['diskon'],
+                'subtotal' => $item['subtotal'],
+                'qty_pcs' => $item['qty_pcs'],
+                'harga_beli' => $barang?->harga_beli ?? 0,
+                'nama_barang' => $item['nama_barang'],
+                'nama_satuan' => $item['nama_satuan'],
+            ]);
+        }
     }
 
     private function loadCabangList(): void
@@ -332,7 +376,7 @@ new class extends Component
             $newQty = (int) $this->cartItems[$existingIndex]['qty'] + (int) $this->itemQty;
             $newQtyPcs = $newQty * $satuan->konversi;
 
-            if ($barang->stok < $newQtyPcs) {
+            if ($this->isDraftMode && $barang->stok < $newQtyPcs) {
                 session()->flash('error', 'Total qty melebihi stok tersedia');
                 return;
             }
@@ -360,6 +404,7 @@ new class extends Component
 
         $this->calculateGrandTotal();
         $this->resetItemForm();
+        $this->saveDraftState();
         $this->dispatch('focus-kode-barang');
     }
 
@@ -368,6 +413,19 @@ new class extends Component
         unset($this->cartItems[$index]);
         $this->cartItems = array_values($this->cartItems);
         $this->calculateGrandTotal();
+
+        if ($this->isDraftMode && empty($this->cartItems)) {
+            $transaksi = Transaksi::find($this->transaksiId);
+            $transaksi?->update([
+                'deleted_at' => now(),
+                'deleted_by' => auth()->id(),
+                'delete_reason' => 'CART_CLEARED',
+            ]);
+            $this->redirect(route('transaksi.penjualan.list'), navigate: true);
+            return;
+        }
+
+        $this->saveDraftState();
     }
 
     public function updatedCartItems(): void
@@ -386,7 +444,7 @@ new class extends Component
             $qtyPcs = $satuan ? $qty * $satuan->konversi : $qty;
 
             $barang = Barang::find($item['barang_id']);
-            if ($barang && $barang->stok < $qtyPcs) {
+            if ($this->isDraftMode && $barang && $barang->stok < $qtyPcs) {
                 session()->flash('error', 'Stok tidak mencukupi untuk ' . $item['nama_barang']);
                 $maxQty = floor($barang->stok / ($satuan ? $satuan->konversi : 1));
                 $this->cartItems[$index]['qty'] = max(1, $maxQty);
@@ -404,6 +462,8 @@ new class extends Component
         $bayar = (float) $this->transBayar;
         $grandTotal = (float) $this->transGrandTotal;
         $this->transKembali = $bayar - $grandTotal;
+
+        $this->saveDraftState();
     }
 
     private function calculateGrandTotal(): void
@@ -432,6 +492,7 @@ new class extends Component
     public function openBayarModal(): void
     {
         $this->showBayarModal = true;
+        $this->dispatch('focus-bayar');
     }
 
     public function saveTransaksi(): void
@@ -449,6 +510,11 @@ new class extends Component
             return;
         }
 
+        if (!$this->isDraftMode && $this->transStatus === 'BATAL') {
+            session()->flash('error', 'Transaksi yang sudah dibatalkan tidak dapat diedit');
+            return;
+        }
+
         if (empty($this->cartItems)) {
             session()->flash('error', 'Keranjang belanja kosong');
             return;
@@ -457,11 +523,14 @@ new class extends Component
         try {
             \DB::beginTransaction();
 
-            // Restore old stock
-            $oldDetails = TransaksiDetail::where('transaksi_id', $this->transaksiId)->get();
-            foreach ($oldDetails as $detail) {
-                Barang::where('id', $detail->barang_id)
-                    ->increment('stok', $detail->qty_pcs);
+            // Only restore old stock when the original transaction had already
+            // committed stock. Drafts do not reserve or deduct stock.
+            if (!$this->isDraftMode) {
+                $oldDetails = TransaksiDetail::where('transaksi_id', $this->transaksiId)->get();
+                foreach ($oldDetails as $detail) {
+                    Barang::where('id', $detail->barang_id)
+                        ->increment('stok', $detail->qty_pcs);
+                }
             }
 
             // Update transaksi header
