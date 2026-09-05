@@ -71,14 +71,26 @@
                         {{-- Kode Barang --}}
                         <div>
                             <label class="block text-sm font-medium mb-1">Kode Barang</label>
-                            <input
-                                type="text"
-                                wire:model.live="itemKodeBarang"
-                                wire:keydown.enter.prevent="searchBarang"
-                                id="kode-barang-input"
-                                class="w-full border rounded px-3 py-1.5 text-sm"
-                                placeholder="Scan/ketik kode (kosong + Enter untuk semua barang)..."
-                            >
+                            <div class="relative">
+                                <input
+                                    type="text"
+                                    wire:model="itemKodeBarang"
+                                    wire:keydown.enter.prevent="searchBarang"
+                                    wire:loading.attr="disabled"
+                                    wire:target="searchBarang"
+                                    id="kode-barang-input"
+                                    class="w-full border rounded px-3 py-1.5 pr-10 text-sm disabled:cursor-wait disabled:bg-gray-100"
+                                    placeholder="Scan/ketik kode (kosong + Enter untuk semua barang)..."
+                                >
+                                <span wire:loading wire:target="searchBarang"
+                                      class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-blue-600"
+                                      aria-label="Mencari barang" role="status">
+                                    <svg class="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                    </svg>
+                                </span>
+                            </div>
                             @error('itemKodeBarang')
                                 <p class="text-red-500 text-sm mt-0.5">{{ $message }}</p>
                             @enderror
@@ -468,7 +480,7 @@
                 {{-- Modal Buttons --}}
                 <div class="flex gap-2">
                     <button type="button" wire:click="$set('showBayarModal', false)" class="flex-1 px-3 py-2 border rounded hover:bg-gray-50 text-xs">Kembali</button>
-                    <button type="submit" wire:loading.attr="disabled" wire:target="saveTransaksi" class="flex-1 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold text-xs disabled:cursor-not-allowed disabled:opacity-60">
+                    <button type="button" wire:click="saveTransaksi" wire:loading.attr="disabled" wire:target="saveTransaksi" class="flex-1 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold text-xs disabled:cursor-not-allowed disabled:opacity-60">
                         <span wire:loading.remove wire:target="saveTransaksi">Simpan</span>
                         <span wire:loading wire:target="saveTransaksi">Menyimpan...</span>
                     </button>
@@ -508,7 +520,7 @@
         if (undoTimer) clearTimeout(undoTimer);
         undoTimer = setTimeout(() => {
             $wire.hideUndoToast();
-        }, 2000);
+        }, 1500);
     });
 
     // Cancel timer if user clicks BATAL

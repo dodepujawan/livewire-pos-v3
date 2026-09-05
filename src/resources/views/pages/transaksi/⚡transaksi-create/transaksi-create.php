@@ -198,7 +198,10 @@ new class extends Component
     {
         $today = now()->format('Ymd');
         // Ambil transaksi terakhir (berapa nomor yang sudah terpakai)
-        $lastInvoice = Transaksi::whereDate('tanggal', today())
+        // Nomor invoice tetap dianggap sudah terpakai walaupun transaksinya
+        // sudah di-soft-delete, karena kolom nomor_transaksi bersifat unik.
+        $lastInvoice = Transaksi::withTrashed()
+            ->whereDate('tanggal', today())
             ->orderBy('id', 'desc')
             ->first();
 
