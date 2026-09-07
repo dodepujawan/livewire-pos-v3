@@ -416,76 +416,76 @@
                             </button>
                         @endif
                     </div>
-</div>
+                </div>
             </div>
     </div>
     @endif
 
-    {{-- Bayar Modal --}}
-    @if($showBayarModal)
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" wire:click.self="$set('showBayarModal', false)">
-        <div class="w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-xl">
-            <div class="p-4">
-                <h2 class="text-base font-bold mb-3">Konfirmasi Pembayaran</h2>
+        {{-- Bayar Modal --}}
+        @if($showBayarModal)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" wire:click.self="$set('showBayarModal', false)">
+            <div class="w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-xl">
+                <div class="p-4">
+                    <h2 class="text-base font-bold mb-3">Konfirmasi Pembayaran</h2>
 
-                {{-- Payment Card --}}
-                <div class="space-y-2 mb-3">
-                    <div>
-                        <label class="block text-xs font-medium mb-1">Bayar</label>
-                        <input id="bayar-input" type="number" wire:model.live="transBayar" min="0" class="w-full border rounded px-2 py-1 text-xs"
-                               x-on:keydown.enter.prevent="document.getElementById('diskon-total-input')?.focus()">
-                        @error('transBayar')<p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>@enderror
+                    {{-- Payment Card --}}
+                    <div class="space-y-2 mb-3">
+                        <div>
+                            <label class="block text-xs font-medium mb-1">Bayar</label>
+                            <input id="bayar-input" type="number" wire:model.live="transBayar" min="0" class="w-full border rounded px-2 py-1 text-xs"
+                                x-on:keydown.enter.prevent="document.getElementById('diskon-total-input')?.focus()">
+                            @error('transBayar')<p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1">Kembali</label>
+                            <input type="text" readonly class="w-full border rounded px-2 py-1 bg-gray-100 text-xs" value="{{ number_format($transKembali, 0, ',', '.') }}">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1">Diskon Total</label>
+                            <input id="diskon-total-input" type="number" wire:model="transDiskonTotal" min="0" class="w-full border rounded px-2 py-1 text-xs"
+                                x-on:keydown.enter.prevent="document.getElementById('pajak-input')?.focus()">
+                            @error('transDiskonTotal')<p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1">Pajak (PPN)</label>
+                            <input id="pajak-input" type="number" wire:model="transPajak" min="0" class="w-full border rounded px-2 py-1 text-xs"
+                                x-on:keydown.enter.prevent="document.getElementById('status-input')?.focus()">
+                            @error('transPajak')<p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1">Status</label>
+                            <select id="status-input" wire:model="transStatus" class="w-full border rounded px-2 py-1 text-xs"
+                                    x-on:keydown.enter.prevent="document.getElementById('catatan-input')?.focus()">
+                                <option value="SELESAI">Selesai (Tunai/Lunas)</option>
+                                <option value="PIUTANG">Piutang (Belum Bayar)</option>
+                            </select>
+                            @error('transStatus')<p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1">Catatan</label>
+                            <textarea id="catatan-input" wire:model="transCatatan" rows="2" class="w-full border rounded px-2 py-1 text-xs"
+                                    x-on:keydown.enter.prevent="$wire.saveTransaksi()"></textarea>
+                            @error('transCatatan')<p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>@enderror
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-medium mb-1">Kembali</label>
-                        <input type="text" readonly class="w-full border rounded px-2 py-1 bg-gray-100 text-xs" value="{{ number_format($transKembali, 0, ',', '.') }}">
+
+                    {{-- Grand Total in Modal --}}
+                    <div class="p-2 border-t-2 border-blue-200 bg-gradient-to-r from-blue-50 to-blue-100 rounded mb-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-semibold text-blue-800">GRAND TOTAL</span>
+                            <span class="text-lg font-black text-blue-600">{{ number_format($transGrandTotal, 0, ',', '.') }}</span>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-medium mb-1">Diskon Total</label>
-                        <input id="diskon-total-input" type="number" wire:model="transDiskonTotal" min="0" class="w-full border rounded px-2 py-1 text-xs"
-                               x-on:keydown.enter.prevent="document.getElementById('pajak-input')?.focus()">
-                        @error('transDiskonTotal')<p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>@enderror
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium mb-1">Pajak (PPN)</label>
-                        <input id="pajak-input" type="number" wire:model="transPajak" min="0" class="w-full border rounded px-2 py-1 text-xs"
-                               x-on:keydown.enter.prevent="document.getElementById('status-input')?.focus()">
-                        @error('transPajak')<p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>@enderror
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium mb-1">Status</label>
-                        <select id="status-input" wire:model="transStatus" class="w-full border rounded px-2 py-1 text-xs"
-                                x-on:keydown.enter.prevent="document.getElementById('catatan-input')?.focus()">
-                            <option value="SELESAI">Selesai (Tunai/Lunas)</option>
-                            <option value="PIUTANG">Piutang (Belum Bayar)</option>
-                        </select>
-                        @error('transStatus')<p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>@enderror
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium mb-1">Catatan</label>
-                        <textarea id="catatan-input" wire:model="transCatatan" rows="2" class="w-full border rounded px-2 py-1 text-xs"
-                                  x-on:keydown.enter.prevent="$wire.saveTransaksi()"></textarea>
-                        @error('transCatatan')<p class="text-red-500 text-xs mt-0.5">{{ $message }}</p>@enderror
+
+                    {{-- Modal Buttons --}}
+                    <div class="flex gap-2">
+                        <button type="button" wire:click="$set('showBayarModal', false)" class="flex-1 px-3 py-2 border rounded hover:bg-gray-50 text-xs">Kembali</button>
+                        <button type="button" wire:click="saveTransaksi" wire:loading.attr="disabled" wire:target="saveTransaksi" class="flex-1 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold text-xs disabled:cursor-not-allowed disabled:opacity-60">
+                            <span wire:loading.remove wire:target="saveTransaksi">Simpan</span>
+                            <span wire:loading wire:target="saveTransaksi">Menyimpan...</span>
+                        </button>
                     </div>
                 </div>
-
-                {{-- Grand Total in Modal --}}
-                <div class="p-2 border-t-2 border-blue-200 bg-gradient-to-r from-blue-50 to-blue-100 rounded mb-3">
-                    <div class="flex justify-between items-center">
-                        <span class="text-xs font-semibold text-blue-800">GRAND TOTAL</span>
-                        <span class="text-lg font-black text-blue-600">{{ number_format($transGrandTotal, 0, ',', '.') }}</span>
-                    </div>
-                </div>
-
-                {{-- Modal Buttons --}}
-                <div class="flex gap-2">
-                    <button type="button" wire:click="$set('showBayarModal', false)" class="flex-1 px-3 py-2 border rounded hover:bg-gray-50 text-xs">Kembali</button>
-                    <button type="button" wire:click="saveTransaksi" wire:loading.attr="disabled" wire:target="saveTransaksi" class="flex-1 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold text-xs disabled:cursor-not-allowed disabled:opacity-60">
-                        <span wire:loading.remove wire:target="saveTransaksi">Simpan</span>
-                        <span wire:loading wire:target="saveTransaksi">Menyimpan...</span>
-                    </button>
-                </div>
-</div>
             </div>
         </div>
     </div>

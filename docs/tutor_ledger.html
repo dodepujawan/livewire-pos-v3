@@ -171,10 +171,48 @@
   .toc ol { padding-left: 20px; }
   .toc li { margin: 4px 0; }
 
+  /* Sidebar toggle (hamburger) */
+  .sidebar-toggle {
+    display: none; position: fixed; top: 16px; left: 16px; z-index: 200;
+    width: 40px; height: 40px; background: var(--sidebar-bg); border: none;
+    border-radius: 8px; cursor: pointer; padding: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .sidebar-toggle span {
+    display: block; width: 100%; height: 2px; background: #fff;
+    margin: 5px 0; border-radius: 1px; transition: all 0.3s;
+  }
+  .sidebar-toggle.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+  .sidebar-toggle.active span:nth-child(2) { opacity: 0; }
+  .sidebar-toggle.active span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
+
+  /* Sidebar close button */
+  .sidebar-close {
+    display: none; position: absolute; top: 12px; right: 12px;
+    width: 32px; height: 32px; background: rgba(255,255,255,0.1);
+    border: none; border-radius: 6px; color: #fff; font-size: 1.5rem;
+    cursor: pointer; line-height: 1; text-align: center;
+  }
+  .sidebar-close:hover { background: rgba(255,255,255,0.2); }
+
+  /* Sidebar backdrop */
+  .sidebar-backdrop {
+    display: none; position: fixed; inset: 0; z-index: 90;
+    background: rgba(0,0,0,0.5); opacity: 0; transition: opacity 0.3s;
+  }
+  .sidebar-backdrop.show { display: block; opacity: 1; }
+
   /* Responsive */
   @media (max-width: 768px) {
-    .sidebar { display: none; }
-    .main { margin-left: 0; padding: 24px 16px; }
+    .sidebar-toggle { display: block; }
+    .sidebar-close { display: block; }
+    .sidebar {
+      display: block;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+    }
+    .sidebar.open { transform: translateX(0); }
+    .main { margin-left: 0; padding: 24px 16px; padding-top: 72px; }
   }
 
   /* Print */
@@ -221,8 +259,17 @@
 </head>
 <body>
 
+<!-- Mobile hamburger toggle -->
+<button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+  <span></span><span></span><span></span>
+</button>
+
+<!-- Backdrop overlay for mobile -->
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
 <!-- SIDEBAR NAVIGATION -->
-<nav class="sidebar">
+<nav class="sidebar" id="sidebar">
+  <button class="sidebar-close" id="sidebarClose" aria-label="Close sidebar">&times;</button>
   <div class="sidebar-brand">
     <h1>POPS <span>PRO</span></h1>
     <p>Panduan Lengkap POS & Ledger</p>
@@ -1160,6 +1207,10 @@ transaksi (status DRAFT) ─── transaksi_detail
 // Active nav link on scroll
 const sections = document.querySelectorAll('section');
 const navLinks = document.querySelectorAll('.nav-link');
+const sidebar = document.getElementById('sidebar');
+const sidebarToggle = document.getElementById('sidebarToggle');
+const sidebarClose = document.getElementById('sidebarClose');
+const sidebarBackdrop = document.getElementById('sidebarBackdrop');
 
 function updateActiveNav() {
   let current = '';
@@ -1188,7 +1239,50 @@ navLinks.forEach(link => {
     if (target) {
       target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+    if (window.innerWidth <= 768) {
+      closeSidebar();
+    }
   });
+});
+
+// Sidebar toggle
+function openSidebar() {
+  sidebar.classList.add('open');
+  sidebarBackdrop.classList.add('show');
+  sidebarToggle.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSidebar() {
+  sidebar.classList.remove('open');
+  sidebarBackdrop.classList.remove('show');
+  sidebarToggle.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+sidebarToggle.addEventListener('click', () => {
+  if (sidebar.classList.contains('open')) {
+    closeSidebar();
+  } else {
+    openSidebar();
+  }
+});
+
+sidebarClose.addEventListener('click', closeSidebar);
+sidebarBackdrop.addEventListener('click', closeSidebar);
+
+// Close on Escape key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && sidebar.classList.contains('open')) {
+    closeSidebar();
+  }
+});
+
+// Close on resize to desktop
+window.addEventListener('resize', () => {
+  if (window.innerWidth > 768 && sidebar.classList.contains('open')) {
+    closeSidebar();
+  }
 });
 </script>
 

@@ -443,6 +443,43 @@ resources/views/pages/
 
 ## Cara menjalankan (tiap milestone)
 
+### Tahap 9 — Import Template Barang Excel (2026-09-07)
+
+**Selesai:**
+- Template `.xlsx` satu sheet `Import Barang` dengan kolom master dan satuan.
+- Import mengelompokkan baris berdasarkan `kode_barang`, sehingga satu barang dapat memiliki banyak satuan.
+- Validasi dilakukan sebelum penyimpanan: kode existing, data master tidak konsisten, satuan duplikat, satu default, dan konversi dasar `1`.
+- Penyimpanan barang dan satuan menggunakan `DB::transaction()`.
+- Tombol Download Template dan Import Excel pada halaman `master.barang.list`.
+- Permission business action: `master.barang.import` dan `master.barang.export`.
+
+**File berubah:**
+- `src/composer.json` (tambah `maatwebsite/excel`)
+- `src/composer.lock` (dependency Excel)
+- `src/app/Imports/BarangImport.php` (BARU)
+- `src/app/Exports/BarangTemplateExport.php` (BARU)
+- `src/resources/views/pages/master/⚡barang-list/barang-list.php` (UPDATE)
+- `src/resources/views/pages/master/⚡barang-list/barang-list.blade.php` (UPDATE)
+
+**Migration yang dibuat:** none.
+
+**Format import:**
+- Satu baris mewakili satu satuan.
+- Barang multi-satuan mengulang `kode_barang`, `nama_barang`, dan `stok` pada baris terkait.
+- Wajib ada tepat satu `is_default` dan minimal satu baris dengan `konversi = 1`.
+
+**Validasi:**
+- Syntax PHP dan route barang tervalidasi melalui container Docker.
+- Belum menjalankan keseluruhan `php artisan test`; test lanjutan perlu ditambahkan untuk upload, authorization, dan rollback transaksi.
+
+**Tahap 9 lanjutan:**
+- Menu/modal `Excel Barang` memisahkan template barang baru, import barang baru, export data existing, dan update barang existing.
+- Update mencocokkan barang dengan `kode_barang` dan satuan dengan `kode_barang + nama_satuan`.
+- Update Excel tidak mengubah stok; stok tetap melalui transaksi atau stok opname.
+- Permission tetap menggunakan `master.barang.import` dan `master.barang.export`.
+- Template barang baru memiliki sheet `Petunjuk`.
+- Modal Excel memiliki panduan kontekstual untuk tambah barang, update data, dan tambah satuan.
+
 1. Analisa & buat Mega Plan → tunggu approval.
 2. Buat migration (kalau sudah di-approve di Tahap 0).
 3. Buat Model + relationship.

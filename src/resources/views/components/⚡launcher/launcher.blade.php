@@ -1,69 +1,65 @@
 @php
     $palette = [
-        ['accent' => '#D4AF37', 'accentSoft' => 'rgba(212,175,55,0.42)', 'ring' => 'rgba(212,175,55,0.20)', 'border' => 'rgba(212,175,55,0.30)'], // Gold
-        ['accent' => '#5B8DB8', 'accentSoft' => 'rgba(91,141,184,0.42)', 'ring' => 'rgba(91,141,184,0.20)', 'border' => 'rgba(91,141,184,0.30)'], // Steel Blue
-        ['accent' => '#5FA88D', 'accentSoft' => 'rgba(95,168,141,0.42)', 'ring' => 'rgba(95,168,141,0.20)', 'border' => 'rgba(95,168,141,0.30)'], // Jade
-        ['accent' => '#B56B7A', 'accentSoft' => 'rgba(181,107,122,0.42)', 'ring' => 'rgba(181,107,122,0.20)', 'border' => 'rgba(181,107,122,0.30)'], // Burgundy Rose
-        ['accent' => '#8B78B5', 'accentSoft' => 'rgba(139,120,181,0.42)', 'ring' => 'rgba(139,120,181,0.20)', 'border' => 'rgba(139,120,181,0.30)'], // Amethyst
-        ['accent' => '#C47A45', 'accentSoft' => 'rgba(196,122,69,0.42)', 'ring' => 'rgba(196,122,69,0.20)', 'border' => 'rgba(196,122,69,0.30)'], // Copper
-        ['accent' => '#6E9FA3', 'accentSoft' => 'rgba(110,159,163,0.42)', 'ring' => 'rgba(110,159,163,0.20)', 'border' => 'rgba(110,159,163,0.30)'], // Teal Steel
-        ['accent' => '#8C6F52', 'accentSoft' => 'rgba(140,111,82,0.42)', 'ring' => 'rgba(140,111,82,0.20)', 'border' => 'rgba(140,111,82,0.30)'], // Bronze
-        ['accent' => '#A65D5D', 'accentSoft' => 'rgba(166,93,93,0.42)', 'ring' => 'rgba(166,93,93,0.20)', 'border' => 'rgba(166,93,93,0.30)'], // Ruby
+        ['accent' => '#D39B18', 'wash' => 'rgba(255,248,225,0.82)', 'accentSoft' => 'rgba(211,155,24,0.22)', 'border' => 'rgba(211,155,24,0.30)'],
+        ['accent' => '#2878C8', 'wash' => 'rgba(235,245,255,0.86)', 'accentSoft' => 'rgba(40,120,200,0.20)', 'border' => 'rgba(40,120,200,0.26)'],
+        ['accent' => '#149B78', 'wash' => 'rgba(231,250,244,0.86)', 'accentSoft' => 'rgba(20,155,120,0.20)', 'border' => 'rgba(20,155,120,0.26)'],
+        ['accent' => '#D45670', 'wash' => 'rgba(255,239,243,0.86)', 'accentSoft' => 'rgba(212,86,112,0.20)', 'border' => 'rgba(212,86,112,0.26)'],
+        ['accent' => '#8058C7', 'wash' => 'rgba(245,239,255,0.88)', 'accentSoft' => 'rgba(128,88,199,0.20)', 'border' => 'rgba(128,88,199,0.26)'],
+        ['accent' => '#D87327', 'wash' => 'rgba(255,243,233,0.88)', 'accentSoft' => 'rgba(216,115,39,0.20)', 'border' => 'rgba(216,115,39,0.26)'],
+        ['accent' => '#148F9D', 'wash' => 'rgba(231,249,251,0.88)', 'accentSoft' => 'rgba(20,143,157,0.20)', 'border' => 'rgba(20,143,157,0.26)'],
     ];
 @endphp
 
-<div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+<div class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
     @foreach($groupedMenus as $group => $menus)
         @php
-            $groupModel = \App\Models\LauncherGroup::where('key', $group)->first();
+            $groupModel = $groupModels->get($group);
             $color = $palette[$loop->index % count($palette)];
         @endphp
 
-        {{-- Untuk Border Color --}}
-        {{-- <div
-            class="h-full flex flex-col rounded-xl bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-12px_rgba(15,23,42,0.12)]"
-            style="border: 3px solid {{ $color['border'] }};"
-        > --}}
-            <div
-                class="h-full flex flex-col rounded-xl bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-12px_rgba(15,23,42,0.12)]" style=" border: 1px solid rgba(148,163,184,0.55); box-shadow: inset 0 1px 0 rgba(255,255,255,0.95), 0 1px 2px rgba(15,23,42,0.04), 0 8px 20px -12px rgba(15,23,42,0.12);"
-            >
+        <section
+            class="group/section relative flex h-full min-h-[212px] flex-col overflow-hidden rounded-2xl border bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.03),0_14px_30px_-20px_rgba(15,23,42,0.24)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_34px_-22px_var(--group-shadow)] sm:p-5"
+            style="--group-accent: {{ $color['accent'] }}; --group-wash: {{ $color['wash'] }}; --group-shadow: {{ $color['accentSoft'] }}; border-color: {{ $color['border'] }};"
+        >
+            <div class="pointer-events-none absolute inset-x-0 top-0 h-24 opacity-80" style="background: linear-gradient(115deg, var(--group-wash), transparent 68%);"></div>
+            <div class="pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full opacity-50 blur-2xl" style="background: var(--group-accent);"></div>
+
             {{-- Group Header --}}
-            <div class="flex items-center gap-2.5 mb-3.5 shrink-0">
+            <div class="relative mb-4 flex shrink-0 items-center gap-3">
                 <span
-                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#0F1B33] to-[#1E2E52] shadow-[0_2px_5px_rgba(15,27,51,0.3)]"
-                    style="color: {{ $color['accent'] }}; box-shadow: 0 2px 5px rgba(15,27,51,0.3), 0 0 0 1px {{ $color['ring'] }} inset;"
+                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-lg shadow-slate-900/15"
+                    style="background: linear-gradient(145deg, #17284a, #0d1830); color: {{ $color['accent'] }}; box-shadow: 0 6px 12px -7px {{ $color['accent'] }};"
                 >
                     @if($groupModel && $groupModel->icon)
-                        <i class="{{ $groupModel->icon }} text-xs"></i>
+                        <i class="{{ $groupModel->icon }} text-sm"></i>
                     @else
-                        <i class="fa-solid fa-layer-group text-xs"></i>
+                        <i class="fa-solid fa-layer-group text-sm"></i>
                     @endif
                 </span>
                 <div class="min-w-0">
-                    <h2 class="font-['Plus_Jakarta_Sans'] text-[13px] font-semibold tracking-tight text-slate-800 leading-tight">
+                    <h2 class="font-['Plus_Jakarta_Sans'] text-sm font-bold tracking-tight text-slate-900 leading-tight">
                         {{ $groupModel?->label ?? ucfirst(str_replace('_', ' ', $group)) }}
                     </h2>
-                    <p class="font-mono text-[8px] uppercase tracking-[0.2em] text-slate-400">
-                        {{ $menus->count() }} Modul
+                    <p class="mt-1 font-mono text-[9px] uppercase tracking-[0.18em] text-slate-400">
+                        {{ str_pad($menus->count(), 2, '0', STR_PAD_LEFT) }} Modul Tersedia
                     </p>
                 </div>
-                {{-- <div class="ml-auto h-px flex-1 bg-gradient-to-r from-slate-200 via-slate-200 to-transparent"></div> --}}
-                <div class="ml-auto h-px flex-1" style="background: linear-gradient(to right, {{ $color['border'] }}, {{ $color['border'] }} 40%, transparent);"></div>
+                <div class="ml-auto flex h-7 w-7 items-center justify-center rounded-full border text-[10px] font-bold" style="color: var(--group-accent); border-color: {{ $color['border'] }}; background: var(--group-wash);">{{ $loop->iteration }}</div>
             </div>
 
-            <div class="flex-1 flex flex-col justify-center">
-                <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
+            <div class="relative flex flex-1 flex-col justify-center">
+                <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
                     @foreach($menus as $menu)
                         <a
                             href="{{ $menu->systemRoute?->route_name ? route($menu->systemRoute->route_name) : '#' }}"
                             wire:navigate
-                            class="group relative flex flex-col items-center justify-center gap-1.5 rounded-lg border border-slate-200/80 bg-white px-2 py-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-300 hover:-translate-y-0.5"
+                            class="group relative flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-xl border border-slate-200/80 bg-white/90 px-2 py-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-300 hover:-translate-y-1 hover:bg-white focus:outline-none focus:ring-2 focus:ring-offset-2"
                             style="--tile-accent: {{ $color['accent'] }}; --tile-accent-soft: {{ $color['accentSoft'] }};"
-                            onmouseover="this.style.borderColor='var(--tile-accent)'; this.style.boxShadow='0 10px 20px -10px var(--tile-accent-soft)';"
+                            onmouseover="this.style.borderColor='var(--tile-accent)'; this.style.boxShadow='0 12px 22px -12px var(--tile-accent-soft)';"
                             onmouseout="this.style.borderColor=''; this.style.boxShadow='0 1px 2px rgba(15,23,42,0.04)';"
                         >
                             <div
-                                class="flex h-8 w-8 items-center justify-center rounded-md bg-gradient-to-br from-[#0F1B33] to-[#1E2E52] transition-all duration-300"
+                                class="flex h-9 w-9 items-center justify-center rounded-lg bg-[#122342] shadow-sm transition-all duration-300 group-hover:scale-105"
                                 style="color: {{ $color['accent'] }};"
                             >
                                 @if($menu->icon)
@@ -74,16 +70,16 @@
                                     </svg>
                                 @endif
                             </div>
-                            <span class="text-[10px] font-medium text-center leading-tight text-slate-600 line-clamp-2 group-hover:text-slate-900">
+                            <span class="text-[11px] font-semibold text-center leading-snug text-slate-600 line-clamp-2 group-hover:text-slate-950">
                                 {{ $menu->title }}
                             </span>
 
-                            <span class="pointer-events-none absolute bottom-0 left-1/2 h-[2px] w-0 -translate-x-1/2 transition-all duration-300 group-hover:w-6" style="background: {{ $color['accent'] }};"></span>
+                            <span class="pointer-events-none absolute bottom-0 left-1/2 h-0.5 w-0 -translate-x-1/2 rounded-full transition-all duration-300 group-hover:w-8" style="background: {{ $color['accent'] }};"></span>
                         </a>
                     @endforeach
                 </div>
             </div>
-        </div>
+        </section>
     @endforeach
 
     @if($groupedMenus->isEmpty())

@@ -1,15 +1,15 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="relative">
-        <div class="mb-3 flex items-center gap-2">
+    <div class="relative mx-auto max-w-[1600px]">
+        <div class="mb-3 flex items-center gap-2 px-1">
             <span class="h-1.5 w-1.5 rounded-full bg-[#D4AF37]"></span>
             <span class="font-mono text-[10px] uppercase tracking-[0.25em] text-slate-400">Menu Utama</span>
         </div>
 
-        <div class="relative rounded-2xl bg-white shadow-sm border border-slate-200 px-6 sm:px-10 py-8">
-            <div class="absolute left-2.5 top-6 bottom-6 w-1.5 bg-[radial-gradient(circle,theme(colors.slate.300)_1.4px,transparent_1.6px)] bg-[length:100%_14px] opacity-70"></div>
-            <div class="absolute right-2.5 top-6 bottom-6 w-1.5 bg-[radial-gradient(circle,theme(colors.slate.300)_1.4px,transparent_1.6px)] bg-[length:100%_14px] opacity-70"></div>
+        <div class="relative rounded-2xl border border-slate-200/90 bg-white/80 px-3 py-4 shadow-[0_12px_35px_-28px_rgba(15,23,42,0.45)] sm:px-6 sm:py-6 lg:px-8 lg:py-7">
+            <div class="pointer-events-none absolute left-2 top-5 bottom-5 w-px bg-gradient-to-b from-transparent via-slate-200 to-transparent sm:left-3"></div>
+            <div class="pointer-events-none absolute right-2 top-5 bottom-5 w-px bg-gradient-to-b from-transparent via-slate-200 to-transparent sm:right-3"></div>
 
             @livewire('components::launcher')
         </div>

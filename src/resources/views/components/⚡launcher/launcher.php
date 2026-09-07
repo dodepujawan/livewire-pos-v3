@@ -12,13 +12,14 @@ new class extends Component
         $activeGroups = LauncherGroup::query()
             ->where('is_active', true)
             ->orderBy('sort_order')
-            ->get()
-            ->pluck('key');
+            ->get();
+
+        $activeGroupKeys = $activeGroups->pluck('key');
 
         $menus = Menu::query()
             ->with(['systemRoute'])
             ->whereNotNull('launcher_group')
-            ->whereIn('launcher_group', $activeGroups)
+            ->whereIn('launcher_group', $activeGroupKeys)
             ->orderBy('sort_order')
             ->get();
 
@@ -26,7 +27,7 @@ new class extends Component
         $grouped = $filtered->groupBy('launcher_group');
 
         $orderedGroupedMenus = collect();
-        foreach ($activeGroups as $group) {
+        foreach ($activeGroupKeys as $group) {
             if ($grouped->has($group)) {
                 $orderedGroupedMenus->put($group, $grouped->get($group));
             }
@@ -34,6 +35,7 @@ new class extends Component
 
         return $this->view([
             'groupedMenus' => $orderedGroupedMenus,
+            'groupModels' => $activeGroups->keyBy('key'),
         ]);
     }
 
