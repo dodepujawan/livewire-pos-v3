@@ -479,6 +479,9 @@ resources/views/pages/
 - Permission tetap menggunakan `master.barang.import` dan `master.barang.export`.
 - Template barang baru memiliki sheet `Petunjuk`.
 - Modal Excel memiliki panduan kontekstual untuk tambah barang, update data, dan tambah satuan.
+- `is_default` ditentukan otomatis dari satuan dengan konversi terkecil; kolom tersebut tidak lagi diminta dari user.
+- Stok export hanya ditampilkan pada satuan dengan konversi terkecil dan kode barang tidak boleh memiliki stok berbeda.
+- Kode barang bebas dari sisi format; formula mentah ditolak dengan instruksi Paste Special Values Only.
 
 1. Analisa & buat Mega Plan → tunggu approval.
 2. Buat migration (kalau sudah di-approve di Tahap 0).

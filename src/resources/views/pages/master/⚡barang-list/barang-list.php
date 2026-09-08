@@ -49,14 +49,14 @@ new class extends Component
     {
         abort_unless(auth()->user()->can('master.barang.export'), 403);
 
-        return Excel::download(new BarangTemplateExport(), 'template-import-barang.xlsx');
+        return Excel::download(new BarangTemplateExport(), '1-tambah-barang-baru.xlsx');
     }
 
     public function exportBarangData()
     {
         abort_unless(auth()->user()->can('master.barang.export'), 403);
 
-        return Excel::download(new BarangExport(), 'data-barang.xlsx');
+        return Excel::download(new BarangExport(), '2-edit-atau-tambah-satuan-barang.xlsx');
     }
 
     public function openBarangExcelModal(): void
@@ -114,13 +114,23 @@ new class extends Component
                 if ($code === '' && $name === '' && $unitName === '') {
                     continue;
                 }
+                if (str_starts_with($code, '=')) {
+                    $errors[] = "Baris {$line}: kode_barang masih berupa formula ({$code}). Copy kolom kode, lalu gunakan Paste Special > Values Only sebelum upload.";
+                    continue;
+                }
                 if ($code === '' || $name === '' || $unitName === '') {
                     $errors[] = "Baris {$line}: kode, nama barang, dan nama satuan wajib diisi.";
                     continue;
                 }
-                if (! is_numeric($row['stok'] ?? null) || (int) $row['stok'] < 0 || (float) $row['stok'] != (int) $row['stok']) {
-                    $errors[] = "Baris {$line}: stok harus berupa bilangan bulat minimal 0.";
-                    continue;
+                $stockValue = $row['stok'] ?? null;
+                if ($stockValue !== null && trim((string) $stockValue) !== '') {
+                    if (! is_numeric($stockValue) || (int) $stockValue < 0 || (float) $stockValue != (int) $stockValue) {
+                        $errors[] = "Baris {$line}: stok harus berupa bilangan bulat minimal 0.";
+                        continue;
+                    }
+                    $stockValue = (int) $stockValue;
+                } else {
+                    $stockValue = null;
                 }
                 if (! is_numeric($row['konversi'] ?? null) || (int) $row['konversi'] < 1 || (float) $row['konversi'] != (int) $row['konversi']) {
                     $errors[] = "Baris {$line}: konversi harus berupa bilangan bulat minimal 1.";
@@ -133,21 +143,15 @@ new class extends Component
                     }
                 }
 
-                $defaultValue = strtolower(trim((string) ($row['is_default'] ?? '')));
-                if (! in_array($defaultValue, ['0', '1', 'ya', 'tidak', 'yes', 'no', 'true', 'false'], true)) {
-                    $errors[] = "Baris {$line}: is_default harus 1/0 atau ya/tidak.";
-                }
-
                 $groups[$code][] = [
                     'line' => $line,
                     'kode_barang' => $code,
                     'nama_barang' => $name,
-                    'stok' => (int) $row['stok'],
+                    'stok' => $stockValue,
                     'nama_satuan' => $unitName,
                     'konversi' => (int) $row['konversi'],
                     'harga_jual' => (float) ($row['harga_jual'] ?? 0),
                     'harga_beli' => (float) ($row['harga_beli'] ?? 0),
-                    'is_default' => in_array($defaultValue, ['1', 'ya', 'yes', 'true'], true),
                 ];
             }
 
@@ -167,25 +171,27 @@ new class extends Component
                 }
 
                 $first = $items[0];
-                $defaultCount = 0;
                 $unitNames = [];
-                $hasBaseUnit = false;
+                $minimumConversion = min(array_column($items, 'konversi'));
+                $minimumUnits = array_filter($items, fn ($item) => $item['konversi'] === $minimumConversion);
+                $stockValues = array_values(array_unique(array_filter(array_column($items, 'stok'), fn ($stock) => $stock !== null)));
                 foreach ($items as $item) {
-                    if ($item['nama_barang'] !== $first['nama_barang'] || $item['stok'] !== $first['stok']) {
-                        $errors[] = "Kode {$code}: nama barang dan stok harus sama pada semua barisnya.";
+                    if ($item['nama_barang'] !== $first['nama_barang']) {
+                        $errors[] = "Kode {$code}: nama barang harus sama pada semua barisnya.";
                     }
                     if (in_array($item['nama_satuan'], $unitNames, true)) {
                         $errors[] = "Baris {$item['line']}: satuan {$item['nama_satuan']} duplikat untuk {$code}.";
                     }
                     $unitNames[] = $item['nama_satuan'];
-                    $defaultCount += $item['is_default'] ? 1 : 0;
-                    $hasBaseUnit = $hasBaseUnit || $item['konversi'] === 1;
                 }
-                if ($defaultCount !== 1) {
-                    $errors[] = "Kode {$code}: harus memiliki tepat satu satuan default.";
+                if (count($minimumUnits) !== 1) {
+                    $errors[] = "Kode {$code}: harus memiliki tepat satu satuan dengan konversi terkecil ({$minimumConversion}).";
                 }
-                if (! $hasBaseUnit) {
-                    $errors[] = "Kode {$code}: harus memiliki satuan dengan konversi 1.";
+                if ($minimumConversion !== 1) {
+                    $errors[] = "Kode {$code}: satuan dengan konversi terkecil harus memiliki nilai konversi 1.";
+                }
+                if (count($stockValues) > 1) {
+                    $errors[] = "Kode {$code}: stok tidak boleh berbeda pada beberapa baris. Isi stok hanya pada satuan dengan konversi terkecil.";
                 }
             }
 
@@ -197,13 +203,17 @@ new class extends Component
             DB::transaction(function () use ($groups): void {
                 foreach ($groups as $items) {
                     $master = $items[0];
-                    $defaultUnit = collect($items)->firstWhere('is_default', true);
+                    $minimumConversion = min(array_column($items, 'konversi'));
+                    $defaultUnit = collect($items)->firstWhere('konversi', $minimumConversion);
+                    $minimumStockRow = collect($items)->first(fn ($item) => $item['konversi'] === $minimumConversion && $item['stok'] !== null);
+                    $anyStockRow = collect($items)->first(fn ($item) => $item['stok'] !== null);
+                    $stockValue = $minimumStockRow['stok'] ?? $anyStockRow['stok'] ?? 0;
                     $barang = $this->barangImportMode === 'update'
                         ? Barang::where('kode_barang', $master['kode_barang'])->firstOrFail()
                         : Barang::create([
                             'kode_barang' => $master['kode_barang'],
                             'nama_barang' => $master['nama_barang'],
-                            'stok' => $master['stok'],
+                            'stok' => $stockValue,
                             'harga_beli' => $defaultUnit['harga_beli'],
                         ]);
 
@@ -223,7 +233,7 @@ new class extends Component
                             'konversi' => $item['konversi'],
                             'harga_jual' => $item['harga_jual'],
                             'harga_beli' => $item['harga_beli'],
-                            'is_default' => $item['is_default'],
+                            'is_default' => $item['konversi'] === $minimumConversion,
                         ];
 
                         if ($satuan) {

@@ -171,48 +171,10 @@
   .toc ol { padding-left: 20px; }
   .toc li { margin: 4px 0; }
 
-  /* Sidebar toggle (hamburger) */
-  .sidebar-toggle {
-    display: none; position: fixed; top: 16px; left: 16px; z-index: 200;
-    width: 40px; height: 40px; background: var(--sidebar-bg); border: none;
-    border-radius: 8px; cursor: pointer; padding: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-  }
-  .sidebar-toggle span {
-    display: block; width: 100%; height: 2px; background: #fff;
-    margin: 5px 0; border-radius: 1px; transition: all 0.3s;
-  }
-  .sidebar-toggle.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
-  .sidebar-toggle.active span:nth-child(2) { opacity: 0; }
-  .sidebar-toggle.active span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
-
-  /* Sidebar close button */
-  .sidebar-close {
-    display: none; position: absolute; top: 12px; right: 12px;
-    width: 32px; height: 32px; background: rgba(255,255,255,0.1);
-    border: none; border-radius: 6px; color: #fff; font-size: 1.5rem;
-    cursor: pointer; line-height: 1; text-align: center;
-  }
-  .sidebar-close:hover { background: rgba(255,255,255,0.2); }
-
-  /* Sidebar backdrop */
-  .sidebar-backdrop {
-    display: none; position: fixed; inset: 0; z-index: 90;
-    background: rgba(0,0,0,0.5); opacity: 0; transition: opacity 0.3s;
-  }
-  .sidebar-backdrop.show { display: block; opacity: 1; }
-
   /* Responsive */
   @media (max-width: 768px) {
-    .sidebar-toggle { display: block; }
-    .sidebar-close { display: block; }
-    .sidebar {
-      display: block;
-      transform: translateX(-100%);
-      transition: transform 0.3s ease;
-    }
-    .sidebar.open { transform: translateX(0); }
-    .main { margin-left: 0; padding: 24px 16px; padding-top: 72px; }
+    .sidebar { display: none; }
+    .main { margin-left: 0; padding: 24px 16px; }
   }
 
   /* Print */
@@ -259,17 +221,8 @@
 </head>
 <body>
 
-<!-- Mobile hamburger toggle -->
-<button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
-  <span></span><span></span><span></span>
-</button>
-
-<!-- Backdrop overlay for mobile -->
-<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
-
 <!-- SIDEBAR NAVIGATION -->
-<nav class="sidebar" id="sidebar">
-  <button class="sidebar-close" id="sidebarClose" aria-label="Close sidebar">&times;</button>
+<nav class="sidebar">
   <div class="sidebar-brand">
     <h1>POPS <span>PRO</span></h1>
     <p>Panduan Lengkap POS & Ledger</p>
@@ -477,7 +430,7 @@
   <li>Klik <strong>+ Tambah Barang</strong></li>
   <li>Isi: kode barang, nama, harga beli</li>
   <li>Tambah <strong>satuan</strong>: pcs (konversi 1), dus (konversi 12), dll</li>
-  <li>Tandai <strong>satuan default</strong> (yang tampil di kasir)</li>
+  <li>Sistem otomatis memilih satuan dengan konversi terkecil sebagai default</li>
   <li>Simpan</li>
 </div>
 
@@ -488,6 +441,104 @@
 └── Satuan: dus  | konversi: 12 | harga jual: Rp55.000| harga beli: Rp48.000
 
 Stok: 100 pcs = 8 dus + 4 pcs</pre>
+</div>
+
+<h3>2.1 Import & Update Barang dengan Excel</h3>
+<p>Gunakan Excel jika ingin menambah atau mengubah banyak barang sekaligus. Untuk satu atau beberapa barang saja, form <strong>Tambah Barang</strong> atau <strong>Edit</strong> biasanya lebih cepat.</p>
+
+<div class="flow">
+  <div class="flow-step blue">Tambah Barang Baru</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step">Export Data Existing</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step purple">Edit / Tambah Satuan</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step green">Update Excel</div>
+</div>
+
+<div class="compare">
+  <div class="compare-card" style="border-top: 4px solid var(--blue);">
+    <h4>1-tambah-barang-baru.xlsx</h4>
+    <p>Dipakai untuk kode barang yang <strong>belum ada</strong> di sistem.</p>
+    <ul style="margin-left:20px;">
+      <li>Isi kode barang bebas, tetapi wajib unik.</li>
+      <li>Barang multi-satuan mengulang kode yang sama.</li>
+      <li>Kode yang sudah terdaftar akan ditolak.</li>
+    </ul>
+  </div>
+  <div class="compare-card" style="border-top: 4px solid var(--purple);">
+    <h4>2-edit-atau-tambah-satuan-barang.xlsx</h4>
+    <p>Dipakai untuk barang yang <strong>sudah ada</strong> di sistem.</p>
+    <ul style="margin-left:20px;">
+      <li>Download dari tombol <strong>Export Data Barang</strong>.</li>
+      <li>Edit nama atau harga barang.</li>
+      <li>Tambahkan baris untuk satuan baru.</li>
+      <li>Upload dengan mode update existing.</li>
+    </ul>
+  </div>
+</div>
+
+<h4>Format kolom Excel</h4>
+<table>
+  <thead><tr><th>Kolom</th><th>Isi</th><th>Aturan</th></tr></thead>
+  <tbody>
+    <tr><td><code>kode_barang</code></td><td>Kode pilihan user</td><td>Wajib unik; boleh memakai huruf, angka, titik, strip, atau format lain.</td></tr>
+    <tr><td><code>nama_barang</code></td><td>Nama barang</td><td>Harus sama pada semua baris dengan kode yang sama.</td></tr>
+    <tr><td><code>stok</code></td><td>Stok satuan dasar</td><td>Isi pada konversi terkecil; satuan lain boleh kosong.</td></tr>
+    <tr><td><code>nama_satuan</code></td><td>PCS, BOX, DUS, dan seterusnya</td><td>Satu satuan tidak boleh duplicate untuk kode yang sama.</td></tr>
+    <tr><td><code>konversi</code></td><td>Jumlah satuan dasar</td><td>Minimal satu baris bernilai 1 dan nilai terkecil hanya boleh satu.</td></tr>
+    <tr><td><code>harga_jual</code></td><td>Harga jual satuan</td><td>Wajib angka minimal 0.</td></tr>
+    <tr><td><code>harga_beli</code></td><td>Harga beli satuan</td><td>Wajib angka minimal 0.</td></tr>
+  </tbody>
+</table>
+
+<div class="callout callout-info">
+  <div class="callout-title">💡 Default otomatis</div>
+  <p>Kolom <code class="code-inline">is_default</code> tidak perlu diisi user. Sistem otomatis memilih satuan dengan <strong>konversi terkecil</strong>. Jika ada dua satuan dengan konversi terkecil yang sama, import ditolak agar data tidak ambigu.</p>
+</div>
+
+<h4>Contoh menambah satuan</h4>
+<p>Untuk menambah satuan <strong>DUS</strong> pada barang yang sudah ada, export data terlebih dahulu lalu tambahkan baris di bawah barang terkait:</p>
+<table>
+  <thead><tr><th>kode_barang</th><th>nama_barang</th><th>stok</th><th>nama_satuan</th><th>konversi</th><th>harga_jual</th><th>harga_beli</th></tr></thead>
+  <tbody>
+    <tr><td>BRG001</td><td>Air Mineral</td><td>100</td><td>PCS</td><td>1</td><td>3000</td><td>2000</td></tr>
+    <tr><td>BRG001</td><td>Air Mineral</td><td></td><td>BOX</td><td>12</td><td>30000</td><td>24000</td></tr>
+  </tbody>
+</table>
+<p>Baris <strong>BOX</strong> akan ditambahkan sebagai satuan baru. Stok tetap berasal dari barang dan tidak diubah oleh mode update.</p>
+
+<div class="callout callout-warning">
+  <div class="callout-title">⚠️ Aturan stok saat update</div>
+  <p>Export dapat dipakai untuk audit stok. Namun mengubah angka stok di file lalu meng-upload mode update <strong>tidak mengubah stok database</strong>. Stok hanya diproses melalui pembelian, penjualan, retur, atau stok opname.</p>
+</div>
+
+<h4>Kode barang dengan formula Excel</h4>
+<p>User bebas membuat kode barang dengan formula Excel, tetapi sebelum upload hasil formula harus diubah menjadi nilai teks biasa.</p>
+<pre>Formula: =SUBSTITUTE(B3;" ";".")
+Hasil yang harus tersimpan: WELDON.5KG.7000</pre>
+<div class="steps">
+  <li>Blok kolom <strong>kode_barang</strong></li>
+  <li>Copy</li>
+  <li>Pilih <strong>Paste Special → Values Only</strong></li>
+  <li>Pastikan cell berisi kode nyata, bukan diawali tanda <code>=</code></li>
+</div>
+
+<h4>Pesan error yang umum</h4>
+<table>
+  <thead><tr><th>Pesan</th><th>Arti</th><th>Perbaikan</th></tr></thead>
+  <tbody>
+    <tr><td>Kode sudah terdaftar</td><td>Kode dipakai pada mode barang baru.</td><td>Gunakan mode update existing atau pilih kode baru.</td></tr>
+    <tr><td>Kode masih berupa formula</td><td>Cell masih berisi rumus Excel.</td><td>Gunakan Paste Special → Values Only.</td></tr>
+    <tr><td>Nama barang harus sama</td><td>Nama berbeda pada kode yang sama.</td><td>Samakan nama pada semua baris.</td></tr>
+    <tr><td>Stok tidak boleh berbeda</td><td>Beberapa baris berisi stok berbeda.</td><td>Isi stok pada konversi terkecil saja.</td></tr>
+    <tr><td>Konversi terkecil duplicate</td><td>Ada lebih dari satu default yang mungkin.</td><td>Gunakan satu konversi terkecil saja.</td></tr>
+  </tbody>
+</table>
+
+<div class="callout callout-success">
+  <div class="callout-title">✅ Ringkasan cepat</div>
+  <p><strong>Barang baru</strong> → download <code class="code-inline">1-tambah-barang-baru.xlsx</code>. <strong>Edit atau tambah satuan</strong> → export <code class="code-inline">2-edit-atau-tambah-satuan-barang.xlsx</code>. <strong>Stok</strong> tidak diubah melalui mode update. <strong>Default</strong> dipilih otomatis dari konversi terkecil.</p>
 </div>
 
 <h3>3. Register Kasir</h3>
@@ -1198,7 +1249,7 @@ transaksi (status DRAFT) ─── transaksi_detail
 <div style="margin-top:60px; padding-top:20px; border-top:1px solid var(--border); text-align:center; color:var(--text-light); font-size:0.85rem;">
   <p>POPS PRO — Panduan Lengkap POS & Ledger</p>
   <p>Dibuat untuk pembelajaran. Sistem: Laravel 13 + Livewire 4 + MySQL</p>
-  <p style="margin-top:8px;">Last updated: Agustus 2026</p>
+  <p style="margin-top:8px;">Last updated: September 2026</p>
 </div>
 
 </div><!-- end main -->
@@ -1207,10 +1258,6 @@ transaksi (status DRAFT) ─── transaksi_detail
 // Active nav link on scroll
 const sections = document.querySelectorAll('section');
 const navLinks = document.querySelectorAll('.nav-link');
-const sidebar = document.getElementById('sidebar');
-const sidebarToggle = document.getElementById('sidebarToggle');
-const sidebarClose = document.getElementById('sidebarClose');
-const sidebarBackdrop = document.getElementById('sidebarBackdrop');
 
 function updateActiveNav() {
   let current = '';
@@ -1239,50 +1286,7 @@ navLinks.forEach(link => {
     if (target) {
       target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-    if (window.innerWidth <= 768) {
-      closeSidebar();
-    }
   });
-});
-
-// Sidebar toggle
-function openSidebar() {
-  sidebar.classList.add('open');
-  sidebarBackdrop.classList.add('show');
-  sidebarToggle.classList.add('active');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeSidebar() {
-  sidebar.classList.remove('open');
-  sidebarBackdrop.classList.remove('show');
-  sidebarToggle.classList.remove('active');
-  document.body.style.overflow = '';
-}
-
-sidebarToggle.addEventListener('click', () => {
-  if (sidebar.classList.contains('open')) {
-    closeSidebar();
-  } else {
-    openSidebar();
-  }
-});
-
-sidebarClose.addEventListener('click', closeSidebar);
-sidebarBackdrop.addEventListener('click', closeSidebar);
-
-// Close on Escape key
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && sidebar.classList.contains('open')) {
-    closeSidebar();
-  }
-});
-
-// Close on resize to desktop
-window.addEventListener('resize', () => {
-  if (window.innerWidth > 768 && sidebar.classList.contains('open')) {
-    closeSidebar();
-  }
 });
 </script>
 

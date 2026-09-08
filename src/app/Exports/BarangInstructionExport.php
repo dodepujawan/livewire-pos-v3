@@ -3,9 +3,10 @@
 namespace App\Exports;
 
 use Maatwebsite\Excel\Concerns\FromArray;
+use Maatwebsite\Excel\Concerns\Export;
 use Maatwebsite\Excel\Concerns\WithTitle;
 
-class BarangInstructionExport implements FromArray, WithTitle
+class BarangInstructionExport implements Export, FromArray, WithTitle
 {
     public function array(): array
     {
@@ -13,11 +14,12 @@ class BarangInstructionExport implements FromArray, WithTitle
             ['PETUNJUK IMPORT BARANG'],
             [''],
             ['IMPORT BARANG BARU'],
-            ['- Gunakan sheet Import Barang untuk mengisi data.'],
+            ['- Gunakan sheet Tambah Barang Baru untuk mengisi data.'],
             ['- Satu baris mewakili satu satuan barang.'],
             ['- Barang multi-satuan memakai kode_barang yang sama.'],
-            ['- Setiap barang wajib memiliki tepat satu is_default = 1.'],
             ['- Minimal satu satuan harus memiliki konversi = 1.'],
+            ['- Sistem otomatis memilih konversi terkecil sebagai satuan default.'],
+            ['- Isi stok pada baris konversi terkecil; baris satuan lain boleh dikosongkan.'],
             ['- Mode ini hanya untuk kode barang yang belum terdaftar.'],
             [''],
             ['UPDATE BARANG EXISTING'],
@@ -26,15 +28,17 @@ class BarangInstructionExport implements FromArray, WithTitle
             ['- Untuk menambah satuan, tambahkan baris dengan kode_barang yang sama.'],
             ['- Upload menggunakan mode Update Barang Existing.'],
             ['- Stok tidak diubah melalui update Excel.'],
+            ['- Kode barang boleh memakai format apa pun, tetapi harus unik.'],
+            ['- Jika memakai formula untuk kode, ubah hasilnya menjadi nilai dengan Paste Special > Values Only.'],
             [''],
             ['CONTOH BARANG MULTI-SATUAN'],
-            ['BRG001 | Air Mineral | PCS | 1 | 3000 | 2000 | 1'],
-            ['BRG001 | Air Mineral | BOX | 12 | 30000 | 24000 | 0'],
+            ['BRG001 | Air Mineral | 100 | PCS | 1 | 3000 | 2000'],
+            ['BRG001 | Air Mineral | kosong | BOX | 12 | 30000 | 24000'],
         ];
     }
 
     public function title(): string
     {
-        return 'Petunjuk';
+        return 'Cara Penggunaan';
     }
 }
