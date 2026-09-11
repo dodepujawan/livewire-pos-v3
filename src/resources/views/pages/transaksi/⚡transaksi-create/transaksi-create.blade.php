@@ -321,16 +321,16 @@
     {{-- Search Modal --}}
     @if($showSearchModal)
     <div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50"
-         x-data="{
-             handleKeydown(event) {
+          x-data="{
+              handleKeydown(event) {
                  if (event.key === 'ArrowUp' || event.key === 'ArrowDown' || event.key === 'Enter' || event.key === 'Escape') {
                      event.preventDefault();
                      @this.handleSearchModalKeydown(event.key);
                  }
              }
-         }"
-         x-on:keydown.window="handleKeydown"
-         wire:keydown.escape="$set('showSearchModal', false)"
+          }"
+          x-on:keydown.window="handleKeydown"
+          wire:keydown.escape="$set('showSearchModal', false)"
          wire:click.self="$set('showSearchModal', false)">
         <div class="w-full max-w-4xl mx-4 max-h-[80vh] overflow-hidden rounded-xl bg-white shadow-2xl flex flex-col">
             <div class="p-4 border-b bg-gray-50">
@@ -371,6 +371,7 @@
                     <tbody>
                         @foreach($searchResults as $index => $result)
                             <tr wire:key="search-result-{{ $result['id'] }}"
+                                data-search-index="{{ $index }}"
                                 class="cursor-pointer transition-all duration-150 {{ $selectedIndex === $index ? 'bg-blue-50 border-l-4 border-blue-500 shadow-sm' : 'hover:bg-gray-50' }}"
                                 x-on:dblclick="$wire.selectBarangFromSearch({{ $result['id'] }})"
                                 x-on:click="$wire.set('selectedIndex', {{ $index }})"
@@ -511,6 +512,30 @@
             document.getElementById('bayar-input')?.focus();
             document.getElementById('bayar-input')?.select();
         }, 50);
+    });
+
+    $wire.on('search-selection-changed', ({ index }) => {
+        setTimeout(() => {
+            const row = document.querySelector('[data-search-index="' + index + '"]');
+            const container = row?.closest('.overflow-y-auto');
+
+            if (!row || !container) return;
+
+            const rowRect = row.getBoundingClientRect();
+            const containerRect = container.getBoundingClientRect();
+
+            if (rowRect.bottom > containerRect.bottom) {
+                container.scrollBy({
+                    top: rowRect.bottom - containerRect.bottom,
+                    behavior: 'smooth',
+                });
+            } else if (rowRect.top < containerRect.top) {
+                container.scrollBy({
+                    top: rowRect.top - containerRect.top,
+                    behavior: 'smooth',
+                });
+            }
+        }, 100);
     });
 
     // Auto-hide undo toast after 2 seconds

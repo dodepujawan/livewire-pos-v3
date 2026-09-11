@@ -232,6 +232,16 @@ new class extends Component
         }
     }
 
+    public function updatedSearchKeyword(string $value): void
+    {
+        if (!$this->showSearchModal) {
+            return;
+        }
+
+        $this->selectedIndex = 0;
+        $this->searchBarangLike(trim($value));
+    }
+
     public function selectBarangFromSearch(int $barangId): void
     {
         $barang = Barang::with('satuan')->find($barangId);
@@ -273,6 +283,7 @@ new class extends Component
     {
         if ($this->selectedIndex > 0) {
             $this->selectedIndex--;
+            $this->dispatch('search-selection-changed', index: $this->selectedIndex);
         }
     }
 
@@ -280,6 +291,7 @@ new class extends Component
     {
         if ($this->selectedIndex < count($this->searchResults) - 1) {
             $this->selectedIndex++;
+            $this->dispatch('search-selection-changed', index: $this->selectedIndex);
         }
     }
 
