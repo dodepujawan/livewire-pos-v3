@@ -8,6 +8,13 @@
 - Library baru wajib approval.
 - Project menggunakan docker file laravel berada di path: src
 
+### 1.1 Layout & Responsive
+- Layout utama sudah menyediakan `<main class="min-w-0 p-6">`; jangan menambah `p-6` pada root page tanpa alasan.
+- Gunakan `min-w-0` pada wrapper flex/grid dan `overflow-x-auto` untuk tabel.
+- Hindari `w-screen`, `min-w-[...]` besar, dan `h-screen` mentah di bawah navbar.
+- Gunakan `w-full`; untuk halaman tinggi gunakan `min-h-[calc(100vh-80px)]` bila diperlukan.
+- Uji halaman pada desktop/mobile dan saat berpindah antara halaman pendek dan panjang.
+
 ## 2. Architecture & Files
 - Livewire MFC: satu component = satu folder.
 - Jangan membuat Single File Component.

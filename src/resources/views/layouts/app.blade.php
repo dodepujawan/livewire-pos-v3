@@ -15,7 +15,7 @@
 
 <body class="bg-gray-100">
 
-<div class="relative">
+<div class="relative min-w-0">
 
     {{-- Navbar + Sidebar: satu persist & satu Alpine state --}}
     @persist('chrome')
@@ -26,7 +26,7 @@
     @endpersist
 
     {{-- CONTENT --}}
-    <main class="p-6">
+    <main class="min-w-0 p-6">
         {{ $slot ?? '' }}
         @yield('content')
     </main>

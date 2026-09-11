@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Keep the viewport width stable when a page gains or loses a scrollbar. */
+html {
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
+}
+
 [x-cloak] {
     display: none !important;
 }
