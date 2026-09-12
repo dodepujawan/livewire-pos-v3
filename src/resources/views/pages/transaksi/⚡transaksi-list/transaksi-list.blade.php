@@ -81,7 +81,14 @@
                     @forelse($transaksiData as $index => $transaksi)
                         <tr class="border-t">
                             <td class="px-4 py-3">{{ $transaksiData->firstItem() + $index }}</td>
-                            <td class="px-4 py-3">{{ $transaksi->nomor_transaksi }}</td>
+                            <td class="px-4 py-3">
+                                @if($transaksi->status === 'DRAFT' && !$transaksi->nomor_transaksi)
+                                    <span class="font-medium text-yellow-700">Draft #{{ $transaksi->id }}</span>
+                                    <span class="block text-xs text-gray-500">Belum ada invoice</span>
+                                @else
+                                    {{ $transaksi->nomor_transaksi }}
+                                @endif
+                            </td>
                             <td class="px-4 py-3">{{ \Carbon\Carbon::parse($transaksi->tanggal)->format('d/m/Y') }}</td>
                             <td class="px-4 py-3">{{ $transaksi->customer ?? '-' }}</td>
                             <td class="px-4 py-3 text-center">
@@ -124,7 +131,7 @@
             <div class="w-full max-w-md mx-4 rounded-xl bg-white p-5 shadow-xl">
                 <h2 class="text-lg font-bold text-gray-900">Konfirmasi Pembatalan</h2>
                 <p class="mt-1 text-sm text-gray-600">
-                    Masukkan alasan pembatalan transaksi. Draft hanya akan di-soft-delete, sedangkan transaksi final akan mengembalikan stok.
+                    Masukkan alasan pembatalan transaksi final. Stok akan dikembalikan setelah pembatalan diproses.
                 </p>
 
                 <label class="block mt-4 text-sm font-medium text-gray-700">Alasan Pembatalan</label>

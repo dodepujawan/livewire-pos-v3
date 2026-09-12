@@ -82,7 +82,7 @@ new class extends Component
         $transaksi = Transaksi::with(['details.barang', 'details.satuan'])
             ->findOrFail($id);
 
-        $this->transNoInvoice = $transaksi->nomor_transaksi;
+        $this->transNoInvoice = $transaksi->nomor_transaksi ?? '';
         $this->transTanggal = $transaksi->tanggal->format('Y-m-d');
         $this->transCustomer = $transaksi->customer;
         $this->transCabangId = $transaksi->cabang_id;
@@ -111,8 +111,8 @@ new class extends Component
                 'nama_satuan' => $detail->satuan->nama_satuan,
                 'qty' => (int) $detail->qty,
                 'harga' => $detail->harga,
-                'diskon' => $detail->diskon,
-                'subtotal' => $detail->subtotal,
+                'diskon' => $this->formatNumber((float) $detail->diskon),
+                'subtotal' => $this->formatNumber((float) $detail->subtotal),
                 'qty_pcs' => $detail->qty_pcs,
             ];
         }
@@ -156,6 +156,21 @@ new class extends Component
                 'nama_satuan' => $item['nama_satuan'],
             ]);
         }
+    }
+
+    private function generateInvoiceNumber(): string
+    {
+        $lastInvoice = Transaksi::withTrashed()
+            ->whereDate('tanggal', today())
+            ->whereNotNull('nomor_transaksi')
+            ->latest('id')
+            ->first();
+
+        $nextNumber = $lastInvoice
+            ? str_pad(((int) substr($lastInvoice->nomor_transaksi, -4)) + 1, 4, '0', STR_PAD_LEFT)
+            : '0001';
+
+        return 'TRX-' . now()->format('Ymd') . '-' . $nextNumber;
     }
 
     private function loadCabangList(): void
@@ -350,6 +365,15 @@ new class extends Component
             : (float) $value;
     }
 
+    private function formatNumber(float $value): string
+    {
+        if ($value == (int) $value) {
+            return (string) (int) $value;
+        }
+
+        return rtrim(rtrim((string) $value, '0'), '.');
+    }
+
     private function calculateItemSubtotal(): void
     {
         $harga = (float) $this->itemHarga;
@@ -395,11 +419,11 @@ new class extends Component
 
             $this->cartItems[$existingIndex]['qty'] = $newQty;
             $this->cartItems[$existingIndex]['qty_pcs'] = $newQtyPcs;
-            $this->cartItems[$existingIndex]['subtotal'] = $newQty * $satuan->harga_jual;
+            $this->cartItems[$existingIndex]['subtotal'] = $this->formatNumber($newQty * $satuan->harga_jual);
         } else {
             $qty = (int) $this->itemQty;
-            $diskon = (float) $this->itemDiskon;
-            $subtotal = (float) $this->itemSubtotal;
+            $diskon = $this->formatNumber((float) $this->itemDiskon);
+            $subtotal = $this->formatNumber((float) $this->itemSubtotal);
 
             $this->cartItems[] = [
                 'barang_id' => $this->itemBarangId,
@@ -427,12 +451,11 @@ new class extends Component
         $this->calculateGrandTotal();
 
         if ($this->isDraftMode && empty($this->cartItems)) {
-            $transaksi = Transaksi::find($this->transaksiId);
-            $transaksi?->update([
-                'deleted_at' => now(),
-                'deleted_by' => auth()->id(),
-                'delete_reason' => 'CART_CLEARED',
-            ]);
+            $transaksi = Transaksi::withTrashed()->find($this->transaksiId);
+            if ($transaksi) {
+                $transaksi->details()->delete();
+                $transaksi->forceDelete();
+            }
             $this->redirect(route('transaksi.penjualan.list'), navigate: true);
             return;
         }
@@ -465,7 +488,7 @@ new class extends Component
             }
 
             $subtotal = ($harga * $qty) - $diskon;
-            $this->cartItems[$index]['subtotal'] = $subtotal;
+            $this->cartItems[$index]['subtotal'] = $this->formatNumber((float) $subtotal);
             $this->cartItems[$index]['qty_pcs'] = $qtyPcs;
         }
 
@@ -532,6 +555,8 @@ new class extends Component
             return;
         }
 
+        $this->transNoInvoice = $this->transNoInvoice ?: $this->generateInvoiceNumber();
+
         try {
             \DB::beginTransaction();
 
@@ -548,6 +573,7 @@ new class extends Component
             // Update transaksi header
             $transaksi = Transaksi::find($this->transaksiId);
             $transaksi->update([
+                'nomor_transaksi' => $this->transNoInvoice,
                 'tanggal' => $this->transTanggal,
                 'cabang_id' => $this->transCabangId,
                 'customer' => $this->transCustomer,
@@ -684,6 +710,14 @@ new class extends Component
 
         if ($transaksi->status === 'BATAL') {
             session()->flash('error', 'Transaksi sudah dibatalkan');
+            return;
+        }
+
+        if ($transaksi->status === 'DRAFT') {
+            $transaksi->details()->delete();
+            $transaksi->forceDelete();
+            session()->flash('success', 'Draft berhasil dihapus.');
+            $this->redirect(route('transaksi.penjualan.list'), navigate: true);
             return;
         }
 

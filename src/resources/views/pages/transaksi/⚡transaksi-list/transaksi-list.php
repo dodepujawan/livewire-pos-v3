@@ -96,12 +96,9 @@ new class extends Component
 
             \DB::transaction(function () use ($transaksi, $reason) {
                 if ($transaksi->status === 'DRAFT') {
-                    // Draft belum pernah mengurangi stok, jadi cukup soft-delete.
-                    $transaksi->update([
-                        'deleted_at' => now(),
-                        'deleted_by' => auth()->id(),
-                        'delete_reason' => $reason,
-                    ]);
+                    // Draft belum berdampak finansial, jadi hapus permanen.
+                    $transaksi->details()->delete();
+                    $transaksi->forceDelete();
 
                     return;
                 }

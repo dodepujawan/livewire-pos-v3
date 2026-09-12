@@ -614,14 +614,25 @@ Hasil yang harus tersimpan: WELDON.5KG.7000</pre>
 
 <div class="callout callout-info">
   <div class="callout-title">🔑 Prinsip terpenting</div>
-  <p><strong>Draft bukan penjualan final.</strong> Selama status masih <code class="code-inline">DRAFT</code>, stok, kas, piutang, dan jurnal belum berubah. Dampak ke stok dan akuntansi baru terjadi saat kasir menyelesaikan pembayaran.</p>
+  <p><strong>Draft bukan penjualan final.</strong> Selama status masih <code class="code-inline">DRAFT</code>, stok, kas, piutang, dan jurnal belum berubah. Draft disimpan agar bisa dilanjutkan, tetapi nomor invoice baru dibuat saat kasir menyelesaikan pembayaran.</p>
 </div>
+
+<h3>Identitas Draft dan Invoice</h3>
+<table>
+  <thead><tr><th>Field</th><th>Dipakai untuk</th><th>Contoh</th></tr></thead>
+  <tbody>
+    <tr><td><code class="code-inline">id</code></td><td>Relasi internal database dan membuka draft</td><td>25</td></tr>
+    <tr><td><code class="code-inline">draft_token</code></td><td>Identifier teknis UUID untuk draft</td><td>550e8400-e29b-41d4-a716-446655440000</td></tr>
+    <tr><td><code class="code-inline">nomor_transaksi</code></td><td>Nomor invoice yang dibaca manusia</td><td>TRX-20260912-0001</td></tr>
+  </tbody>
+</table>
+<p>UUID tidak ditampilkan penuh kepada kasir. Di banner dan list, draft ditampilkan sebagai <strong>Draft #25</strong> atau <strong>Belum ada invoice</strong>. UUID hanya membantu sistem mengenali draft secara teknis.</p>
 
 <h3>Alur Besar dari Draft sampai Final</h3>
 <div class="flow">
   <div class="flow-step blue">Tambah Barang</div>
   <span class="flow-arrow">→</span>
-  <div class="flow-step">Simpan Draft</div>
+  <div class="flow-step">Simpan Draft DB</div>
   <span class="flow-arrow">→</span>
   <div class="flow-step orange">Review & Bayar</div>
   <span class="flow-arrow">→</span>
@@ -636,7 +647,7 @@ Hasil yang harus tersimpan: WELDON.5KG.7000</pre>
   <thead><tr><th>Yang dilakukan</th><th>Yang belum dilakukan</th></tr></thead>
   <tbody>
     <tr><td>Validasi barang, satuan, qty, dan stok yang tersedia</td><td>Stok belum dikurangi</td></tr>
-    <tr><td>Simpan nomor invoice dan detail keranjang</td><td>Belum ada kas masuk</td></tr>
+    <tr><td>Simpan <code class="code-inline">draft_token</code> dan detail keranjang</td><td>Nomor invoice belum dibuat</td></tr>
     <tr><td>Subtotal dan grand total dihitung ulang</td><td>Belum ada piutang</td></tr>
     <tr><td>Draft bisa dilanjutkan setelah halaman dibuka ulang</td><td>Belum ada jurnal akuntansi</td></tr>
   </tbody>
@@ -648,19 +659,20 @@ Hasil yang harus tersimpan: WELDON.5KG.7000</pre>
   <li>Tambah barang → detail draft diperbarui.</li>
   <li>Ubah qty atau diskon → subtotal dan grand total dihitung ulang.</li>
   <li>Hapus barang → detail draft diperbarui.</li>
-  <li>Hapus item terakhir → draft di-soft-delete dengan <code class="code-inline">deleted_at</code>.</li>
+  <li>Hapus item terakhir → header dan detail draft dihapus permanen.</li>
 </ul>
 
 <div class="callout callout-warning">
-  <div class="callout-title">🗑️ Soft delete draft</div>
-  <p>Draft yang dihapus tidak langsung hilang dari database. Kolom <code class="code-inline">deleted_at</code> diisi tanggal penghapusan, sehingga sistem tahu bahwa invoice tersebut pernah ada. Query draft aktif hanya mengambil data dengan <code class="code-inline">deleted_at IS NULL</code>. Nomor invoice yang sudah pernah dipakai tetap tidak boleh digunakan ulang.</p>
+  <div class="callout-title">🗑️ Hard delete draft</div>
+  <p>Draft belum menjadi transaksi finansial, sehingga tidak memiliki kewajiban histori seperti invoice final. Saat dihapus, <code class="code-inline">transaksi</code> dan <code class="code-inline">transaksi_detail</code> dihapus permanen. Draft memiliki <code class="code-inline">draft_token</code> UUID sebagai identitas teknis, sedangkan <code class="code-inline">nomor_transaksi</code> masih NULL.</p>
 </div>
 
 <h3>3. Saat Draft Dibayar</h3>
 <div class="steps">
   <li>Kasir membuka modal pembayaran dan memilih status <strong>SELESAI</strong> atau <strong>PIUTANG</strong>.</li>
   <li>Sistem memvalidasi ulang input pembayaran dan sebaiknya memvalidasi ulang stok.</li>
-  <li>Header draft berubah dari <strong>DRAFT</strong> menjadi status final.</li>
+  <li>Sistem membuat nomor invoice baru, misalnya <code class="code-inline">TRX-20260912-0001</code>.</li>
+  <li>Header draft diubah dari <strong>DRAFT</strong> menjadi status final dan nomor invoice diisi.</li>
   <li>Detail transaksi dipastikan tersimpan.</li>
   <li>Stok dikurangi dan dicatat sebagai mutasi <strong>KELUAR</strong>.</li>
   <li>Jika lunas, kas masuk dicatat. Jika piutang, saldo piutang dibuat.</li>
@@ -682,7 +694,7 @@ Hasil yang harus tersimpan: WELDON.5KG.7000</pre>
     <p>Draft belum pernah mengurangi stok.</p>
     <ul style="margin-left:20px;">
       <li>Tidak meminta alasan wajib dari kasir.</li>
-      <li>Hanya mengisi <code class="code-inline">deleted_at</code>.</li>
+      <li>Menghapus header dan detail draft secara permanen.</li>
       <li>Stok tidak berubah.</li>
       <li>Tidak membuat jurnal atau kas mutasi.</li>
     </ul>
@@ -705,10 +717,11 @@ Hasil yang harus tersimpan: WELDON.5KG.7000</pre>
     ▼
 transaksi (status DRAFT) ─── transaksi_detail
     │
-    ├── Hapus terakhir → deleted_at terisi → bukan draft aktif
+    ├── Hapus terakhir → header + detail draft dihapus permanen
     │
     └── Bayar
           │
+          ├── generate nomor_transaksi (invoice)
           ├── transaksi.status = SELESAI / PIUTANG
           ├── stok_mutasi = KELUAR
           ├── barang.stok berkurang
@@ -1117,7 +1130,7 @@ transaksi (status DRAFT) ─── transaksi_detail
 <table>
   <thead><tr><th>Tabel</th><th>Fungsi</th><th>Kolom Penting</th></tr></thead>
   <tbody>
-    <tr><td><code>transaksi</code></td><td>Header penjualan</td><td>nomor_transaksi, tanggal, cabang_id, user_id, customer, status, metode_bayar, bayar, kembali, diskon_total, <strong>pajak</strong>, deleted_at, deleted_by, delete_reason</td></tr>
+    <tr><td><code>transaksi</code></td><td>Header penjualan</td><td>draft_token, nomor_transaksi (NULL saat draft), tanggal, cabang_id, user_id, customer, status, metode_bayar, bayar, kembali, diskon_total, <strong>pajak</strong></td></tr>
     <tr><td><code>transaksi_detail</code></td><td>Baris penjualan</td><td>transaksi_id, barang_id, qty, harga, <strong>harga_beli</strong> (snapshot), <strong>nama_barang</strong> (snapshot), <strong>nama_satuan</strong> (snapshot)</td></tr>
     <tr><td><code>pembelian</code></td><td>Header pembelian</td><td>nomor_beli, tanggal, cabang_id, supplier, total, <strong>pajak</strong>, status (ORDER/TERIMA/BATAL)</td></tr>
     <tr><td><code>pembelian_detail</code></td><td>Baris pembelian</td><td>pembelian_id, barang_id, qty, <strong>harga_beli</strong>, subtotal</td></tr>
@@ -1206,7 +1219,7 @@ transaksi (status DRAFT) ─── transaksi_detail
     <li><strong>Piutang</strong> = uang yang HARUS DITERIMA (customer belum bayar)</li>
     <li><strong>Hutang</strong> = uang yang HARUS DIBAYAR (belum bayar supplier)</li>
     <li><strong>Draft</strong> = keranjang tersimpan sementara; belum mengurangi stok dan belum membuat jurnal</li>
-    <li><strong>Soft delete</strong> = data tidak dihapus fisik; <code class="code-inline">deleted_at</code> menjadi penanda bahwa data tidak aktif</li>
+    <li><strong>Draft token</strong> = UUID teknis untuk melanjutkan draft tanpa membuat nomor invoice</li>
     <li><strong>Jurnal</strong> = catatan 2 sisi (debit = kredit), otomatis dari transaksi</li>
     <li><strong>Neraca</strong> = ASET = UTANG + MODAL (harus seimbang)</li>
     <li><strong>Kas Mutasi</strong> = catat uang masuk/keluar nyata</li>

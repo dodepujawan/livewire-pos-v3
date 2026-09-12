@@ -14,6 +14,7 @@ class Transaksi extends Model
     protected $table = 'transaksi';
 
     protected $fillable = [
+        'draft_token',
         'nomor_transaksi',
         'tanggal',
         'cabang_id',

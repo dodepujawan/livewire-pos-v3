@@ -9,6 +9,7 @@ use App\Models\StokMutasi;
 use App\Models\Transaksi;
 use App\Models\TransaksiDetail;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Livewire\Component;
 
 new class extends Component
@@ -134,8 +135,8 @@ new class extends Component
     // ============================================================
 
     /**
-     * Cari draft aktif milik user+cabang yang masih berlaku.
-     * Draft aktif = status DRAFT + deleted_at IS NULL.
+     * Cari draft aktif milik user+cabang yang belum memiliki invoice.
+     * Draft aktif = status DRAFT + nomor_transaksi IS NULL.
      * Jika ditemukan, muat data ke form agar kasir bisa melanjutkan.
      */
     private function loadExistingDraft(): void
@@ -143,9 +144,10 @@ new class extends Component
         $userId = Auth::id();
         if (!$userId) return;
 
-        // Hanya ambil draft yang belum di-soft-delete
+        // Draft tanpa invoice adalah draft kerja, bukan transaksi final.
         $draft = Transaksi::where('status', 'DRAFT')
             ->whereNull('deleted_at')
+            ->whereNull('nomor_transaksi')
             ->where('cabang_id', $this->transCabangId)
             ->where('user_id', $userId)
             ->with('details')
@@ -156,7 +158,7 @@ new class extends Component
             $this->draftId = $draft->id;
             $this->isDraft = true;
             $this->showDraftBanner = true;
-            $this->transNoInvoice = $draft->nomor_transaksi;
+            $this->transNoInvoice = $draft->nomor_transaksi ?? '';
             $this->transTanggal = $draft->tanggal->format('Y-m-d');
             $this->transCustomer = $draft->customer ?? '';
             $this->transCabangId = $draft->cabang_id;
@@ -191,17 +193,15 @@ new class extends Component
 
     /**
      * Generate nomor invoice baru (TRX-YYYYMMDD-XXXX).
-     * Hanya dipanggil saat membuat draft PERTAMA.
-     * Setelah ada draft, nomor invoice tetap sama sampai bayar atau hapus.
+     * Hanya dipanggil saat draft difinalisasi menjadi transaksi.
      */
     private function generateInvoiceNumber(): string
     {
         $today = now()->format('Ymd');
-        // Ambil transaksi terakhir (berapa nomor yang sudah terpakai)
-        // Nomor invoice tetap dianggap sudah terpakai walaupun transaksinya
-        // sudah di-soft-delete, karena kolom nomor_transaksi bersifat unik.
+        // Draft tanpa invoice tidak ikut dihitung.
         $lastInvoice = Transaksi::withTrashed()
             ->whereDate('tanggal', today())
+            ->whereNotNull('nomor_transaksi')
             ->orderBy('id', 'desc')
             ->first();
 
@@ -219,11 +219,9 @@ new class extends Component
     /**
      * Simpan state keranjang ke tabel transaksi + transaksi_detail.
      *
-     * @param bool $isFirstItem  true hanya saat barang PERTAMA kali ditambahkan.
-     *                          Hanya saat $isFirstItem = true, nomor invoice baru dibuat.
-     *                          Untuk barang berikutnya, nomor invoice tetap (pakai draftId).
+     * Draft tidak memiliki nomor invoice dan tidak mengurangi stok.
      */
-    private function saveDraft(bool $isFirstItem = false): void
+    private function saveDraft(): void
     {
         $userId = Auth::id();
 
@@ -235,7 +233,7 @@ new class extends Component
             if (!$transaksi) {
                 $this->draftId = null;
                 $this->isDraft = false;
-                $this->saveDraft($isFirstItem);
+                $this->saveDraft();
                 return;
             }
 
@@ -268,12 +266,10 @@ new class extends Component
         }
         // JIKA BELUM ADA DRAFT (barang PERTAMA)
         else {
-            // Hanya generate invoice saat barang pertama
-            $invoiceNumber = $isFirstItem ? $this->generateInvoiceNumber() : '';
-
             // Buat transaksi DRAFT baru
             $transaksi = Transaksi::create([
-                'nomor_transaksi' => $invoiceNumber,
+                'draft_token' => (string) Str::uuid(),
+                'nomor_transaksi' => null,
                 'tanggal' => $this->transTanggal,
                 'cabang_id' => $this->transCabangId,
                 'user_id' => $userId,
@@ -292,7 +288,7 @@ new class extends Component
             $this->draftId = $transaksi->id;
             $this->isDraft = true;
             $this->showDraftBanner = false; // draft baru, bukan melanjutkan
-            $this->transNoInvoice = $invoiceNumber;
+            $this->transNoInvoice = '';
 
             // Simpan setiap barang dari cart ke transaksi_detail
             foreach ($this->cartItems as $item) {
@@ -317,20 +313,16 @@ new class extends Component
     }
 
     /**
-     * Soft-delete draft saat keranjang menjadi kosong.
-     * Tidak menghapus row dari DB, hanya menandai deleted_at.
-     * deleted_by dan delete_reategy otomatis diisi.
+     * Hapus permanen draft saat keranjang menjadi kosong.
+     * Draft belum memiliki dampak finansial sehingga tidak membutuhkan histori soft delete.
      */
     private function clearDraft(bool $resetUndo = true): void
     {
         if ($this->draftId) {
-            $transaksi = Transaksi::find($this->draftId);
+            $transaksi = Transaksi::withTrashed()->find($this->draftId);
             if ($transaksi) {
-                $transaksi->update([
-                    'deleted_at' => now(),
-                    'deleted_by' => Auth::id(),
-                    'delete_reason' => 'CART_CLEARED',
-                ]);
+                $transaksi->details()->delete();
+                $transaksi->forceDelete();
             }
         }
 
@@ -544,9 +536,7 @@ new class extends Component
     }
 
     /**
-     * Tambah barang ke keranjang, lalu SIMPAN LANGSUNG ke database via saveDraft().
-     * Parameter $isFirstItem = true hanya saat ini item PERTAMA di session ini,
-     * agar nomor invoice baru dibuat tepat sekali.
+     * Tambah barang ke keranjang, lalu simpan draft tanpa membuat invoice.
      */
     public function addToCart(): void
     {
@@ -617,8 +607,8 @@ new class extends Component
         $this->resetItemForm();
         $this->dispatch('focus-kode-barang');
 
-        // SIMPAN KE DB: true hanya jika ini barang PERTAMA dan belum ada draftId
-        $this->saveDraft(empty($this->cartItems) === false && $this->draftId === null);
+        // Simpan draft tanpa membuat nomor invoice.
+        $this->saveDraft();
     }
 
     /**
@@ -626,8 +616,7 @@ new class extends Component
      * - Simpan item yang dihapus ke lastDeletedItem untuk undo.
      * - Tampilkan toast undo (hideUndoToast() akan dipanggil oleh JS setelah 2 detik).
      * - Jika cart masih ada item: update draft yang ada (saveDraft).
-     * - Jika cart KOSONG: soft-delete draft (clearDraft).
-     *   deleted_at, deleted_by, delete_reason akan terisi.
+     * - Jika cart KOSONG: hapus permanen draft (clearDraft).
      */
     public function removeFromCart(int $index): void
     {
@@ -675,14 +664,9 @@ new class extends Component
             if ($this->lastDeletedDraftId) {
                 $draft = Transaksi::withTrashed()->find($this->lastDeletedDraftId);
                 if ($draft) {
-                    $draft->update([
-                        'deleted_at' => null,
-                        'deleted_by' => null,
-                        'delete_reason' => null,
-                    ]);
                     $this->draftId = $draft->id;
                     $this->isDraft = true;
-                    $this->transNoInvoice = $this->lastDeletedDraftInvoice;
+                    $this->transNoInvoice = $draft->nomor_transaksi ?? '';
                 }
             }
 
@@ -755,7 +739,7 @@ new class extends Component
         $grandTotal = (float) $this->transGrandTotal;
         $this->transKembali = $bayar - $grandTotal;
 
-        // SIMPAN KE DB: jika cart kosong → soft delete draft
+        // SIMPAN KE DB: jika cart kosong → hapus draft permanen
         // jika cart ada → update draft yang sudah ada
         if (empty($this->cartItems)) {
             $this->clearDraft();
@@ -822,10 +806,15 @@ new class extends Component
 
         try {
             \DB::transaction(function () {
+                // Invoice baru dibuat hanya ketika transaksi benar-benar final.
+                $invoiceNumber = $this->transNoInvoice ?: $this->generateInvoiceNumber();
+                $this->transNoInvoice = $invoiceNumber;
+
                 if ($this->draftId) {
                     $transaksi = Transaksi::findOrFail($this->draftId);
 
                     $transaksi->update([
+                        'nomor_transaksi' => $invoiceNumber,
                         'tanggal' => $this->transTanggal,
                         'cabang_id' => $this->transCabangId,
                         'customer' => $this->transCustomer,
@@ -861,6 +850,10 @@ new class extends Component
                         ]);
 
                         if ($barang) {
+                            if ($barang->stok < $item['qty_pcs']) {
+                                throw new \RuntimeException('Stok tidak mencukupi untuk ' . $item['nama_barang']);
+                            }
+
                             StokMutasi::create([
                                 'barang_id' => $item['barang_id'],
                                 'cabang_id' => $this->transCabangId,
@@ -927,7 +920,7 @@ new class extends Component
                     }
                 } else {
                     $transaksi = Transaksi::create([
-                        'nomor_transaksi' => $this->transNoInvoice,
+                        'nomor_transaksi' => $invoiceNumber,
                         'tanggal' => $this->transTanggal,
                         'cabang_id' => $this->transCabangId,
                         'user_id' => Auth::id(),
@@ -960,6 +953,10 @@ new class extends Component
                             'nama_barang' => $item['nama_barang'],
                             'nama_satuan' => $item['nama_satuan'],
                         ]);
+
+                        if (!$barang || $barang->stok < $item['qty_pcs']) {
+                            throw new \RuntimeException('Stok tidak mencukupi untuk ' . $item['nama_barang']);
+                        }
 
                         StokMutasi::create([
                             'barang_id' => $item['barang_id'],

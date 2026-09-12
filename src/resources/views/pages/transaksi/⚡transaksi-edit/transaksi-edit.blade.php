@@ -4,7 +4,7 @@
         <div>
             <h1 class="text-lg font-bold">Edit Transaksi</h1>
             @if($isDraftMode)
-                <p class="mt-1 text-xs font-medium text-yellow-700">Mengedit Draft: {{ $transNoInvoice }} | Perubahan tersimpan otomatis</p>
+                <p class="mt-1 text-xs font-medium text-yellow-700">Mengedit Draft #{{ $transaksiId }}: belum ada invoice | Perubahan tersimpan otomatis</p>
             @else
                 <p class="mt-1 text-xs text-gray-500">Mengedit transaksi final: {{ $transNoInvoice }} | Perubahan disimpan saat klik Simpan</p>
             @endif
@@ -182,21 +182,24 @@
                                         <td class="px-2 py-1.5 text-xs">{{ $index + 1 }}</td>
                                         <td class="px-2 py-1.5 text-xs">{{ $item['nama_barang'] }}</td>
                                         <td class="px-2 py-1.5 text-xs">{{ $item['nama_satuan'] }}</td>
-                                        <td class="px-2 py-1.5 text-right text-xs">
+                                        <td class="px-2 py-1.5 text-right text-xs w-20">
                                             <input
-                                                type="number"
-                                                wire:model.live.debounce.300ms="cartItems.{{ $index }}.qty"
+                                                type="text"
+                                                inputmode="numeric"
+                                                wire:model.live.debounce.500ms="cartItems.{{ $index }}.qty"
                                                 min="1"
-                                                class="w-full text-right border rounded px-1 py-0.5 text-xs"
+                                                class="w-16 text-right border rounded px-1 py-0.5 text-xs"
                                             >
                                         </td>
                                         <td class="px-2 py-1.5 text-right text-xs">{{ number_format($item['harga'], 0, ',', '.') }}</td>
-                                        <td class="px-2 py-1.5 text-right text-xs">
+                                        <td class="px-2 py-1.5 text-right text-xs w-24">
                                             <input
-                                                type="number"
-                                                wire:model.live.debounce.300ms="cartItems.{{ $index }}.diskon"
+                                                type="text"
+                                                inputmode="numeric"
+                                                wire:model.live.debounce.500ms="cartItems.{{ $index }}.diskon"
                                                 min="0"
-                                                class="w-full text-right border rounded px-1 py-0.5 text-xs"
+                                                placeholder="0"
+                                                class="w-20 text-right border rounded px-1 py-0.5 text-xs"
                                             >
                                         </td>
                                         <td class="px-2 py-1.5 text-right text-xs">{{ number_format($item['subtotal'], 0, ',', '.') }}</td>
@@ -223,7 +226,7 @@
                         {{-- Nomor Invoice --}}
                         <div>
                             <label class="block text-sm font-medium mb-1">No. Invoice</label>
-                            <input type="text" wire:model="transNoInvoice" readonly class="w-full border rounded px-3 py-1.5 bg-gray-100 text-sm">
+                            <input type="text" wire:model="transNoInvoice" readonly placeholder="Dibuat saat pembayaran" class="w-full border rounded px-3 py-1.5 bg-gray-100 text-sm">
                             @error('transNoInvoice')
                                 <p class="text-red-500 text-sm mt-0.5">{{ $message }}</p>
                             @enderror

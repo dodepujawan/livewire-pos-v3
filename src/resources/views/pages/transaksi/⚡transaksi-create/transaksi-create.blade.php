@@ -9,7 +9,7 @@
 
     @if($showDraftBanner)
     <div class="mb-2 p-2 rounded bg-yellow-100 text-yellow-800 text-sm flex justify-between items-center">
-        <span>Melanjutkan Draft: {{ $transNoInvoice }}</span>
+        <span>Melanjutkan Draft #{{ $draftId }}: belum ada invoice</span>
         <button type="button" wire:click="newDraft" class="px-2 py-1 bg-yellow-600 text-white rounded text-xs hover:bg-yellow-700">Buat Draft Baru</button>
     </div>
     @endif
@@ -248,7 +248,7 @@
                         {{-- Nomor Invoice --}}
                         <div>
                             <label class="block text-sm font-medium mb-1">No. Invoice</label>
-                            <input type="text" wire:model="transNoInvoice" readonly class="w-full border rounded px-3 py-1.5 bg-gray-100 text-sm">
+                            <input type="text" wire:model="transNoInvoice" readonly placeholder="Dibuat saat pembayaran" class="w-full border rounded px-3 py-1.5 bg-gray-100 text-sm">
                             @error('transNoInvoice')
                                 <p class="text-red-500 text-sm mt-0.5">{{ $message }}</p>
                             @enderror
