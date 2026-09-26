@@ -12,7 +12,23 @@
     .sidebar-menu { scrollbar-width: thin; scrollbar-color: rgba(251,191,36,0.35) transparent; }
 </style>
 
-<div>
+<div
+    x-data="{
+        restoreMenuScroll() {
+            const savedScroll = Number(sessionStorage.getItem('pops-sidebar-menu-scroll-top') || 0);
+            requestAnimationFrame(() => {
+                if (this.$refs.menuScroll) this.$refs.menuScroll.scrollTop = savedScroll;
+            });
+        },
+        init() {
+            this.restoreMenuScroll();
+            document.addEventListener('livewire:navigated', () => this.restoreMenuScroll());
+        }
+    }"
+    x-init="init()"
+    x-effect="if (open) restoreMenuScroll()"
+    @sidebar-active-menus.window="restoreMenuScroll()"
+>
     {{-- Overlay: klik di luar sidebar untuk menutup --}}
     <div
         x-show="open"
@@ -69,9 +85,10 @@
 
         {{-- Menu --}}
         <div
-            x-data="{}"
-            @keydown.arrow-up.prevent="document.querySelector('.sidebar-menu').scrollBy({top:-24,behavior:'smooth'})"
-            @keydown.arrow-down.prevent="document.querySelector('.sidebar-menu').scrollBy({top:24,behavior:'smooth'})"
+            x-ref="menuScroll"
+            @keydown.arrow-up.prevent="$refs.menuScroll.scrollBy({top:-24,behavior:'smooth'})"
+            @keydown.arrow-down.prevent="$refs.menuScroll.scrollBy({top:24,behavior:'smooth'})"
+            @scroll.passive="sessionStorage.setItem('pops-sidebar-menu-scroll-top', $el.scrollTop)"
             class="flex-1 overflow-y-auto px-3 py-4 sidebar-menu"
         >
             <p class="px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-500">Navigasi</p>

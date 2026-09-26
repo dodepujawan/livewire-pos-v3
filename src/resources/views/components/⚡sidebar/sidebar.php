@@ -28,18 +28,6 @@ new class extends Component
         ]);
     }
 
-    public function toggleMenu(int $menuId): void
-    {
-        if (in_array($menuId, $this->openedMenus)) {
-            $this->openedMenus = array_diff(
-                $this->openedMenus,
-                [$menuId]
-            );
-            return;
-        }
-        $this->openedMenus[] = $menuId;
-    }
-
     public function isActive(Menu $menu): bool
     {
         return optional($menu->systemRoute)->route_name === $this->currentRoute;
@@ -66,6 +54,8 @@ new class extends Component
                 $this->openedMenus[] = $menu->id;
             }
         }
+
+        $this->openedMenus = array_values(array_unique($this->openedMenus));
     }
 
     protected function filterMenus(Collection $menus): Collection
@@ -130,5 +120,6 @@ new class extends Component
     {
         $this->currentRoute = request()->route()?->getName() ?? '';
         $this->autoExpandParent();
+        $this->dispatch('sidebar-active-menus', openedMenus: $this->openedMenus);
     }
 };
