@@ -9,7 +9,7 @@
 ```text
 Komponen                     Status
 ---------------------------  --------
-Laravel 12                   ✅
+Laravel 13                   ✅
 Livewire 4 MFC               ✅
 Route Synchronization        ✅
 System Route                 ✅
@@ -17,7 +17,7 @@ Dynamic Menu                 ✅
 Dynamic Sidebar              ✅
 Permission Synchronization   ✅
 Permission Matrix            ✅
-Role Management              ✅
+Role Listing / Assignment    ✅ (Role CRUD partial)
 Dynamic Authorization        ✅
 Config Export/Import         ✅
 Desktop Launcher             ✅
@@ -80,6 +80,7 @@ app/
 database/
 ├── migrations/
 │   ├── create_menus_table.php
+│   ├── 2026_09_26_000001_add_sidebar_heading_to_menus_table.php
 │   ├── create_system_routes_table.php
 │   └── create_launcher_groups_table.php
 └── seeders/
@@ -115,9 +116,13 @@ routes/
 └── web.php
 
 docs/
-├── FRAMEWORK_PERMISSION_DOCUMENTATION.md
+├── PERMISSION_FRAMEWORK/
+│   ├── GREAT_FRAMEWORK_PERMISSION_DOCUMENTATION.md
+│   ├── FRAMEWORK_PERMISSION_DOCUMENTATION.md
+│   ├── FUTURE_DESKTOP_LAUNCHER.md
+│   └── DESKTOP_LAUNCHER-PROGRESS.md
 ├── PROJECT_RULES_v2.md
-└── DESKTOP_LAUNCHER_MILESTONE.MD
+└── CHANGELOG.md
 ```
 
 ---
@@ -179,13 +184,24 @@ Fungsi:
 5. Memperbarui route yang sudah ada
 6. Menghapus route yang sudah tidak ada jika route tersebut tidak digunakan oleh menu
 
-Route internal yang diabaikan:
+Mode normal membuat `display_name` dari nama route, memperbarui record route yang sudah ada, lalu menghapus route stale yang tidak lagi ditemukan **hanya jika route tersebut tidak dipakai oleh menu**.
+
+Untuk sinkronisasi tambahan yang mempertahankan konfigurasi environment saat ini:
+```bash
+php artisan framework:route-sync --safe
+```
+
+Mode `--safe` hanya menambahkan route yang belum tercatat. Route yang sudah ada tidak diperbarui dan route stale tidak dihapus. Mode ini dipakai oleh `framework:config-import`.
+
+Route prefix yang saat ini diabaikan:
 ```text
 livewire.*
 ignition.*
 debugbar.*
 sanctum.*
 ```
+
+Daftar ini persis dengan filter command. Prefix seperti `default-livewire.*` dan `storage.*` tidak termasuk filter dan dapat ikut tersinkron.
 
 Display name dibuat dari route name:
 ```text
@@ -225,6 +241,7 @@ Kolom:
 - `sort_order`
 - `is_sidebar`
 - `launcher_group`
+- `sidebar_heading` (nullable, maksimal 100 karakter)
 
 Relasi:
 ```text
@@ -239,11 +256,16 @@ Aturan:
 - Root menu dapat tidak memiliki route
 - Child menu dapat mempunyai parent
 - Route disimpan melalui `system_route_id`
+- `system_route_id` nullable tetapi unique; satu `SystemRoute` hanya dapat dipakai oleh satu menu
+- Foreign key parent dan route membatasi penghapusan record yang masih direferensikan
 - Judul menu disimpan di `menus.title`
 - Icon disimpan di database
 - Urutan disimpan di `sort_order`
 - `is_sidebar` menentukan apakah menu digunakan pada sidebar
 - `launcher_group` menentukan apakah menu muncul di launcher dan group nya apa
+- `sidebar_heading` menyimpan teks bebas yang ditampilkan di atas menu root pada sidebar
+- `sidebar_heading` hanya berlaku ketika `parent_id` kosong; submenu tidak dapat menyimpannya
+- Menu root dapat berupa link langsung atau dropdown; keduanya dapat memiliki `sidebar_heading`
 
 Struktur contoh:
 ```text
@@ -265,14 +287,30 @@ Seeder membuat contoh menu:
 ```text
 Dashboard
 Master
-└── Barang
+├── Barang
+└── Cabang
 Transaksi
-└── Penjualan
+├── Penjualan
+├── Pembelian
+├── Piutang
+└── Hutang
+Laporan
+├── Laporan Kas
+├── Laporan Penjualan
+├── Laporan Stok
+├── Laporan Buku Besar
+├── Laba Rugi
+├── Neraca
+└── Arus Kas
+Sistem
+└── Pengaturan
 ```
 
 MenuSeeder membaca `SystemRoute` untuk mencari route ID.
 
-**Penting:** `MenuSeeder` saat ini masih berisi struktur menu contoh project dan perlu disesuaikan apabila framework dipakai untuk project baru. Jangan menganggap MenuSeeder sebagai generator menu otomatis.
+**Peringatan data:** `MenuSeeder` saat ini menonaktifkan pemeriksaan foreign key dan menjalankan `Menu::query()->delete()` sebelum membuat menu contoh. `DatabaseSeeder` memanggil `MenuSeeder`, sehingga `php artisan db:seed` dapat menghapus lalu mengganti seluruh data menu yang sudah ada.
+
+MenuSeeder masih berisi struktur contoh project dan perlu disesuaikan bila framework dipakai untuk project baru. Jangan menganggapnya sebagai generator menu otomatis atau sebagai cara aman untuk menerapkan konfigurasi ke database yang sudah berisi data.
 
 ---
 
@@ -290,8 +328,14 @@ Kemampuan:
 - Expand / collapse
 - Permission filtering
 - Livewire navigation
+- Optional `sidebar_heading` di atas menu root
+- Expand/collapse dijalankan lokal oleh Alpine agar tidak menunggu request Livewire untuk setiap klik
+- Hover dan active state memakai aksen amber; submenu memiliki transisi dan mengikuti preferensi reduced-motion
+- Posisi scroll sidebar disimpan selama sesi dan dipulihkan setelah sidebar ditutup, dibuka, atau navigasi Livewire
 
-Authorization sidebar menggunakan `PermissionNameService` dan authorization layer framework.
+Daftar menu dan permission tetap difilter di server menggunakan `PermissionNameService`; pemindahan state accordion ke Alpine tidak memindahkan authorization ke browser.
+
+Parent root tanpa route disembunyikan bila tidak mempunyai child yang terlihat. Child tanpa route ditampilkan sebagai teks non-link. Dashboard mempunyai pengecualian khusus dan ditampilkan tanpa permission check di filter sidebar saat ini; route middleware tetap merupakan lapisan authorization yang terpisah.
 
 ---
 
@@ -369,6 +413,13 @@ Command menggunakan guard: `web`
 - Permission yang sudah tidak berasal dari sumber sinkronisasi akan dihapus hanya jika permission tersebut tidak memiliki role
 - Permission yang masih digunakan oleh role tidak dihapus oleh cleanup tersebut
 
+Untuk menambah permission tanpa menghapus permission lama:
+```bash
+php artisan framework:permission-sync --safe
+```
+
+Mode `--safe` menambahkan permission yang belum ada dan mempertahankan seluruh permission yang sudah ada, termasuk permission yang belum ditugaskan ke role. `framework:config-import` menggunakan mode ini secara otomatis.
+
 ---
 
 ## 12. Additional Permissions
@@ -390,6 +441,8 @@ protected array $additionalPermissions = [
 
 PermissionScannerService akan mencari deklarasi tersebut.
 
+Deklarasi ini hanya mendaftarkan permission ke katalog Spatie agar dapat ditugaskan ke role. Deklarasi ini **tidak otomatis melindungi method/action**. Setiap action bisnis tetap harus memanggil pemeriksaan authorization yang sesuai, misalnya `can()` atau helper authorization, sebelum menjalankan operasi.
+
 ---
 
 ## 13. PermissionScannerService
@@ -403,12 +456,19 @@ Didukung:
 - Laravel Controller
 
 ### Livewire
-Scanner membaca metadata `livewire_component`, kemudian mencari file component MFC, dan mengekstrak `$additionalPermissions`.
+Scanner membaca metadata `livewire_component`, mengharapkan nama component dengan pola `pages::...`, lalu membentuk path `resources/views/pages/.../⚡{nama}/{nama}.php`. File harus menggunakan deklarasi literal:
+```php
+protected array $additionalPermissions = [
+    'master.barang.export',
+];
+```
+
+Scanner mengekstrak string dari deklarasi tersebut menggunakan regex; deklarasi yang dibangun secara dinamis tidak otomatis ditemukan.
 
 Scanner tidak melakukan instantiate anonymous Livewire component. Ini penting karena arsitektur Livewire MFC menggunakan `new class extends Component`.
 
 ### Controller
-Scanner menggunakan reflection untuk membaca property `$additionalPermissions`.
+Scanner menggunakan reflection dan container Laravel untuk membuat instance controller, lalu membaca property `$additionalPermissions`. Pastikan controller dapat di-resolve oleh container tanpa efek samping yang tidak diinginkan.
 
 ---
 
@@ -433,6 +493,12 @@ master.barang
 Urutan action: view, create, update, delete, print, export, import.
 
 Permission internal seperti login, storage, dan resource tertentu yang tidak relevan untuk matrix dikecualikan melalui `ignoredResources`.
+
+`PermissionMatrixService::build()` menghasilkan grouping resource/action tersebut. Namun, halaman Livewire `auth.permission.matrix` saat ini tidak memakai service ini; halaman tersebut memuat semua role dan permission lalu menampilkan nama permission yang ada secara langsung sebagai kolom. Jangan menganggap hasil service sebagai bentuk UI matrix saat ini.
+
+Role list saat ini mendukung daftar dan penghapusan dengan guard (Super Admin tidak dapat dihapus dan role yang masih dipakai user ditolak). Link UI create/edit role masih tidak aktif/berkomentar. Sesuaikan checklist project baru: jangan mengasumsikan seluruh CRUD role sudah tersedia melalui UI.
+
+Route `auth.permission.matrix` masih terdaftar di `routes/web.php` dalam group `auth` dan `permission`, walaupun route file memiliki komentar lama yang menyebut matrix sudah outdated. Verifikasi route source sebelum menghapus atau mengganti referensi dokumentasi ini.
 
 ---
 
@@ -466,7 +532,7 @@ auth()->user()->can(...)
 
 Jika user tidak memiliki permission: **403 Forbidden**
 
-Jika route tidak memiliki route name, middleware saat ini melewati authorization tersebut. Karena itu route yang menggunakan authorization framework harus mempunyai named route.
+Jika route tidak memiliki route name, `PermissionMiddleware` melewati **pemeriksaan permission**. Ini tidak berarti authentication otomatis dilewati: route group tetap harus menggunakan middleware `auth` secara terpisah. Route yang membutuhkan pemeriksaan permission harus mempunyai named route.
 
 ---
 
@@ -497,6 +563,8 @@ transaksi.penjualan.posting
 
 Jangan membuat mapping route → permission baru di component. Gunakan `PermissionNameService` sebagai pusat mapping.
 
+`additionalPermissions` hanya membuat permission tersedia untuk Role/Permission Matrix. Proteksi action tetap harus dilakukan pada method yang menjalankannya; jangan menganggap scanner sebagai enforcement.
+
 ---
 
 ## 18. Membuat Page Baru
@@ -518,8 +586,8 @@ Route::livewire('/barang', 'pages::master.barang-list')
 
 Kemudian jalankan:
 ```bash
-php artisan framework:route-sync
-php artisan framework:permission-sync
+php artisan framework:route-sync --safe
+php artisan framework:permission-sync --safe
 ```
 
 Hasil:
@@ -545,7 +613,7 @@ protected array $additionalPermissions = [
 
 Kemudian:
 ```bash
-php artisan framework:permission-sync
+php artisan framework:permission-sync --safe
 ```
 
 Permission `master.barang.export` akan tersedia untuk Role Permission Matrix.
@@ -570,6 +638,8 @@ Current core test coverage:
 
 Current result: 10 passed, 11 assertions.
 
+Angka di atas adalah hasil yang tercatat saat dokumentasi ini disusun, bukan klaim bahwa test sudah dijalankan pada setiap checkout atau environment. Jalankan kembali `php artisan test` sebelum memakai angka tersebut sebagai status terbaru. Coverage yang tercatat belum mencakup safe config import/export, route/permission sync, scanner edge cases, atau perilaku menu/sidebar.
+
 Testing tidak dimaksudkan untuk mengejar jumlah test sebanyak mungkin. Tujuannya adalah menjaga bagian framework yang paling kritis agar perubahan berikutnya tidak merusaknya.
 
 ---
@@ -583,7 +653,7 @@ Untuk project baru, prinsipnya:
 2. Configure .env
 3. Configure database
 4. Run migrations
-5. Seed required data
+5. Review dan seed hanya data awal yang memang diperlukan
 6. Synchronize routes
 7. Synchronize permissions
 8. Configure initial roles/users
@@ -594,39 +664,62 @@ Untuk project baru, prinsipnya:
 Command utama:
 ```bash
 php artisan migrate
-php artisan db:seed
-php artisan framework:route-sync
-php artisan framework:permission-sync
+php artisan framework:route-sync --safe
+php artisan framework:permission-sync --safe
 php artisan test
 ```
 
-**Catatan penting:** automation lengkap untuk deployment belum menjadi bagian final saat ini. `DatabaseSeeder`, `MenuSeeder`, `RoleSeeder`, dan `UserSeeder` masih memiliki peran yang berbeda dan sebagian masih membutuhkan penyesuaian untuk project baru.
+**Catatan penting:** automation lengkap untuk deployment belum menjadi bagian final saat ini. `DatabaseSeeder` memanggil `CabangSeeder`, `AkunSeeder`, `MenuSeeder`, `LauncherGroupSeeder`, `SuperAdminSeeder`, dan `UserSeeder`. `RoleSeeder` ada di repository tetapi tidak dipanggil oleh `DatabaseSeeder` saat ini; tinjau daftar tersebut sebelum menjalankan seeding pada project baru.
+
+`DatabaseSeeder` memanggil `MenuSeeder`, dan `MenuSeeder` menghapus semua row menu sebelum membuat ulang menu contoh. Jalankan seeding hanya pada database baru/kosong setelah meninjau seluruh seeder yang dipanggil. Jangan memakai `php artisan db:seed` untuk memperbarui konfigurasi menu di database yang sudah berisi data; gunakan menu management atau config import.
 
 ---
 
 ## 22. Framework Configuration Sync
 
-Framework menyediakan mekanisme untuk membawa konfigurasi route, permission, dan menu dari environment development ke environment deployment tanpa memasukkan database secara langsung.
+Framework menyediakan snapshot konfigurasi di `database/framework-data.json` untuk dipindahkan bersama source code. Export membaca database sumber; import di environment tujuan bersifat additive dan mempertahankan konfigurasi lokal yang sudah ada sejauh dapat dicocokkan.
 
-### Export dari Local
+### Isi File Export
 
-Setelah route, permission, dan menu selesai dikonfigurasi:
+`framework:config-export` menulis `version`, `generated_at`, serta empat bagian:
+- `system_routes`: `route_name` dan `display_name`.
+- `permissions`: nama permission dengan guard `web`.
+- `menus`: route, title, root-only `sidebar_heading`, icon, urutan, status sidebar, launcher group, dan identitas parent berupa route/title.
+- `launcher_groups`: key, label, icon, urutan, dan status aktif.
+
+File hasil export perlu ikut dipindahkan/di-deploy bersama kode yang memakainya. Export tidak memasukkan data role, assignment permission ke role, atau akun pengguna.
+
+### Sinkronisasi Aman
+
+Sebelum export, tambahkan data route/permission baru secara aman lalu ekspor:
 ```bash
-php artisan framework:route-sync
-php artisan framework:permission-sync
+php artisan framework:route-sync --safe
+php artisan framework:permission-sync --safe
 php artisan framework:config-export
 ```
 
-### Import ke Target
+Mode safe route sync hanya menambahkan route baru tanpa mengubah `display_name` route yang sudah ada dan tanpa menghapus route stale. Mode safe permission sync hanya menambahkan permission baru tanpa menghapus permission yang sudah ada. Mode normal tanpa `--safe` tetap tersedia dan dapat memperbarui `display_name` atau melakukan cleanup; gunakan hanya jika perubahan tersebut memang diinginkan.
+
+### Perilaku Import ke Target
+
+Sebelum import pada database yang sudah digunakan, backup database dan periksa migration yang pending. Pastikan migration `sidebar_heading` sudah diterapkan sebelum menjalankan import atau membuka menu management.
+
+Deploy kode dan `database/framework-data.json`, kemudian jalankan:
 ```bash
-git pull
+php artisan migrate:status
+php artisan migrate --force
 php artisan framework:config-import
 ```
 
-Prinsip Sinkronisasi:
-- **Additive & safe**: Menu yang sudah ada → Skip. Menu belum ada → Create.
-- **Tidak menghapus** konfigurasi menu yang sudah diatur administrator pada environment tujuan.
-- **Idempotency**: Command import dapat dijalankan lebih dari satu kali.
+`framework:config-import` otomatis menjalankan `framework:route-sync --safe` dan `framework:permission-sync --safe` pada environment target. Dua array `system_routes` dan `permissions` di JSON diekspor sebagai snapshot, tetapi tidak diimpor langsung; route target ditemukan dari route Laravel yang sedang terdaftar, dan permission dibentuk dari `system_routes` target serta hasil scanner. Display name dan permission yang sudah ada dipertahankan.
+
+Launcher group baru dibuat menggunakan `firstOrCreate`. Jika key sudah ada, label, icon, urutan, dan status aktif yang tersimpan di target tidak ditimpa.
+
+Menu diproses dua pass: root lebih dahulu, kemudian child. Menu existing dicocokkan berdasarkan route dan, sebagai fallback, title atau kombinasi parent/title. Properti menu target yang sudah ada umumnya dipertahankan: title, route, icon, urutan, status sidebar, dan launcher group. Pengecualian yang disengaja: `sidebar_heading` dari export hanya mengisi field root target yang masih kosong; heading target yang sudah terisi tidak ditimpa. Route conflict dipertahankan dan dilaporkan. Menu routed yang route-nya tidak tersedia pada target dilewati dengan peringatan.
+
+Import dapat dijalankan ulang untuk data yang dapat dicocokkan tanpa menggandakan menu tersebut. Namun, jika administrator mengubah **title dan route sekaligus**, importer tidak memiliki stable ID lintas environment untuk memastikan menu itu sama; data yang tidak cocok dapat dianggap menu baru. Periksa jumlah menu dibuat/dilewati serta pesan conflict setelah import.
+
+Batas validasi implementasi saat ini: importer memeriksa bahwa file ada dan JSON ter-decode menjadi array, tetapi tidak memvalidasi `version` atau seluruh struktur record di dalamnya. Section yang hilang dianggap kosong. Proses import belum dibungkus transaksi database dan return code dari dua command sync tidak diperiksa sebelum import berlanjut.
 
 ---
 
@@ -636,9 +729,11 @@ Prinsip Sinkronisasi:
 [ ] .env production sudah benar
 [ ] APP_DEBUG=false
 [ ] Database production benar
-[ ] Migration selesai
-[ ] Route sync selesai
-[ ] Permission sync selesai
+[ ] Backup dan status migration sudah dicek sebelum perubahan schema
+[ ] Migration selesai setelah pemeriksaan di atas
+[ ] Route sync aman selesai (`--safe`) atau perubahan normalnya sudah ditinjau
+[ ] Permission sync aman selesai (`--safe`)
+[ ] `framework-data.json` target sudah tersedia bila memakai config import
 [ ] Role sudah dibuat
 [ ] User sudah memiliki role
 [ ] Menu sudah disusun
@@ -647,6 +742,7 @@ Prinsip Sinkronisasi:
 ```
 
 Jangan menggunakan password contoh dari development untuk production.
+Jangan menjalankan `db:seed` di database berisi data sebelum seluruh seeder diperiksa; `MenuSeeder` menghapus seluruh menu yang ada.
 
 ---
 
@@ -726,8 +822,9 @@ Permission yang masih digunakan Role tidak dihapus oleh cleanup.
 
 ```bash
 # Framework
-php artisan framework:route-sync
-php artisan framework:permission-sync
+# Safe additive sync for existing environments
+php artisan framework:route-sync --safe
+php artisan framework:permission-sync --safe
 php artisan framework:config-export
 php artisan framework:config-import
 php artisan test
@@ -737,8 +834,11 @@ php artisan make:livewire pages::master.nama-component --mfc
 
 # Database
 php artisan migrate
+# Only after reviewing every called seeder and confirming an empty/new DB
 php artisan db:seed
 ```
+
+`framework:config-import` already invokes both sync commands with `--safe`. The normal commands without that option can update generated route display names and clean up stale/unassigned records. `db:seed` is not an upgrade command: `MenuSeeder` deletes existing menu rows, while `LauncherGroupSeeder` uses `updateOrCreate` and can reset customized launcher groups.
 
 ---
 
@@ -760,6 +860,7 @@ app/Support/AuthorizesRoute.php
 app/Models/SystemRoute.php
 app/Models/Menu.php
 app/Models/LauncherGroup.php
+database/migrations/2026_09_26_000001_add_sidebar_heading_to_menus_table.php
 
 bootstrap/app.php
 routes/web.php
@@ -829,6 +930,18 @@ Schema::create('launcher_groups', function (Blueprint $table) {
 });
 ```
 
+#### Migration 3: add_sidebar_heading_to_menus_table
+
+File: `src/database/migrations/2026_09_26_000001_add_sidebar_heading_to_menus_table.php`
+
+```php
+Schema::table('menus', function (Blueprint $table) {
+    $table->string('sidebar_heading', 100)->nullable()->after('title');
+});
+```
+
+Field ini opsional. Nilai hanya dipakai pada menu root (`parent_id = null`) dan ditampilkan sebagai judul kecil di atas item menu sidebar. Menu root boleh berupa link langsung atau parent dropdown. Form mengosongkan serta menonaktifkan field ketika menu memiliki parent; server-side save juga memaksa submenu menyimpan `null`.
+
 #### Model: Menu.php
 
 File: `src/app/Models/Menu.php`
@@ -840,6 +953,7 @@ protected $fillable = [
     'parent_id',
     'system_route_id',
     'title',
+    'sidebar_heading',
     'icon',
     'sort_order',
     'is_sidebar',
@@ -886,15 +1000,25 @@ File: `src/resources/views/pages/master/⚡menu-create/menu-create.php`
 Tambah property dan rules:
 ```php
 public ?string $launcher_group = null;
+public ?string $sidebar_heading = null;
 
 protected function rules(): array
 {
     return [
         // ... rules lain
         'launcher_group' => ['nullable', 'string', 'max:50'],
+        'sidebar_heading' => ['nullable', 'string', 'max:100'],
     ];
 }
 ```
+
+`sidebar_heading` hanya tersedia untuk menu root. Saat `parent_id` berubah dari kosong menjadi terisi, Livewire mengosongkan nilainya dan UI menonaktifkan input. Save juga memaksa nilai `null` bila parent terisi, sehingga aturan tidak hanya bergantung pada browser.
+
+Pada Blade, `Parent Menu` memakai `wire:model.live="parent_id"` agar status input berubah segera. Input memakai `wire:model="sidebar_heading"` dan `@disabled(filled($parent_id))`; letakkan bersebelahan dengan parent selector untuk menghemat ruang, dan tampilkan helper text yang menjelaskan field hanya berlaku untuk root.
+
+Di server-side create dan edit, validasi `nullable|string|max:100`, kosongkan nilai saat `parent_id` berubah menjadi terisi, lalu set `sidebar_heading` menjadi `null` lagi sebelum save jika parent masih terisi.
+
+Form edit harus memuat nilai existing ke property `sidebar_heading`, dan menu list menampilkan kolom **Sidebar Heading** agar administrator dapat meninjau nilainya. Judul bebas seperti `Operasional` atau `Accounting Toko` disimpan apa adanya; tampilan sidebar yang mengubahnya menjadi uppercase secara visual.
 
 File: `src/resources/views/pages/master/⚡menu-create/menu-create.blade.php`
 
@@ -921,6 +1045,7 @@ public function mount(Menu $menu): void
 {
     // ... existing
     $this->launcher_group = $menu->launcher_group;
+    $this->sidebar_heading = $menu->sidebar_heading;
 }
 ```
 
@@ -931,11 +1056,13 @@ File: `src/resources/views/pages/master/⚡menu-list/menu-list.blade.php`
 Tambah kolom:
 ```blade
 <th class="px-4 py-3 text-center text-sm font-semibold">Launcher Group</th>
+<th class="px-4 py-3 text-left text-sm font-semibold">Sidebar Heading</th>
 ```
 
 Dan di row:
 ```blade
 <td class="px-4 py-3 text-center">{{ $menu->launcherGroup?->label ?? '-' }}</td>
+<td class="px-4 py-3">{{ $menu->sidebar_heading ?: '-' }}</td>
 ```
 
 Update `menu-list.php` untuk eager load:
@@ -976,20 +1103,17 @@ File: `src/resources/views/components/⚡launcher/launcher.php`
 ```php
 new class extends Component
 {
-    public array $groupOrder = ['transaksi', 'master_data', 'laporan', 'sistem'];
-
     public function render()
     {
         $activeGroups = LauncherGroup::query()
             ->where('is_active', true)
             ->orderBy('sort_order')
-            ->get()
-            ->pluck('key');
+            ->get();
 
         $menus = Menu::query()
             ->with(['systemRoute'])
             ->whereNotNull('launcher_group')
-            ->whereIn('launcher_group', $activeGroups)
+            ->whereIn('launcher_group', $activeGroups->pluck('key'))
             ->orderBy('sort_order')
             ->get();
 
@@ -997,13 +1121,16 @@ new class extends Component
         $grouped = $filtered->groupBy('launcher_group');
 
         $ordered = collect();
-        foreach ($this->groupOrder as $group) {
+        foreach ($activeGroups->pluck('key') as $group) {
             if ($grouped->has($group)) {
                 $ordered->put($group, $grouped->get($group));
             }
         }
 
-        return $this->view(['groupedMenus' => $ordered]);
+        return $this->view([
+            'groupedMenus' => $ordered,
+            'groupModels' => $activeGroups->keyBy('key'),
+        ]);
     }
 
     public function isActive(Menu $menu): bool
@@ -1032,18 +1159,20 @@ new class extends Component
 };
 ```
 
+Urutan group berasal dari `launcher_groups.sort_order`, bukan daftar `$groupOrder` hard-code. `groupModels` juga dikirim ke Blade agar view tidak melakukan query per group.
+
 #### Launcher Blade
 
 File: `src/resources/views/components/⚡launcher/launcher.blade.php`
 
 ```blade
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
     @foreach($groupedMenus as $group => $menus)
         @php
-            $groupModel = \App\Models\LauncherGroup::where('key', $group)->first();
+            $groupModel = $groupModels->get($group);
         @endphp
-        <div class="rounded-xl border border-gray-200 bg-white p-4">
-            <div class="flex items-center gap-2 mb-3">
+        <section class="relative flex h-full min-h-[212px] flex-col overflow-hidden rounded-2xl border bg-white p-4 sm:p-5">
+            <div class="relative mb-4 flex shrink-0 items-center gap-3">
                 @if($groupModel && $groupModel->icon)
                     <span class="inline-flex h-5 w-5 items-center justify-center rounded-md bg-blue-50 text-blue-600">
                         <i class="{{ $groupModel->icon }} text-xs"></i>
@@ -1054,32 +1183,34 @@ File: `src/resources/views/components/⚡launcher/launcher.blade.php`
                 </h2>
             </div>
 
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
                 @foreach($menus as $menu)
                     <a
                         href="{{ $menu->systemRoute?->route_name ? route($menu->systemRoute->route_name) : '#' }}"
                         wire:navigate
-                        class="group flex flex-col items-center justify-center gap-1.5 rounded-lg border border-gray-100 bg-gray-50/50 p-2.5 transition-all duration-200 hover:border-blue-400 hover:bg-white hover:shadow-sm"
+                        class="group relative flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-xl border border-slate-200/80 bg-white px-2 py-3 transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-sm"
                     >
-                        <div class="flex h-8 w-8 items-center justify-center rounded-md bg-white text-blue-600 transition group-hover:bg-blue-50">
+                        <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-[#122342]">
                             @if($menu->icon)
-                                <i class="{{ $menu->icon }} text-sm"></i>
+                                <i class="{{ $menu->icon }} text-[12px]"></i>
                             @else
                                 <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                                 </svg>
                             @endif
                         </div>
-                        <span class="text-[10px] font-medium text-center leading-tight text-gray-600 line-clamp-2">
+                        <span class="text-center text-[11px] font-semibold leading-snug text-slate-600 line-clamp-2">
                             {{ $menu->title }}
                         </span>
                     </a>
                 @endforeach
             </div>
-        </div>
+        </section>
     @endforeach
 </div>
 ```
+
+View launcher saat ini menggunakan card responsif, icon dan accent yang mengikuti group, serta tile menu. Pertahankan prinsip data-flow di atas: Blade menerima `groupModels` dari component; jangan menambahkan query `LauncherGroup` di dalam loop.
 
 ---
 
@@ -1091,8 +1222,12 @@ File: `src/resources/views/dashboard/index.blade.php`
 @extends('layouts.app')
 
 @section('content')
-    <div class="max-w-6xl mx-auto">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+    <div class="relative mx-auto max-w-[1600px]">
+        <div class="mb-3 flex items-center gap-2 px-1">
+            <span class="h-1.5 w-1.5 rounded-full bg-[#D4AF37]"></span>
+            <span class="font-mono text-[10px] uppercase tracking-[0.25em] text-slate-400">Menu Utama</span>
+        </div>
+        <div class="relative rounded-2xl border border-slate-200/90 bg-white/80 px-3 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-7">
             @livewire('components::launcher')
         </div>
     </div>
@@ -1375,9 +1510,33 @@ $this->call([
 
 File: `src/app/Console/Commands/FrameworkConfigExportCommand.php`
 
-Tambah section `launcher_groups`:
+Mapping menu export menyertakan heading hanya untuk root menu:
 
 ```php
+$menus = Menu::query()
+    ->with('systemRoute')
+    ->orderBy('sort_order')
+    ->get()
+    ->map(function (Menu $menu) {
+        $parent = $menu->parent()->with('systemRoute')->first();
+
+        return [
+            'route' => $menu->systemRoute?->route_name,
+            'title' => $menu->title,
+            'sidebar_heading' => $menu->parent_id === null
+                ? $menu->sidebar_heading
+                : null,
+            'icon' => $menu->icon,
+            'sort_order' => $menu->sort_order,
+            'is_sidebar' => $menu->is_sidebar,
+            'launcher_group' => $menu->launcher_group,
+            'parent_route' => $parent?->systemRoute?->route_name,
+            'parent_title' => $parent?->title,
+        ];
+    })
+    ->values()
+    ->toArray();
+
 $launcherGroups = LauncherGroup::query()
     ->orderBy('sort_order')
     ->get()
@@ -1404,10 +1563,13 @@ File: `src/app/Console/Commands/FrameworkConfigImportCommand.php`
 Tambah pass baru sebelum menu sync:
 
 ```php
+$this->call('framework:route-sync', ['--safe' => true]);
+$this->call('framework:permission-sync', ['--safe' => true]);
+
 $launcherGroups = $data['launcher_groups'] ?? [];
 
 foreach ($launcherGroups as $groupData) {
-    LauncherGroup::updateOrCreate(
+    LauncherGroup::firstOrCreate(
         ['key' => $groupData['key']],
         [
             'label' => $groupData['label'],
@@ -1419,40 +1581,66 @@ foreach ($launcherGroups as $groupData) {
 }
 ```
 
+Contoh di atas menunjukkan record menu yang diekspor; bagian launcher group berikutnya tetap menggunakan struktur field yang sama seperti source.
+
+Import route/permission bersifat additive. Launcher group existing dibuat dengan `firstOrCreate`, bukan `updateOrCreate`, sehingga label/icon/order/status target tidak ditimpa. `sidebar_heading` hanya diekspor untuk root. Pada root yang sudah ada, importer hanya mengisi heading jika export berisi teks dan field target masih kosong; submenu tidak menerima heading.
+
+Existing menu dicari berdasarkan route lalu title; child juga dicocokkan dengan parent/title agar menu tanpa route tidak terduplikasi. Import bukan full overwrite/sync untuk semua atribut.
+
 ---
 
-### M7 — Sidebar Fix (Important)
+### M7 — Sidebar Navigation and UX
 
 File: `src/resources/views/components/⚡sidebar/sidebar.blade.php`
 
-Akar masalah: `wire:current` Livewire match by URL prefix, jadi `/system/roles` juga match `/system`.
-
-Solusi: Gunakan Alpine.js exact path matching untuk child items.
+Akar masalah: `wire:current` dapat mencocokkan prefix URL, sehingga child route perlu dicocokkan menggunakan path yang tepat. Accordion juga tidak lagi memakai `wire:click`: perubahan expand/collapse bersifat lokal di Alpine agar tidak menunggu request server. Daftar menu dan permission tetap difilter di server.
 
 ```blade
 <div x-data="{ currentPath: window.location.pathname, init() { document.addEventListener('livewire:navigated', () => { this.currentPath = window.location.pathname; }); } }">
     @foreach($menus as $menu)
-        @if($menu->children->isNotEmpty())
-            <div wire:click="toggleMenu({{ $menu->id }})">
-                {{-- parent menu --}}
-            </div>
+        @if(filled($menu->sidebar_heading))
+            <p>{{ $menu->sidebar_heading }}</p>
+        @endif
 
-            @if(in_array($menu->id, $openedMenus))
-                @foreach($menu->children as $child)
-                    <a
-                        href="{{ route($child->systemRoute->route_name) }}"
-                        wire:navigate
-                        data-path="{{ parse_url(route($child->systemRoute->route_name), PHP_URL_PATH) }}"
-                        x-bind:class="'ml-4 h-10 flex items-center rounded-lg px-3 transition-all duration-200 text-sm border-l-2 ' + ($el.dataset.path === window.location.pathname ? 'bg-amber-500/25 text-amber-300 font-semibold border-amber-400' : 'border-transparent hover:bg-white/10')"
-                    >
-                        {{ $child->title }}
-                    </a>
-                @endforeach
-            @endif
+        @if($menu->children->isNotEmpty())
+            <div x-data="{ expanded: @js(in_array($menu->id, $openedMenus)) }"
+                 x-on:sidebar-active-menus.window="if ($event.detail.openedMenus.includes({{ $menu->id }})) expanded = true">
+                <button type="button"
+                        aria-controls="sidebar-submenu-{{ $menu->id }}"
+                        @click="expanded = !expanded"
+                        :aria-expanded="expanded">
+                    {{ $menu->title }}
+                </button>
+                <div id="sidebar-submenu-{{ $menu->id }}"
+                     class="grid grid-rows-[0fr] -translate-y-1 opacity-0 transition-all duration-200"
+                     :class="expanded ? 'grid-rows-[1fr] translate-y-0 opacity-100' : ''"
+                     aria-hidden="true"
+                     :aria-hidden="!expanded"
+                     inert
+                     :inert="!expanded">
+                    <div class="min-h-0 overflow-hidden">
+                        @foreach($menu->children as $child)
+                            @if($child->systemRoute)
+                                <a href="{{ route($child->systemRoute->route_name) }}"
+                                   wire:navigate
+                                   data-path="{{ parse_url(route($child->systemRoute->route_name), PHP_URL_PATH) }}"
+                                   x-bind:class="'group ml-4 flex h-10 items-center rounded-lg border-l-2 px-3 text-sm transition-all duration-200 ' + ($el.dataset.path === currentPath ? 'bg-amber-500/20 text-amber-300 font-semibold border-amber-400' : 'border-transparent text-slate-300 hover:translate-x-0.5 hover:border-amber-400/60 hover:bg-white/[0.05] hover:text-white')"
+                                   :aria-current="$el.dataset.path === currentPath ? 'page' : null">
+                                    {{ $child->title }}
+                                </a>
+                            @else
+                                <span>{{ $child->title }}</span>
+                            @endif
+                        @endforeach
+                    </div>
+                </div>
+            </div>
         @endif
     @endforeach
 </div>
 ```
+
+Submenu memakai transisi grid/opacity, tombol parent memiliki `aria-expanded`, dan child tanpa route dirender sebagai teks non-link. Posisi scroll pada `layouts/sidebar.blade.php` disimpan di `sessionStorage` dan dipulihkan saat sidebar dibuka, setelah Livewire navigation, serta setelah state parent aktif diperbarui.
 
 ---
 
@@ -1479,6 +1667,18 @@ $data = ['sort_order' => $validated['sortOrder']];
 
 **Solusi:** Gunakan Alpine.js exact path matching seperti di bagian 30.
 
+### Sidebar kembali scroll ke atas setelah memilih menu
+
+**Penyebab:** Livewire navigation memperbarui component/sidebar saat halaman berganti.
+
+**Solusi:** Sidebar menyimpan scrollTop menu di `sessionStorage` dan mengembalikannya saat dibuka, setelah event `livewire:navigated`, serta setelah event update parent aktif. Jika container sidebar diganti/diubah, pastikan `x-ref="menuScroll"`, event `scroll`, dan key session storage `pops-sidebar-menu-scroll-top` tetap konsisten di `layouts/sidebar.blade.php`.
+
+### Menu duplikat atau pesan route conflict saat config import
+
+**Penyebab:** Menu di target mempunyai title dan route berbeda sekaligus, sehingga tidak ada stable ID lintas environment untuk mencocokkannya.
+
+**Solusi:** Periksa pesan conflict dan mapping menu target sebelum import. Import mempertahankan record yang dapat dicocokkan; konfigurasi yang tidak cocok dapat dianggap sebagai menu baru. Hindari mengganti title dan route sekaligus tanpa rencana pemetaan.
+
 ### Delete group gagal dengan error "masih digunakan"
 
 **Penyebab:** Group masih memiliki menu yang menggunakannya.
@@ -1493,14 +1693,16 @@ $data = ['sort_order' => $validated['sortOrder']];
 2. Setup `.env`
 3. Setup database
 4. Jalankan `php artisan migrate`
-5. Jalankan `php artisan db:seed`
-6. Jalankan `php artisan framework:route-sync`
-7. Jalankan `php artisan framework:permission-sync`
+5. Review seluruh seeder; jalankan `db:seed` hanya pada database baru/kosong
+6. Jalankan `php artisan framework:route-sync --safe`
+7. Jalankan `php artisan framework:permission-sync --safe`
 8. Setup role & permission awal
 9. Setup menu di `master.menu.list`
 10. Setup launcher group di `master.launcher-group.list`
 11. Assign menu ke launcher group
 12. Test seluruh halaman
+
+Untuk upgrade pada server yang sudah berisi data, backup database, periksa `php artisan migrate:status`, lalu jalankan hanya migration yang pending. Gunakan `framework:config-import` untuk konfigurasi; jangan jalankan `db:seed` sebagai pengganti import.
 
 ---
 
@@ -1510,7 +1712,7 @@ $data = ['sort_order' => $validated['sortOrder']];
 2. **Jangan buat permission baru sembarang** — ikuti `module.resource.action`
 3. **Gunakan `PermissionNameService`** sebagai pusat mapping
 4. **Launcher adalah tambahan** — tidak mengubah sistem permission yang ada
-5. **Export/import adalah single source of truth** untuk config
+5. **`framework-data.json` adalah snapshot transfer konfigurasi**; import bersifat additive dan mempertahankan customisasi target yang sudah ada
 6. **Key launcher group tidak boleh diubah** setelah create — disembunyikan di form edit untuk keamanan
 7. **Semua component pakai Livewire MFC pattern** (`new class extends Component`)
 8. **Naming convention:**
@@ -1525,8 +1727,9 @@ $data = ['sort_order' => $validated['sortOrder']];
 
 ```bash
 # Framework
-php artisan framework:route-sync
-php artisan framework:permission-sync
+# Safe additive sync; import juga menjalankan keduanya dalam mode ini
+php artisan framework:route-sync --safe
+php artisan framework:permission-sync --safe
 php artisan framework:config-export
 php artisan framework:config-import
 php artisan test
@@ -1536,9 +1739,12 @@ php artisan make:livewire pages::master.nama-component --mfc
 
 # Database
 php artisan migrate
+# Hanya setelah meninjau seluruh seeder dan memastikan database baru/kosong
 php artisan db:seed
 ```
 
+Jangan jalankan `migrate:fresh`, `migrate:refresh`, atau `db:seed` pada database berisi data tanpa backup dan persetujuan/peninjauan yang sesuai. `MenuSeeder` menghapus seluruh menu dan `LauncherGroupSeeder` dapat menimpa group yang telah dikustomisasi.
+
 ---
 
-*Dokumentasi ini dibuat untuk jadi single source of truth yang mudah diikuti, dipelajari, dan dieksekusi oleh AI maupun manusia.*
+*Dokumentasi ini adalah panduan implementasi yang rinci untuk dipelajari dan digunakan kembali. Source code tetap menjadi acuan perilaku runtime; perubahan kode framework perlu diikuti pembaruan dokumentasi ini.*
