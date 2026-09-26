@@ -109,8 +109,8 @@ Route::prefix('launcher-group')->middleware(['auth', 'permission'])->name('maste
 // gpt-5.6-luna, gpt-5.6-terra, gpt-5.6-sol, gpt-5-mini, grok-4.3, DeepSeek-V4-Pro, DeepSeek-V4-Flash
 
 // 1 Di Local
-// php artisan framework:route-sync
-// php artisan framework:permission-sync
+// php artisan framework:route-sync --safe
+// php artisan framework:permission-sync --safe
 // php artisan framework:config-export
 
 // 2 Di VPS
@@ -124,3 +124,7 @@ Route::prefix('launcher-group')->middleware(['auth', 'permission'])->name('maste
 // ];
 // php artisan make:model Permission -m
 
+// ### Catatan
+// php artisan framework:route-sync --safe memindai named route di Laravel, lalu menambahkan route yang belum tercatat ke tabel system_routes. Data ini dipakai saat mengatur pilihan Route pada menu.
+
+// php artisan framework:permission-sync --safe membuat permission yang belum ada berdasarkan route dan permission yang ditemukan aplikasi. Permission ini dipakai untuk mengatur akses pengguna/role ke halaman.

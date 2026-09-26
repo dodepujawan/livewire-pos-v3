@@ -20,13 +20,13 @@
             <div class="md:col-span-2 bg-white p-4 rounded-lg shadow-sm">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {{-- Parent Menu --}}
-                    <div class="sm:col-span-2">
+                    <div>
                         <div class="flex items-end gap-2">
                             <div class="flex-1">
                                 <x-form.select
                                     label="Parent Menu"
                                     name="parent_id"
-                                    wire:model="parent_id"
+                                    wire:model.live="parent_id"
                                 >
                                     <option value="">Edit Root Menu (No Parent)</option>
                                     @foreach($parentMenus as $menu)
@@ -38,6 +38,30 @@
                         <p class="text-xs text-gray-500 -mt-3">
                             Pilih <strong>Edit Root Menu</strong> untuk membuat menu utama,
                             atau pilih salah satu parent untuk membuat submenu.
+                        </p>
+                    </div>
+
+                    {{-- Sidebar Heading --}}
+                    <div>
+                        <div class="mb-5">
+                            <label for="sidebar_heading" class="mb-2 block text-sm font-medium text-gray-700">
+                                Sidebar Heading
+                            </label>
+                            <input
+                                id="sidebar_heading"
+                                name="sidebar_heading"
+                                type="text"
+                                wire:model="sidebar_heading"
+                                placeholder="Contoh: Accounting Toko"
+                                @disabled(filled($parent_id))
+                                class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring focus:ring-blue-200 disabled:cursor-not-allowed disabled:bg-gray-100"
+                            >
+                            @error('sidebar_heading')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <p class="-mt-3 text-xs text-gray-500">
+                            Hanya menu tanpa parent yang dapat memiliki heading sidebar.
                         </p>
                     </div>
 
@@ -128,6 +152,9 @@
                                 @endif
                             </div>
                             <div>
+                                @if(filled($sidebar_heading))
+                                    <div class="mb-1 text-xs font-semibold uppercase tracking-widest text-gray-500">{{ $sidebar_heading }}</div>
+                                @endif
                                 <div class="font-semibold text-lg text-gray-800">{{ $title ?: 'Menu Title' }}</div>
                                 <div class="text-sm text-gray-500">
                                     Parent : {{ optional($parentMenus->firstWhere('id', $parent_id))->title ?? 'Create Root Menu' }}

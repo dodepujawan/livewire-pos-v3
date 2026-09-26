@@ -11,6 +11,7 @@ new class extends Component
     public ?int $parent_id = null;
     public ?int $system_route_id = null;
     public string $title = '';
+    public ?string $sidebar_heading = null;
     public ?string $icon = null;
     public int $sort_order = 1;
     public bool $is_sidebar = true;
@@ -32,6 +33,11 @@ new class extends Component
                 'required',
                 'string',
                 'max:255',
+            ],
+            'sidebar_heading' => [
+                'nullable',
+                'string',
+                'max:100',
             ],
             'icon' => [
                 'nullable',
@@ -55,9 +61,21 @@ new class extends Component
         ];
     }
 
+    public function updatedParentId($value): void
+    {
+        if (filled($value)) {
+            $this->sidebar_heading = null;
+        }
+    }
+
     public function update(): void
     {
         $validated = $this->validate();
+
+        if (filled($this->parent_id)) {
+            $validated['sidebar_heading'] = null;
+        }
+
         Menu::findOrFail($this->menuId)
             ->update($validated);
         session()->flash(
@@ -98,6 +116,7 @@ new class extends Component
         $this->parent_id = $menu->parent_id;
         $this->system_route_id = $menu->system_route_id;
         $this->title = $menu->title;
+        $this->sidebar_heading = $menu->sidebar_heading;
         $this->icon = $menu->icon;
         $this->sort_order = $menu->sort_order;
         $this->is_sidebar = $menu->is_sidebar;

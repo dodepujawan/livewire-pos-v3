@@ -40,6 +40,9 @@ class FrameworkConfigExportCommand extends Command
                 return [
                     'route' => $menu->systemRoute?->route_name,
                     'title' => $menu->title,
+                    'sidebar_heading' => $menu->parent_id === null
+                        ? $menu->sidebar_heading
+                        : null,
                     'icon' => $menu->icon,
                     'sort_order' => $menu->sort_order,
                     'is_sidebar' => $menu->is_sidebar,

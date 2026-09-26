@@ -9,6 +9,7 @@ new class extends Component
     public ?int $parent_id = null;
     public ?int $system_route_id = null;
     public string $title = '';
+    public ?string $sidebar_heading = null;
     public ?string $icon = null;
     public int $sort_order = 1;
     public bool $is_sidebar = true;
@@ -31,6 +32,11 @@ new class extends Component
                 'string',
                 'max:255',
             ],
+            'sidebar_heading' => [
+                'nullable',
+                'string',
+                'max:100',
+            ],
             'icon' => [
                 'nullable',
                 'string',
@@ -51,6 +57,13 @@ new class extends Component
             ],
 
         ];
+    }
+
+    public function updatedParentId($value): void
+    {
+        if (filled($value)) {
+            $this->sidebar_heading = null;
+        }
     }
 
     public function updatedTitle(): void
@@ -77,6 +90,10 @@ new class extends Component
 
     public function save(): void{
         $validated = $this->validate();
+
+        if (filled($this->parent_id)) {
+            $validated['sidebar_heading'] = null;
+        }
 
         Menu::create($validated);
 

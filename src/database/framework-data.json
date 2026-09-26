@@ -1,6 +1,6 @@
 {
     "version": 1,
-    "generated_at": "2026-09-07T09:36:21+00:00",
+    "generated_at": "2026-09-26T08:31:04+00:00",
     "system_routes": [
         {
             "route_name": "default-livewire.update",
@@ -235,6 +235,7 @@
         {
             "route": "dashboard",
             "title": "Dashboard",
+            "sidebar_heading": null,
             "icon": "ti ti-home",
             "sort_order": 1,
             "is_sidebar": true,
@@ -245,6 +246,7 @@
         {
             "route": "master.barang.list",
             "title": "Barang",
+            "sidebar_heading": null,
             "icon": "ti ti-package",
             "sort_order": 1,
             "is_sidebar": true,
@@ -255,6 +257,7 @@
         {
             "route": "transaksi.penjualan.list",
             "title": "Penjualan",
+            "sidebar_heading": null,
             "icon": "ti ti-receipt",
             "sort_order": 1,
             "is_sidebar": true,
@@ -265,6 +268,7 @@
         {
             "route": "laporan.kas.list",
             "title": "Laporan Kas",
+            "sidebar_heading": null,
             "icon": "ti ti-wallet",
             "sort_order": 1,
             "is_sidebar": true,
@@ -275,6 +279,7 @@
         {
             "route": "system.list",
             "title": "User Akses",
+            "sidebar_heading": null,
             "icon": "ti ti-list-check",
             "sort_order": 1,
             "is_sidebar": true,
@@ -285,6 +290,7 @@
         {
             "route": "master.menu.list",
             "title": "Master Menu List",
+            "sidebar_heading": null,
             "icon": "ti ti-list-details",
             "sort_order": 1,
             "is_sidebar": true,
@@ -295,6 +301,7 @@
         {
             "route": null,
             "title": "Master",
+            "sidebar_heading": "Operational",
             "icon": "ti ti-database",
             "sort_order": 2,
             "is_sidebar": true,
@@ -305,6 +312,7 @@
         {
             "route": "master.cabang.list",
             "title": "Cabang",
+            "sidebar_heading": null,
             "icon": "ti ti-building",
             "sort_order": 2,
             "is_sidebar": true,
@@ -315,6 +323,7 @@
         {
             "route": "transaksi.pembelian.list",
             "title": "Pembelian",
+            "sidebar_heading": null,
             "icon": "ti ti-truck",
             "sort_order": 2,
             "is_sidebar": true,
@@ -325,6 +334,7 @@
         {
             "route": "laporan.penjualan.list",
             "title": "Laporan Penjualan List",
+            "sidebar_heading": null,
             "icon": "ti ti-report-money",
             "sort_order": 2,
             "is_sidebar": true,
@@ -335,6 +345,7 @@
         {
             "route": null,
             "title": "Transaksi",
+            "sidebar_heading": null,
             "icon": "ti ti-shopping-cart",
             "sort_order": 3,
             "is_sidebar": true,
@@ -345,6 +356,7 @@
         {
             "route": "transaksi.piutang.list",
             "title": "Piutang",
+            "sidebar_heading": null,
             "icon": "ti ti-user-check",
             "sort_order": 3,
             "is_sidebar": true,
@@ -355,6 +367,7 @@
         {
             "route": "laporan.stok.list",
             "title": "Laporan Stok List",
+            "sidebar_heading": null,
             "icon": "ti ti-clipboard-text",
             "sort_order": 3,
             "is_sidebar": true,
@@ -365,6 +378,7 @@
         {
             "route": "transaksi.hutang.list",
             "title": "Hutang",
+            "sidebar_heading": null,
             "icon": "ti ti-user-x",
             "sort_order": 4,
             "is_sidebar": true,
@@ -375,6 +389,7 @@
         {
             "route": null,
             "title": "Laporan",
+            "sidebar_heading": null,
             "icon": "ti ti-clipboard-text",
             "sort_order": 4,
             "is_sidebar": true,
@@ -385,6 +400,7 @@
         {
             "route": "laporan.buku-besar.list",
             "title": "Laporan Buku Besar",
+            "sidebar_heading": null,
             "icon": "ti ti-book",
             "sort_order": 4,
             "is_sidebar": true,
@@ -395,6 +411,7 @@
         {
             "route": "laporan.laba-rugi.list",
             "title": "Laba Rugi",
+            "sidebar_heading": null,
             "icon": "ti ti-chart-pie",
             "sort_order": 5,
             "is_sidebar": true,
@@ -405,6 +422,7 @@
         {
             "route": null,
             "title": "Sistem",
+            "sidebar_heading": null,
             "icon": "ti ti-settings",
             "sort_order": 5,
             "is_sidebar": true,
@@ -415,6 +433,7 @@
         {
             "route": "laporan.neraca.list",
             "title": "Laporan Neraca List",
+            "sidebar_heading": null,
             "icon": "ti ti-scale",
             "sort_order": 6,
             "is_sidebar": true,
@@ -425,6 +444,7 @@
         {
             "route": "laporan.arus-kas.list",
             "title": "Laporan Arus Kas List",
+            "sidebar_heading": null,
             "icon": "ti ti-coins",
             "sort_order": 7,
             "is_sidebar": true,

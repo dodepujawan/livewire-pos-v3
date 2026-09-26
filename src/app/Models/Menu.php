@@ -12,6 +12,7 @@ class Menu extends Model
         'parent_id',
         'system_route_id',
         'title',
+        'sidebar_heading',
         'icon',
         'sort_order',
         'is_sidebar',

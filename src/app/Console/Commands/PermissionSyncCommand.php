@@ -13,7 +13,7 @@ class PermissionSyncCommand extends Command
     /**
      * The name and signature of the console command.
      */
-    protected $signature = 'framework:permission-sync';
+    protected $signature = 'framework:permission-sync {--safe : Add missing permissions without deleting existing permissions}';
 
     /**
      * The console command description.
@@ -25,6 +25,7 @@ class PermissionSyncCommand extends Command
      */
     public function handle(): int
     {
+        $safe = (bool) $this->option('safe');
         $permissionName = app(PermissionNameService::class);
 
         $routePermissions = SystemRoute::query()
@@ -52,12 +53,14 @@ class PermissionSyncCommand extends Command
             }
         }
 
-        // Hapus permission route yang sudah tidak ada
-        Permission::query()
-            ->where('guard_name', 'web')
-            ->whereDoesntHave('roles')
-            ->whereNotIn('name', $routePermissions)
-            ->delete();
+        if (! $safe) {
+            // Hapus permission route yang sudah tidak ada
+            Permission::query()
+                ->where('guard_name', 'web')
+                ->whereDoesntHave('roles')
+                ->whereNotIn('name', $routePermissions)
+                ->delete();
+        }
 
         $this->newLine();
 
@@ -65,6 +68,9 @@ class PermissionSyncCommand extends Command
 
         $this->line('Permission : ' . $routePermissions->count());
         $this->line('Created    : ' . $created);
+        if ($safe) {
+            $this->line('Existing permissions were preserved; no permissions were deleted.');
+        }
 
         return self::SUCCESS;
     }

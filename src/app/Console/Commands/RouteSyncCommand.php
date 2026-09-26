@@ -14,7 +14,7 @@ class RouteSyncCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'framework:route-sync';
+    protected $signature = 'framework:route-sync {--safe : Add missing routes without updating or deleting existing route records}';
 
     /**
      * The console command description.
@@ -33,7 +33,10 @@ class RouteSyncCommand extends Command
         $stats = [
             'created' => 0,
             'updated' => 0,
+            'preserved' => 0,
         ];
+        $safe = (bool) $this->option('safe');
+
         foreach ($routes as $route) {
             $routeName = $route->getName();
             if (!$routeName) {
@@ -43,23 +46,36 @@ class RouteSyncCommand extends Command
                 continue;
             }
             $syncedRoutes[] = $routeName;
-            $status = $this->syncRoute($routeName);
+            $status = $this->syncRoute($routeName, $safe);
             $stats[$status]++;
         }
-        $this->deleteMissingRoutes($syncedRoutes);
+
+        if (! $safe) {
+            $this->deleteMissingRoutes($syncedRoutes);
+        }
+
         $this->newLine();
         $this->info('Route Synchronization Completed');
         $this->line("Created : {$stats['created']}");
         $this->line("Updated : {$stats['updated']}");
+        if ($safe) {
+            $this->line("Preserved existing : {$stats['preserved']}");
+            $this->line('Missing route records were not deleted.');
+        }
+
         return self::SUCCESS;
     }
 
-    private function syncRoute(string $routeName): string
+    private function syncRoute(string $routeName, bool $safe): string
     {
         $route = SystemRoute::firstOrNew([
             'route_name' => $routeName,
         ]);
         $isNew = !$route->exists;
+
+        if (! $isNew && $safe) {
+            return 'preserved';
+        }
 
         $displayName = $this->generateDisplayName($routeName);
         if ($route->display_name !== $displayName) {

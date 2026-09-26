@@ -2,6 +2,12 @@
     @foreach($menus as $menu)
         <div>
 
+            @if(filled($menu->sidebar_heading))
+                <p class="px-3 mt-4 mb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                    {{ $menu->sidebar_heading }}
+                </p>
+            @endif
+
             @if($menu->children->isNotEmpty())
 
                 <div wire:click="toggleMenu({{ $menu->id }})"

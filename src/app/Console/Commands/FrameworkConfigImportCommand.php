@@ -4,13 +4,12 @@ namespace App\Console\Commands;
 
 use App\Models\Menu;
 use Illuminate\Console\Command;
-use Spatie\Permission\Models\Permission;
 
 class FrameworkConfigImportCommand extends Command
 {
     protected $signature = 'framework:config-import';
 
-    protected $description = 'Import framework routes, permissions, and new menus';
+    protected $description = 'Safely add missing framework configuration without replacing local customizations';
 
     public function handle(): int
     {
@@ -38,7 +37,7 @@ class FrameworkConfigImportCommand extends Command
         |--------------------------------------------------------------------------
         */
 
-        $this->call('framework:route-sync');
+        $this->call('framework:route-sync', ['--safe' => true]);
 
         /*
         |--------------------------------------------------------------------------
@@ -46,7 +45,7 @@ class FrameworkConfigImportCommand extends Command
         |--------------------------------------------------------------------------
         */
 
-        $this->call('framework:permission-sync');
+        $this->call('framework:permission-sync', ['--safe' => true]);
 
         /*
         |--------------------------------------------------------------------------
@@ -56,8 +55,11 @@ class FrameworkConfigImportCommand extends Command
 
         $launcherGroups = $data['launcher_groups'] ?? [];
 
+        $launcherGroupsCreated = 0;
+        $launcherGroupsPreserved = 0;
+
         foreach ($launcherGroups as $groupData) {
-            \App\Models\LauncherGroup::updateOrCreate(
+            $group = \App\Models\LauncherGroup::firstOrCreate(
                 ['key' => $groupData['key']],
                 [
                     'label' => $groupData['label'],
@@ -66,9 +68,16 @@ class FrameworkConfigImportCommand extends Command
                     'is_active' => $groupData['is_active'] ?? true,
                 ]
             );
+
+            if ($group->wasRecentlyCreated) {
+                $launcherGroupsCreated++;
+            } else {
+                $launcherGroupsPreserved++;
+            }
         }
 
-        $this->line('Launcher Groups Synced : ' . count($launcherGroups));
+        $this->line("Launcher Groups Created : {$launcherGroupsCreated}");
+        $this->line("Launcher Groups Preserved : {$launcherGroupsPreserved}");
 
         /*
         |--------------------------------------------------------------------------
@@ -78,6 +87,7 @@ class FrameworkConfigImportCommand extends Command
 
         $created = 0;
         $skipped = 0;
+        $conflicts = 0;
         $menus = $data['menus'] ?? [];
         /*
         |--------------------------------------------------------------------------
@@ -102,14 +112,41 @@ class FrameworkConfigImportCommand extends Command
                         $menuData['route']
                     )
                 )->first();
-            } else {
-                // Root menu tanpa route
+            }
+
+            if ($menu && $menu->parent_id !== null) {
+                $this->warn(
+                    "Route conflict for root menu '{$menuData['title']}': route '{$menuData['route']}' is already assigned to a submenu. Existing menu was preserved."
+                );
+                $conflicts++;
+                $skipped++;
+                continue;
+            }
+
+            if (! $menu) {
+                // Fall back to the title so a server-specific route is preserved.
                 $menu = Menu::whereNull('parent_id')
                     ->where('title', $menuData['title'])
                     ->first();
             }
 
             if ($menu) {
+                $existingRoute = $menu->systemRoute?->route_name;
+                $sourceRoute = $menuData['route'] ?? null;
+
+                if ($sourceRoute !== $existingRoute && ($sourceRoute || $existingRoute)) {
+                    $this->warn(
+                        "Route conflict for root menu '{$menuData['title']}': keeping server route '{$existingRoute}' instead of '{$sourceRoute}'."
+                    );
+                    $conflicts++;
+                }
+
+                if (filled($menuData['sidebar_heading'] ?? null) && blank($menu->sidebar_heading)) {
+                    $menu->update([
+                        'sidebar_heading' => $menuData['sidebar_heading'],
+                    ]);
+                }
+
                 $skipped++;
                 continue;
             }
@@ -121,12 +158,21 @@ class FrameworkConfigImportCommand extends Command
                     'route_name',
                     $menuData['route']
                 )->value('id');
+
+                if (! $systemRouteId) {
+                    $this->warn(
+                        "Route '{$menuData['route']}' was not found for root menu '{$menuData['title']}'. Menu was not created."
+                    );
+                    $skipped++;
+                    continue;
+                }
             }
 
             Menu::create([
                 'parent_id' => null,
                 'system_route_id' => $systemRouteId,
                 'title' => $menuData['title'],
+                'sidebar_heading' => $menuData['sidebar_heading'] ?? null,
                 'icon' => $menuData['icon'],
                 'sort_order' => $menuData['sort_order'] ?? 0,
                 'is_sidebar' => $menuData['is_sidebar'] ?? true,
@@ -153,9 +199,46 @@ class FrameworkConfigImportCommand extends Command
 
             /*
             |--------------------------------------------------------------------------
-            | Check existing menu
+            | Resolve parent
             |--------------------------------------------------------------------------
             */
+
+            $parent = null;
+
+            if (! empty($menuData['parent_route'])) {
+                $parent = Menu::query()
+                    ->whereNull('parent_id')
+                    ->whereHas(
+                        'systemRoute',
+                        fn ($query) => $query->where(
+                            'route_name',
+                            $menuData['parent_route']
+                        )
+                    )
+                    ->first();
+            }
+
+            if (! $parent && ! empty($menuData['parent_title'])) {
+                $parent = Menu::whereNull('parent_id')
+                    ->where('title', $menuData['parent_title'])
+                    ->first();
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Safety
+            |--------------------------------------------------------------------------
+            */
+
+            if (! $parent) {
+                $this->warn(
+                    "Parent not found for menu '{$menuData['title']}'. Menu was not created."
+                );
+
+                $conflicts++;
+                $skipped++;
+                continue;
+            }
 
             $menu = null;
 
@@ -170,46 +253,35 @@ class FrameworkConfigImportCommand extends Command
             }
 
             if ($menu) {
+                if ($menu->parent_id !== $parent->id) {
+                    $this->warn(
+                        "Menu conflict for '{$menuData['title']}': its route is already assigned under another parent. Existing menu was preserved."
+                    );
+                    $conflicts++;
+                }
+
                 $skipped++;
                 continue;
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | Resolve parent
-            |--------------------------------------------------------------------------
-            */
+            // Match by parent and title to avoid duplicating unrouted or locally rerouted children.
+            $menu = Menu::query()
+                ->where('parent_id', $parent->id)
+                ->where('title', $menuData['title'])
+                ->first();
 
-            $parent = null;
+            if ($menu) {
+                $existingRoute = $menu->systemRoute?->route_name;
+                $sourceRoute = $menuData['route'] ?? null;
 
-            if (! empty($menuData['parent_route'])) {
+                if ($sourceRoute !== $existingRoute && ($sourceRoute || $existingRoute)) {
+                    $this->warn(
+                        "Route conflict for child menu '{$menuData['title']}': keeping the existing route instead of '{$sourceRoute}'."
+                    );
+                    $conflicts++;
+                }
 
-                $parent = Menu::whereHas(
-                    'systemRoute',
-                    fn ($query) => $query->where(
-                        'route_name',
-                        $menuData['parent_route']
-                    )
-                )->first();
-
-            } elseif (! empty($menuData['parent_title'])) {
-
-                $parent = Menu::whereNull('parent_id')
-                    ->where('title', $menuData['parent_title'])
-                    ->first();
-            }
-
-            /*
-            |--------------------------------------------------------------------------
-            | Safety
-            |--------------------------------------------------------------------------
-            */
-
-            if (! $parent) {
-                $this->warn(
-                    "Parent not found for menu: {$menuData['title']}"
-                );
-
+                $skipped++;
                 continue;
             }
 
@@ -226,6 +298,14 @@ class FrameworkConfigImportCommand extends Command
                     'route_name',
                     $menuData['route']
                 )->value('id');
+
+                if (! $systemRouteId) {
+                    $this->warn(
+                        "Route '{$menuData['route']}' was not found for child menu '{$menuData['title']}'. Menu was not created."
+                    );
+                    $skipped++;
+                    continue;
+                }
             }
 
             /*
@@ -250,6 +330,7 @@ class FrameworkConfigImportCommand extends Command
         $this->info('Framework configuration imported.');
         $this->line("Menus Created : {$created}");
         $this->line("Menus Skipped : {$skipped}");
+        $this->line("Conflicts Preserved : {$conflicts}");
 
         return self::SUCCESS;
     }

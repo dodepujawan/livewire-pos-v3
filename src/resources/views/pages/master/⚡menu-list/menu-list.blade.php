@@ -20,6 +20,7 @@
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-4 py-3 text-left text-sm font-semibold">Title</th>
+                    <th class="px-4 py-3 text-left text-sm font-semibold">Sidebar Heading</th>
                     <th class="px-4 py-3 text-left text-sm font-semibold">Parent</th>
                     <th class="px-4 py-3 text-left text-sm font-semibold">Route</th>
                     <th class="px-4 py-3 text-center text-sm font-semibold">Sort</th>
@@ -32,6 +33,7 @@
                 @forelse($menuData as $menu)
                     <tr>
                         <td class="px-4 py-3">{{ $menu->title }}</td>
+                        <td class="px-4 py-3">{{ $menu->sidebar_heading ?: '-' }}</td>
                         <td class="px-4 py-3">{{ $menu->parent?->title ?? '-' }}</td>
                         <td class="px-4 py-3">{{ $menu->systemRoute?->route_name ?? '-' }}</td>
                         <td class="px-4 py-3 text-center">{{ $menu->sort_order }}</td>
@@ -45,7 +47,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">Data menu belum tersedia.</td></tr>
+                    <tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">Data menu belum tersedia.</td></tr>
                 @endforelse
             </tbody>
         </table>
