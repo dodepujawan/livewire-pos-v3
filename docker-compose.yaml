@@ -2,6 +2,11 @@ services:
   app:
     build: ./php
     container_name: livewire_pos_v3        # ✏️ Ubah
+
+    environment:
+      OPCACHE_VALIDATE_TIMESTAMPS: ${OPCACHE_VALIDATE_TIMESTAMPS:-1}
+      OPCACHE_REVALIDATE_FREQ: ${OPCACHE_REVALIDATE_FREQ:-2}
+      
     volumes:
       - ./src:/var/www/html/src
       - ./logs/php:/var/log/php         # ✅ Tambahan log PHP-FPM

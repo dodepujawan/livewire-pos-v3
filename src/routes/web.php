@@ -116,6 +116,12 @@ Route::prefix('launcher-group')->middleware(['auth', 'permission'])->name('maste
 // 2 Di VPS
 // git pull
 // php artisan framework:config-import
+// # Mode Opchache
+// docker compose restart app
+// php artisan optimize
+// # Kalau Dockerfile atau opcache.ini berubah
+// docker compose build app
+// docker compose up -d --force-recreate app
 
 // memakai permisison scanner
 // protected array $additionalPermissions = [
