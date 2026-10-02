@@ -322,15 +322,73 @@
     @if($showSearchModal)
     <div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50"
           x-data="{
+              selectedIndex: 0,
+              pageChangePending: false,
               handleKeydown(event) {
-                 if (event.key === 'ArrowUp' || event.key === 'ArrowDown' || event.key === 'Enter' || event.key === 'Escape') {
-                     event.preventDefault();
-                     @this.handleSearchModalKeydown(event.key);
-                 }
-             }
+                  if (event.key === 'PageUp' || event.key === 'PageDown') {
+                      event.preventDefault();
+                      this.changePage(event.key === 'PageUp' ? -1 : 1);
+                      return;
+                  }
+
+                  if (!['ArrowUp', 'ArrowDown', 'Enter', 'Escape'].includes(event.key)) return;
+                  event.preventDefault();
+
+                  if (event.key === 'ArrowUp') this.moveSelection(-1);
+                  if (event.key === 'ArrowDown') this.moveSelection(1);
+                  if (event.key === 'Enter') this.selectCurrent();
+                  if (event.key === 'Escape') $wire.closeSearchModal();
+              },
+              moveSelection(offset) {
+                  const rows = this.$refs.rows.querySelectorAll('[data-search-index]');
+                  if (!rows.length) return;
+
+                  this.selectedIndex = Math.max(0, Math.min(rows.length - 1, this.selectedIndex + offset));
+                  this.$nextTick(() => this.ensureSelectionVisible());
+              },
+              selectedItem() {
+                  return this.$refs.rows.querySelectorAll('[data-search-index]')[this.selectedIndex] ?? null;
+              },
+              selectCurrent() {
+                  const item = this.selectedItem();
+                  if (item) $wire.selectBarangFromSearch(Number(item.dataset.searchId));
+              },
+              ensureSelectionVisible() {
+                  const item = this.selectedItem();
+                  const container = this.$refs.results;
+                  const header = this.$refs.header;
+                  if (!item || !container) return;
+
+                  const itemRect = item.getBoundingClientRect();
+                  const containerRect = container.getBoundingClientRect();
+                  const headerBottom = header?.getBoundingClientRect().bottom ?? containerRect.top;
+                  const visibleTop = Math.max(containerRect.top, headerBottom) + 8;
+                  const visibleBottom = containerRect.bottom - 8;
+
+                  if (itemRect.top < visibleTop) {
+                      container.scrollTop += itemRect.top - visibleTop;
+                  } else if (itemRect.bottom > visibleBottom) {
+                      container.scrollTop += itemRect.bottom - visibleBottom;
+                  }
+              },
+              resetSelection() {
+                  this.selectedIndex = 0;
+                  this.$refs.results.scrollTop = 0;
+              },
+              changePage(direction) {
+                  const button = direction < 0 ? this.$refs.previousPage : this.$refs.nextPage;
+                  if (!button || button.disabled || this.pageChangePending) return;
+
+                  this.resetSelection();
+                  this.pageChangePending = true;
+                  const request = direction < 0 ? $wire.previousSearchPage() : $wire.nextSearchPage();
+                  request.then(
+                      () => this.pageChangePending = false,
+                      () => this.pageChangePending = false
+                  );
+              }
           }"
           x-on:keydown.window="handleKeydown"
-          wire:keydown.escape="$set('showSearchModal', false)"
          wire:click.self="$set('showSearchModal', false)">
         <div class="w-full max-w-4xl mx-4 max-h-[80vh] overflow-hidden rounded-xl bg-white shadow-2xl flex flex-col">
             <div class="p-4 border-b bg-gray-50">
@@ -346,20 +404,21 @@
                                wire:model.live.debounce.300ms="searchKeyword"
                                class="flex-1 border rounded px-3 py-1.5 text-sm"
                                placeholder="Ketik untuk filter..."
+                               x-on:input="resetSelection()"
                                autofocus>
                         <span class="text-sm text-gray-500">
                             {{ count($searchResults) }} hasil
                         </span>
                     </div>
                     <div class="mt-1 text-xs text-gray-500">
-                        Gunakan ↑ ↓ untuk navigasi, Enter untuk pilih, ESC untuk tutup
+                        ↑ ↓ pilih barang · PageUp/PageDown pindah halaman · Enter pilih · ESC tutup
                     </div>
                 </div>
             </div>
 
-            <div class="flex-1 overflow-y-auto">
+            <div x-ref="results" class="flex-1 overflow-y-auto">
                 <table class="w-full text-sm">
-                    <thead class="bg-gray-100 sticky top-0">
+                    <thead x-ref="header" class="bg-gray-100 sticky top-0 z-10">
                         <tr>
                             <th class="px-4 py-2 text-left">Kode</th>
                             <th class="px-4 py-2 text-left">Nama Barang</th>
@@ -368,14 +427,16 @@
                             <th class="px-4 py-2 text-left">Satuan</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody x-ref="rows">
                         @foreach($searchResults as $index => $result)
                             <tr wire:key="search-result-{{ $result['id'] }}"
                                 data-search-index="{{ $index }}"
-                                class="cursor-pointer transition-all duration-150 {{ $selectedIndex === $index ? 'bg-blue-50 border-l-4 border-blue-500 shadow-sm' : 'hover:bg-gray-50' }}"
+                                data-search-id="{{ $result['id'] }}"
+                                data-search-label="{{ $result['nama_barang'] }}"
+                                class="cursor-pointer transition-colors duration-150"
                                 x-on:dblclick="$wire.selectBarangFromSearch({{ $result['id'] }})"
-                                x-on:click="$wire.set('selectedIndex', {{ $index }})"
-                                :class="{ 'bg-blue-50 border-l-4 border-blue-500 shadow-sm': {{ $selectedIndex }} === {{ $index }} }">
+                                x-on:click="selectedIndex = {{ $index }}"
+                                :class="selectedIndex === {{ $index }} ? 'bg-blue-50 border-l-4 border-blue-500 shadow-sm' : 'hover:bg-gray-50'">
                                 <td class="px-4 py-2 font-mono text-sm">{{ $result['kode_barang'] }}</td>
                                 <td class="px-4 py-2">{{ $result['nama_barang'] }}</td>
                                 <td class="px-4 py-2 text-right">{{ $result['stok'] }}</td>
@@ -394,14 +455,34 @@
                 </table>
             </div>
 
+            @if($searchHasPreviousPage || $searchHasNextPage)
+                <div class="flex items-center justify-between gap-2 border-t px-4 py-2">
+                    <button type="button"
+                            x-ref="previousPage"
+                            x-on:click="changePage(-1)"
+                            @disabled(!$searchHasPreviousPage)
+                            wire:loading.attr="disabled"
+                            class="rounded border px-3 py-1 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50">
+                        &larr; Sebelumnya
+                    </button>
+                    <span class="text-center text-xs text-gray-500">
+                        Halaman {{ $searchPage }} · maks. 50 barang/halaman
+                    </span>
+                    <button type="button"
+                            x-ref="nextPage"
+                            x-on:click="changePage(1)"
+                            @disabled(!$searchHasNextPage)
+                            wire:loading.attr="disabled"
+                            class="rounded border px-3 py-1 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50">
+                        Berikutnya &rarr;
+                    </button>
+                </div>
+            @endif
+
             <div class="p-3 border-t bg-gray-50">
                 <div class="flex justify-between items-center text-sm">
                     <div class="text-gray-600">
-                        @if(isset($searchResults[$selectedIndex]))
-                            Terpilih: <span class="font-semibold">{{ $searchResults[$selectedIndex]['nama_barang'] }}</span>
-                        @else
-                            Pilih barang dengan navigasi keyboard
-                        @endif
+                        Terpilih: <span class="font-semibold" x-text="selectedItem()?.dataset.searchLabel ?? 'Pilih barang dengan navigasi keyboard'"></span>
                     </div>
                     <div class="flex gap-2">
                         <button type="button"
@@ -409,13 +490,12 @@
                                 class="px-4 py-1.5 border rounded hover:bg-gray-100 text-sm">
                             Batal
                         </button>
-                        @if(isset($searchResults[$selectedIndex]))
-                            <button type="button"
-                                    @click="$wire.selectBarangFromSearch({{ $searchResults[$selectedIndex]['id'] }})"
-                                    class="px-4 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium text-sm">
-                                Pilih Barang (Enter)
-                            </button>
-                        @endif
+                        <button type="button"
+                                x-on:click="selectCurrent()"
+                                x-bind:disabled="!selectedItem()"
+                                class="px-4 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium text-sm disabled:cursor-not-allowed disabled:opacity-50">
+                            Pilih Barang (Enter)
+                        </button>
                     </div>
                 </div>
             </div>
@@ -512,30 +592,6 @@
             document.getElementById('bayar-input')?.focus();
             document.getElementById('bayar-input')?.select();
         }, 50);
-    });
-
-    $wire.on('search-selection-changed', ({ index }) => {
-        setTimeout(() => {
-            const row = document.querySelector('[data-search-index="' + index + '"]');
-            const container = row?.closest('.overflow-y-auto');
-
-            if (!row || !container) return;
-
-            const rowRect = row.getBoundingClientRect();
-            const containerRect = container.getBoundingClientRect();
-
-            if (rowRect.bottom > containerRect.bottom) {
-                container.scrollBy({
-                    top: rowRect.bottom - containerRect.bottom,
-                    behavior: 'smooth',
-                });
-            } else if (rowRect.top < containerRect.top) {
-                container.scrollBy({
-                    top: rowRect.top - containerRect.top,
-                    behavior: 'smooth',
-                });
-            }
-        }, 100);
     });
 
     // Auto-hide undo toast after 2 seconds

@@ -14,6 +14,8 @@ use Livewire\Component;
 
 new class extends Component
 {
+    private const SEARCH_PAGE_SIZE = 50;
+
     // Header
     public string $transNoInvoice = '';
     public string $transTanggal = '';
@@ -48,8 +50,10 @@ new class extends Component
     // Search Modal
     public bool $showSearchModal = false;
     public array $searchResults = [];
-    public int $selectedIndex = 0;
     public string $searchKeyword = '';
+    public int $searchPage = 1;
+    public bool $searchHasPreviousPage = false;
+    public bool $searchHasNextPage = false;
 
     // Bayar Modal
     public bool $showBayarModal = false;
@@ -86,29 +90,6 @@ new class extends Component
         $this->loadCabangList();
         $this->setDefaultCabang();
         $this->loadExistingDraft();
-    }
-
-    // Keyboard event handler untuk modal
-    public function handleSearchModalKeydown(string $key): void
-    {
-        if (!$this->showSearchModal) return;
-
-        switch ($key) {
-            case 'ArrowUp':
-                $this->moveSelectionUp();
-                break;
-            case 'ArrowDown':
-                $this->moveSelectionDown();
-                break;
-            case 'Enter':
-                if (isset($this->searchResults[$this->selectedIndex])) {
-                    $this->selectBarangFromSearch($this->searchResults[$this->selectedIndex]['id']);
-                }
-                break;
-            case 'Escape':
-                $this->closeSearchModal();
-                break;
-        }
     }
 
     private function loadCabangList(): void
@@ -385,8 +366,17 @@ new class extends Component
 
     public function searchBarangLike(string $keyword = ''): void
     {
+        $keyword = trim($keyword);
+        $this->searchKeyword = $keyword;
+        $this->searchPage = 1;
+        $this->loadSearchPage($keyword);
+    }
+
+    private function loadSearchPage(string $keyword): void
+    {
         $query = Barang::with('satuan')
-            ->orderBy('kode_barang');
+            ->orderBy('kode_barang')
+            ->orderBy('id');
 
         if (!empty($keyword)) {
             $query->where(function($q) use ($keyword) {
@@ -395,27 +385,61 @@ new class extends Component
             });
         }
 
-        $this->searchResults = $query->limit(50)->get()->map(function($barang) {
-            $defaultSatuan = $barang->satuan->firstWhere('konversi', 1) ?? $barang->satuan->first();
-            return [
-                'id' => $barang->id,
-                'kode_barang' => $barang->kode_barang,
-                'nama_barang' => $barang->nama_barang,
-                'stok' => $barang->stok,
-                'satuan_list' => $barang->satuan->toArray(),
-                'default_harga' => $defaultSatuan ? $defaultSatuan->harga_jual : 0,
-                'default_satuan_id' => $defaultSatuan ? $defaultSatuan->id : 0,
-                'default_satuan_nama' => $defaultSatuan ? $defaultSatuan->nama_satuan : '',
-            ];
-        })->toArray();
+        $pageResults = $query
+            ->offset(($this->searchPage - 1) * self::SEARCH_PAGE_SIZE)
+            ->limit(self::SEARCH_PAGE_SIZE + 1)
+            ->get();
+
+        if ($pageResults->isEmpty() && $this->searchPage > 1) {
+            $this->searchPage = 1;
+            $this->loadSearchPage($keyword);
+            return;
+        }
+
+        $this->searchHasPreviousPage = $this->searchPage > 1;
+        $this->searchHasNextPage = $pageResults->count() > self::SEARCH_PAGE_SIZE;
+        $this->searchResults = $pageResults
+            ->take(self::SEARCH_PAGE_SIZE)
+            ->map(function($barang) {
+                $defaultSatuan = $barang->satuan->firstWhere('konversi', 1) ?? $barang->satuan->first();
+                return [
+                    'id' => $barang->id,
+                    'kode_barang' => $barang->kode_barang,
+                    'nama_barang' => $barang->nama_barang,
+                    'stok' => $barang->stok,
+                    'satuan_list' => $barang->satuan->toArray(),
+                    'default_harga' => $defaultSatuan ? $defaultSatuan->harga_jual : 0,
+                    'default_satuan_id' => $defaultSatuan ? $defaultSatuan->id : 0,
+                    'default_satuan_nama' => $defaultSatuan ? $defaultSatuan->nama_satuan : '',
+                ];
+            })->toArray();
 
         if (count($this->searchResults) > 0) {
-            $this->selectedIndex = 0;
             $this->showSearchModal = true;
         } else {
             session()->flash('error', 'Barang tidak ditemukan');
             $this->resetItemForm();
         }
+    }
+
+    public function previousSearchPage(): void
+    {
+        if (!$this->showSearchModal || !$this->searchHasPreviousPage) {
+            return;
+        }
+
+        $this->searchPage--;
+        $this->loadSearchPage($this->searchKeyword);
+    }
+
+    public function nextSearchPage(): void
+    {
+        if (!$this->showSearchModal || !$this->searchHasNextPage) {
+            return;
+        }
+
+        $this->searchPage++;
+        $this->loadSearchPage($this->searchKeyword);
     }
 
     public function updatedSearchKeyword(string $value): void
@@ -424,7 +448,6 @@ new class extends Component
             return;
         }
 
-        $this->selectedIndex = 0;
         $this->searchBarangLike(trim($value));
     }
 
@@ -461,24 +484,10 @@ new class extends Component
     {
         $this->showSearchModal = false;
         $this->searchResults = [];
-        $this->selectedIndex = 0;
         $this->searchKeyword = '';
-    }
-
-    public function moveSelectionUp(): void
-    {
-        if ($this->selectedIndex > 0) {
-            $this->selectedIndex--;
-            $this->dispatch('search-selection-changed', index: $this->selectedIndex);
-        }
-    }
-
-    public function moveSelectionDown(): void
-    {
-        if ($this->selectedIndex < count($this->searchResults) - 1) {
-            $this->selectedIndex++;
-            $this->dispatch('search-selection-changed', index: $this->selectedIndex);
-        }
+        $this->searchPage = 1;
+        $this->searchHasPreviousPage = false;
+        $this->searchHasNextPage = false;
     }
 
     public function updatedItemBarangSatuanId(): void
