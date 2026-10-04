@@ -34,6 +34,19 @@
             </select>
         </div>
 
+        <!-- CABANG -->
+        <div>
+            <label class="text-sm text-gray-600">Cabang</label>
+            <select wire:model="editCabangId"
+                    class="w-full border rounded px-3 py-2 mt-1">
+                <option value="">-- pilih cabang --</option>
+                @foreach ($cabangList as $id => $nama)
+                    <option value="{{ $id }}">{{ $nama }}</option>
+                @endforeach
+            </select>
+            @error('editCabangId') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+        </div>
+
         <!-- PASSWORD -->
         <div>
             <label class="text-sm text-gray-600">Password</label>

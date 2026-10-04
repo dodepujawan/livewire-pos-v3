@@ -15,6 +15,15 @@
 > - Route `.list/.create/.edit/.show` → permission otomatis.
 >   Aksi bisnis lain (delete/print/export/import/cancel) → tambah ke `$additionalPermissions`.
 > - Pakai `DB::transaction()` kalau 1 aksi ubah banyak tabel.
+>
+> **Cara membaca status lama:** `[x]` di Tahap 0–8 berarti fiturnya pernah dibuat,
+> bukan berarti seluruh alur sudah lolos audit akuntansi. Perbaikan hasil audit
+> dilacak pada Tahap 9 ke atas.
+>
+> **Keamanan data:** jangan ubah data produksi, menjalankan migration, atau
+> menjalankan seeder tanpa approval dan backup yang sudah diverifikasi. Database
+> aplikasi ini terhubung ke MySQL di Windows; rekonsiliasi stok/jurnal harus
+> direncanakan terpisah dari perubahan kode.
 
 ---
 
@@ -135,17 +144,159 @@
 
 ## Cara menjalankan (tiap milestone)
 
-1. Analisa & buat Mega Plan → tunggu approval.
-2. Buat migration (kalau sudah di-approve di Tahap 0).
-3. Buat Model + relationship.
-4. Buat Livewire MFC component + route (ikuti `module.resource.action`).
-4. Tambah `$additionalPermissions` untuk aksi bisnis.
-5. `DB::transaction()` untuk aksi multi-tabel.
-6. `php artisan framework:permission-sync`.
-7. Test: `php artisan test`.
-8. Update dokumentasi.
+1. Baca milestone dan dokumen teknis terkait, termasuk `docs/MEGA_PLAN_pos_ledger.md`.
+2. Mulai dengan sesi tanya-jawab: jelaskan istilah memakai bahasa sederhana dan contoh angka sebelum memilih aturan.
+3. Sepakati contoh hasil yang diinginkan, lalu buat Mega Plan dan tunggu approval sebelum coding.
+4. Buat/ubah migration hanya setelah approval Tahap 0, backup, dan pengecekan status migration.
+5. Buat atau ubah Model + relationship sesuai kebutuhan.
+6. Buat Livewire MFC component + route (ikuti `module.resource.action`) dan permission yang sesuai.
+7. Pakai `DB::transaction()` untuk aksi multi-tabel; lindungi pelunasan dari pembayaran bersamaan.
+8. Jalankan `php artisan framework:permission-sync` bila ada route/permission baru.
+9. Test skenario yang disepakati dengan `php artisan test`; jangan menjalankan test yang mereset database produksi.
+10. Perbarui checklist milestone dan `docs/MODULE_milestone_desktop_pos_ledger.md`, termasuk istilah yang dipelajari dan pertanyaan yang belum terjawab.
 
 > Ingat: jangan ubah migration/program inti tanpa approval. Dokumentasi ini
 > adalah acuan bersama, bisa dilanjutkan AI mana pun asal baca `docs/` dulu.
 
 > tambahan tolong catat progress disini docs/MODULE_milestone_desktop_pos_ledger.md kalo perlu kasi sedikit hints untuk selanjutnya sehingga ai lain ada acuan lebih clear
+
+---
+
+## Upgrade Setelah Audit (Tahap 9+)
+
+Tahap ini memperbaiki fitur yang sudah ada. Kerjakan berurutan karena jurnal dan
+laporan bergantung pada aturan akun, metode pembayaran, serta stok yang benar.
+Jangan tandai selesai hanya karena halaman atau kolomnya sudah tersedia; gunakan
+kriteria selesai di setiap tahap.
+
+### Snapshot Audit (3 Oktober 2026)
+
+Pengecekan database di bawah hanya membaca hitungan agregat, tidak mengubah data.
+Angka dapat berubah; cek ulang sebelum membuat rencana perbaikan data.
+
+- 13 transaksi `SELESAI` memiliki jurnal penjualan, tetapi 3 transaksi memiliki jurnal penjualan lebih dari satu.
+- Ada 1 transaksi `DRAFT` dan 1 `BATAL` yang ikut terhitung pada total default Laporan Penjualan.
+- Ada 16 mutasi kas: 14 `MASUK`, 2 `KELUAR`; semuanya bersumber dari `PENJUALAN`.
+- Semua 16 mutasi kas memiliki `saldo_akhir` kosong; halaman menampilkannya sebagai nol.
+- Kode akun transaksi masih ditulis langsung di service; belum ada halaman pengelolaan akun.
+- Tidak ada test khusus yang menguji alur akuntansi, jurnal, atau stok per cabang.
+
+### Tahap 9 — Sepakati Aturan Pembukuan
+
+**Tujuan:** programmer tidak menebak-nebak aturan uang, pajak, dan persediaan.
+
+- [ ] Putuskan arti akun `Kas`, `Bank`, akun penampung QRIS, `Piutang`, `Hutang`, `Penjualan`, `Pajak`, `Persediaan`, dan HPP dengan contoh sederhana.
+- [ ] Putuskan kapan penjualan dianggap terjadi dan bagaimana penjualan kredit serta uang muka dicatat.
+- [ ] Putuskan perlakuan pembayaran tunai, transfer, QRIS, biaya QRIS, pembayaran sebagian, refund, dan pembatalan.
+- [ ] Putuskan apakah Laporan Kas menampilkan nilai bersih penjualan atau uang diterima dan kembalian sebagai dua gerakan terpisah.
+- [ ] Putuskan apakah akun dan laporan berlaku untuk seluruh perusahaan atau dapat dipisah per cabang.
+- [ ] Catat keputusan pajak dan saldo awal bersama pemilik/akuntan; jangan menetapkan aturan pajak hanya dari asumsi programmer.
+
+**Selesai jika:** contoh transaksi tunai, transfer/QRIS, piutang, pelunasan sebagian, pembelian, dan refund sudah disepakati sebelum jurnal diubah.
+
+### Tahap 10 — Jadikan Stok Per Cabang sebagai Sumber Utama
+
+**Tujuan:** stok cabang A tidak ikut berubah saat cabang B menjual atau menerima barang.
+
+- [ ] Gunakan `barang_stok(barang_id, cabang_id)` sebagai angka stok yang dibaca dan diubah transaksi.
+- [ ] Hentikan penggunaan `barang.stok` global untuk validasi penjualan, penerimaan pembelian, edit barang, dan saldo stok cabang.
+- [ ] Pilih nasib `barang.stok`: hapus setelah semua pemakaian dipindah, atau pertahankan hanya sebagai total hasil penjumlahan semua cabang. Jangan jadikan angka global kedua yang bisa diedit terpisah.
+- [ ] Sesuaikan stok saat jual, edit transaksi, batal/refund, terima/batal pembelian, koreksi stok manual, dan transfer antar cabang.
+- [ ] Pisahkan data katalog barang dari saldo stok. Tambah/edit nama atau harga barang tidak boleh tanpa sengaja mengubah stok.
+- [ ] Excel tambah barang: minta cabang jika sekaligus memasukkan stok awal; jika tidak, hanya buat katalog barang.
+- [ ] Excel update barang: tetap hanya mengubah data barang/satuan. Buat alur koreksi stok Excel terpisah yang meminta cabang dan mencatat `stok_mutasi`.
+- [ ] Rekonsiliasi nilai `barang.stok` lama ke stok cabang melalui rencana yang disetujui; jangan membagi stok global ke semua cabang secara otomatis.
+
+**Selesai jika:** menerima 5 barang di cabang A hanya menambah stok A; menjual 2 di cabang B hanya mengurangi stok B; total pusat merupakan jumlah cabang, bukan sumber stok transaksi.
+
+### Tahap 11 — Rapikan Daftar dan Pemetaan Akun
+
+**Tujuan:** sistem tahu uang transfer masuk ke Bank, bukan selalu ke Kas.
+
+- [ ] Pertahankan akun dasar dari seeder yang idempotent, lalu sediakan halaman admin untuk akun tambahan yang memang dibutuhkan usaha.
+- [ ] Validasi kode akun unik, kategori akun terkontrol, akun yang sudah dipakai jurnal tidak bisa dihapus, dan akun lama bisa dinonaktifkan.
+- [ ] Tambahkan akun Bank dan/atau penampung QRIS sesuai rekening/provider yang digunakan; jangan memakai kode yang bentrok dengan akun Piutang/Persediaan saat ini.
+- [ ] Ganti kode akun hard-coded (`1001`, `4001`, dan seterusnya) dengan pemetaan akun yang bisa ditinjau admin.
+- [ ] Tentukan apakah bagan akun satu untuk semua cabang atau per cabang, lalu samakan aturan kode unik dan filter laporan.
+
+**Selesai jika:** setiap metode pembayaran menunjuk akun tujuan yang benar dan akun yang tidak tersedia membuat transaksi gagal dengan pesan jelas, bukan membuat jurnal kosong.
+
+### Tahap 12 — Betulkan Jurnal Penjualan, Pembelian, dan Pelunasan
+
+**Tujuan:** setiap kejadian dicatat satu kali, pada akun dan waktu yang tepat.
+
+- [ ] Penjualan tunai mencatat Kas; transfer mencatat Bank; QRIS mencatat Bank atau akun penampung QRIS sesuai waktu pencairan.
+- [ ] Penjualan `PIUTANG` mencatat Piutang dan Penjualan saat penjualan terjadi. Saat pelanggan membayar, catat Kas/Bank bertambah dan Piutang berkurang; jangan mengakui Penjualan untuk kedua kalinya.
+- [ ] Dukung pelunasan sebagian: saldo Piutang/Hutang turun hanya sebesar pembayaran yang berhasil diterima/dibayar.
+- [ ] Pembelian berstatus diterima membuat catatan Hutang yang dapat dilunasi, jurnal, mutasi stok, dan saldo stok cabang dalam satu transaksi database.
+- [ ] Pelunasan Piutang/Hutang menghormati metode Tunai/Transfer/QRIS. Samakan daftar sumber yang diizinkan database dengan sumber yang ditulis service.
+- [ ] Edit transaksi yang sudah dijurnal memperbarui jurnal terkait atau membuat pembalikan dan jurnal pengganti; jangan menambah jurnal penjualan penuh berulang kali.
+- [ ] Pembatalan penjualan/pembelian yang sudah berdampak membuat jurnal pembalik dan menyesuaikan kas/bank serta stok dengan benar.
+- [ ] Pastikan debit dan kredit jurnal seimbang, posting tidak membuat jurnal duplikat, dan kegagalan salah satu langkah membatalkan seluruh perubahan terkait.
+- [ ] Periksa transaksi lama yang memiliki 3 jurnal penjualan duplikat. Buat rencana koreksi dengan daftar transaksi, nilai, dan dampak laporan; minta approval sebelum mengubah data produksi.
+
+**Selesai jika:** contoh tunai, transfer, QRIS, piutang lunas/sebagian, pembelian diterima/dibatalkan, edit, dan refund menghasilkan jurnal seimbang dan tidak ganda.
+
+### Tahap 13 — Pisahkan Buku Kas dan Bank
+
+**Tujuan:** laporan menunjukkan uang berada di laci kas, rekening bank, atau masih di penyedia QRIS.
+
+- [ ] Catat hanya uang tunai fisik pada Laporan Kas, kecuali keputusan Tahap 9 menetapkan bentuk lain.
+- [ ] Catat transfer pada rekening Bank yang sesuai; catat QRIS yang belum cair pada akun penampung dan pindahkan ke Bank saat dana benar-benar cair.
+- [ ] Catat biaya transfer/QRIS terpisah dari nilai penjualan jika memang ada.
+- [ ] Tambahkan sumber pelunasan, setoran, penarikan, refund, dan koreksi kas dengan daftar tipe yang konsisten antara aplikasi dan database.
+- [ ] Hitung saldo berjalan dari saldo awal + uang masuk - uang keluar, atau gunakan cara lain yang disetujui dan selalu terbarui. Jangan menampilkan `0` sebagai saldo jika nilainya sebenarnya kosong.
+- [ ] Sediakan laporan Kas/Bank dengan filter cabang, rekening/akun, metode/sumber, dan periode; tidak perlu halaman terpisah per metode kecuali dibutuhkan untuk rekonsiliasi provider.
+
+**Selesai jika:** saldo laporan cocok dengan saldo awal ditambah/kurang semua mutasi dan dapat dicocokkan dengan hitung kas/rekening nyata.
+
+### Tahap 14 — Betulkan Rumus dan Filter Laporan
+
+**Tujuan:** angka di laporan mengikuti transaksi/jurnal yang benar dan bisa ditelusuri.
+
+- [ ] Laporan Penjualan tidak memasukkan `DRAFT`/`BATAL` ke total penjualan normal; status tersebut tetap bisa dilihat lewat filter khusus.
+- [ ] Samakan rumus subtotal, diskon, pajak, total invoice, dan nilai jurnal. Jangan mengurangi diskon dua kali.
+- [ ] Perbaiki Laporan Arus Kas agar total MASUK dan KELUAR memakai query independen; saat ini filter MASUK terbawa ke perhitungan KELUAR.
+- [ ] Perbaiki Neraca: tanda saldo ASET, UTANG, MODAL, Pendapatan, dan Beban mengikuti kategori akun; uji bahwa Aset = Utang + Modal + laba/rugi.
+- [ ] Perbaiki Laba Rugi agar jurnal refund/pembalik mengurangi pendapatan, bukan diabaikan.
+- [ ] Perbaiki Buku Besar agar filter nomor jurnal, tanggal, cabang, dan akun tidak saling bocor; sediakan pilihan akun dan saldo berjalan.
+- [ ] Putuskan serta terapkan filter cabang yang konsisten: laporan per cabang atau gabungan seluruh cabang.
+
+**Selesai jika:** total laporan dapat ditelusuri ke transaksi/jurnal sumber, hasil filter tidak mengambil data di luar filter, dan Neraca seimbang.
+
+### Tahap 15 — Tes dan Rekonsiliasi Pra-Closing
+
+**Tujuan:** pastikan stok, pembayaran, jurnal, dan laporan sudah dapat dipercaya sebelum menambah proses closing.
+
+- [ ] Tambahkan test untuk stok dua cabang, import Excel katalog/stok, penjualan tunai/non-tunai/piutang, pelunasan sebagian, penerimaan/pembatalan pembelian, refund, dan semua laporan terkait.
+- [ ] Tambahkan pemeriksaan otomatis: jurnal seimbang, tidak ada jurnal duplikat untuk satu kejadian, saldo stok cabang tidak berubah karena cabang lain, dan saldo kas/bank cocok dengan mutasi.
+- [ ] Sebelum migration: minta approval, cek `php artisan migrate:status`, backup MySQL dan verifikasi backup. Jalankan hanya migration baru yang sudah disetujui.
+- [ ] Jangan gunakan `migrate:fresh`, `migrate:refresh`, `migrate:reset`, atau `db:seed` pada database ini tanpa approval eksplisit dan backup terverifikasi.
+- [ ] Rekonsiliasi stok global lama, jurnal duplikat, dan saldo kas secara terpisah. Simpan hasil sebelum/sesudah dan approval; jangan otomatis menghapus jurnal lama.
+- [ ] Perbarui `docs/MODULE_milestone_desktop_pos_ledger.md` setiap tahap selesai, termasuk test, migration, keputusan yang dipakai, dan sisa risiko.
+
+**Selesai jika:** test relevan lulus, laporan cocok dengan contoh yang disepakati, data lama punya rencana rekonsiliasi yang disetujui, dan dokumen progress diperbarui.
+
+### Tahap 16 — Closing Kasir dan Penutupan Periode (tahap terakhir)
+
+**Tujuan:** memastikan uang dan laporan sudah diperiksa sebelum satu hari atau satu periode dianggap selesai. Closing dibuat setelah stok, akun, jurnal, dan laporan pada Tahap 9–15 dapat dipercaya.
+
+#### A. Tutup kasir harian
+
+- [ ] Sepakati apakah kasir membuka shift dengan mencatat uang awal dan apakah satu shift dimiliki satu kasir/cabang.
+- [ ] Hitung uang tunai yang seharusnya ada: saldo awal + uang tunai masuk - uang tunai keluar.
+- [ ] Minta kasir memasukkan jumlah uang fisik saat tutup, idealnya per pecahan.
+- [ ] Tampilkan selisih antara uang yang dihitung dan angka yang diharapkan; jika berbeda, wajib isi alasan dan catatan.
+- [ ] Cocokkan transaksi tunai, kembalian/refund, setoran, dan pengeluaran kas. Transfer/QRIS direkonsiliasi pada akun Bank/penampungnya, bukan dicampur sebagai uang laci.
+- [ ] Setelah ditutup, jangan izinkan perubahan diam-diam pada transaksi shift; koreksi harus melalui izin, alasan, dan riwayat audit.
+
+#### B. Tutup buku periode
+
+- [ ] Tentukan periode yang akan ditutup (misalnya bulanan) dan siapa yang boleh menutup/membuka ulang periode.
+- [ ] Periksa transaksi tertunda, saldo stok, Piutang/Hutang, Kas/Bank/QRIS, pajak, jurnal debit-kredit, Laba Rugi, dan Neraca.
+- [ ] Simpan hasil laporan dan daftar perbedaan yang belum selesai sebelum periode dikunci.
+- [ ] Setelah dikunci, cegah transaksi bertanggal lama diedit tanpa pembukaan kembali yang tercatat; koreksi harus melalui jurnal penyesuaian yang disetujui.
+- [ ] Putuskan bersama akuntan apakah perlu jurnal penutup untuk memindahkan Pendapatan/Beban ke akun laba ditahan. Jangan membuat jurnal penutup otomatis hanya karena tombol “Tutup Periode” ditekan.
+- [ ] Bedakan “menutup/mengunci periode” dari “jurnal penutup”: yang pertama mencegah perubahan periode lama; yang kedua adalah pencatatan akuntansi yang aturan waktunya perlu disepakati.
+
+**Selesai jika:** kasir dapat menjelaskan selisih kas, laporan periode dapat ditelusuri dan disetujui, periode terkunci, serta setiap koreksi setelah closing meninggalkan jejak audit.

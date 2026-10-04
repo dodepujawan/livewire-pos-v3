@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Models\Cabang;
 use Livewire\Component;
 use Spatie\Permission\Models\Role;
 use Illuminate\Validation\Rule;
@@ -11,19 +12,19 @@ new class extends Component
 {
     public $userId;
 
-    // prefix biar konsisten
     public $editName = '';
     public $editEmail = '';
     public $editRole = '';
     public $editPassword = '';
+    public $editCabangId = '';
 
     public $roles = [];
+    public array $cabangList = [];
 
     public function mount($id)
     {
         $authUser = Auth::user();
 
-        // kalau bukan admin & bukan dirinya sendiri → blok
         if (!$authUser->hasRole('Super Admin') && $authUser->id != $id) {
             abort(403, 'Tidak punya akses');
         }
@@ -34,9 +35,19 @@ new class extends Component
         $this->editName = $user->name;
         $this->editEmail = $user->email;
         $this->editRole = $user->getRoleNames()->first();
+        $this->editCabangId = $user->cabang_id ?? '';
 
-        // untuk menampilkan data roles di spatie ke select
         $this->roles = Role::pluck('name')->toArray();
+        $this->loadCabangList();
+    }
+
+    private function loadCabangList(): void
+    {
+        $this->cabangList = Cabang::where('is_aktif', true)
+            ->orderBy('nama_cabang')
+            ->get()
+            ->mapWithKeys(fn($c) => [$c->id => $c->nama_cabang])
+            ->toArray();
     }
 
     public function update()
@@ -47,23 +58,31 @@ new class extends Component
             abort(403);
         }
 
-        $this->validate();
+        $this->validate([
+            'editName' => ['required', 'string', 'max:255'],
+            'editEmail' => [
+                'required',
+                'email',
+                Rule::unique('users', 'email')->ignore($this->userId),
+            ],
+            'editRole' => ['required'],
+            'editCabangId' => ['required', 'exists:cabang,id'],
+            'editPassword' => ['nullable', 'min:6'],
+        ]);
 
         $user = User::findOrFail($this->userId);
 
         $data = [
             'name' => $this->editName,
             'email' => $this->editEmail,
+            'cabang_id' => $this->editCabangId,
         ];
 
-        // kalau password diisi → update
         if (!empty($this->editPassword)) {
             $data['password'] = Hash::make($this->editPassword);
         }
 
         $user->update($data);
-
-        // role (Spatie)
         $user->syncRoles([$this->editRole]);
 
         session()->flash('message', 'User berhasil diupdate');
@@ -71,21 +90,17 @@ new class extends Component
         return $this->redirect(route('auth.register.list'), navigate: true);
     }
 
-    // dia dipangil lewat $this->validate();
     public function rules()
     {
         return [
             'editName' => ['required', 'string', 'max:255'],
-
             'editEmail' => [
                 'required',
                 'email',
                 Rule::unique('users', 'email')->ignore($this->userId),
             ],
-
             'editRole' => ['required'],
-
-            // password optional
+            'editCabangId' => ['required', 'exists:cabang,id'],
             'editPassword' => ['nullable', 'min:6'],
         ];
     }

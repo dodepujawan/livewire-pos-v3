@@ -46,11 +46,28 @@
             @error('regRole') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
         </div>
 
-        <!-- Button -->
-        <button wire:click="register"
-            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-            Simpan
-        </button>
+        <!-- Cabang -->
+        <div>
+            <select wire:model="regCabangId"
+                class="w-full border p-2 rounded">
+                <option value="">-- pilih cabang --</option>
+                @foreach ($cabangList as $id => $nama)
+                    <option value="{{ $id }}">{{ $nama }}</option>
+                @endforeach
+            </select>
+            @error('regCabangId') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+        </div>
+
+        <!-- ACTION -->
+        <div class="flex justify-between pt-2 mt-2">
+            <a href="{{ route('auth.register.list') }}" wire:navigate class="text-gray-600 hover:underline">
+                ← Kembali
+            </a>
+            <button wire:click="register"
+                class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                Simpan
+            </button>
+        </div>
 
     </div>
 </div>
