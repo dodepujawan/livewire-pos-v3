@@ -30,12 +30,22 @@ class BarangStockExport implements FromCollection, WithHeadings, WithTitle
                 'stok_sekarang' => (int) ($barang->stok_sekarang ?? 0),
                 'stok_baru' => null,
                 'alasan' => null,
+                'jenis_template' => 'PENYESUAIAN_STOK_V1',
+                'cabang_template_id' => $this->cabangId,
             ]);
     }
 
     public function headings(): array
     {
-        return ['kode_barang', 'nama_barang', 'stok_sekarang', 'stok_baru', 'alasan'];
+        return [
+            'kode_barang',
+            'nama_barang',
+            'stok_sekarang',
+            'stok_baru',
+            'alasan',
+            'jenis_template',
+            'cabang_template_id',
+        ];
     }
 
     public function title(): string

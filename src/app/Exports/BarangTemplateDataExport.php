@@ -11,14 +11,14 @@ class BarangTemplateDataExport implements Export, FromArray, WithHeadings, WithT
 {
     public function array(): array
     {
-        return [];
+        return [[null, null, null, null, null, null, null, 'BARANG_BARU_V1']];
     }
 
     public function headings(): array
     {
         return [
             'kode_barang', 'nama_barang', 'stok', 'nama_satuan',
-            'konversi', 'harga_jual', 'harga_beli',
+            'konversi', 'harga_jual', 'harga_beli', 'jenis_template',
         ];
     }
 

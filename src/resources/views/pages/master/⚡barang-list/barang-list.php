@@ -32,6 +32,7 @@ new class extends Component
     public bool $showBarangExcelGuide = false;
     public string $barangImportMode = 'new';
     public int $barangImportCabangId = 0;
+    public int $barangStockCabangId = 0;
     public array $listCabang = [];
 
     public function mount(): void
@@ -46,6 +47,7 @@ new class extends Component
         $this->barangImportCabangId = isset($this->listCabang[$userBranch])
             ? (int) $userBranch
             : (int) (array_key_first($this->listCabang) ?? 0);
+        $this->barangStockCabangId = $this->barangImportCabangId;
     }
 
     public function updatingSearchBarangKeyword()
@@ -68,6 +70,9 @@ new class extends Component
     public function downloadBarangTemplate()
     {
         abort_unless(auth()->user()->can('master.barang.export'), 403);
+        $this->reset('barangImportFile');
+        $this->resetValidation();
+        $this->barangImportMode = 'new';
 
         return Excel::download(new BarangTemplateExport(), '1-tambah-barang-baru.xlsx');
     }
@@ -75,6 +80,9 @@ new class extends Component
     public function exportBarangData()
     {
         abort_unless(auth()->user()->can('master.barang.export'), 403);
+        $this->reset('barangImportFile');
+        $this->resetValidation();
+        $this->barangImportMode = 'update';
 
         return Excel::download(new BarangExport(), '2-edit-atau-tambah-satuan-barang.xlsx');
     }
@@ -82,15 +90,19 @@ new class extends Component
     public function downloadStokCabangTemplate()
     {
         abort_unless(auth()->user()->can('master.barang.export'), 403);
+        $this->selectBarangImportMode('stock');
+        $this->reset('barangImportFile');
+        $this->resetValidation();
 
-        if (! Cabang::query()->whereKey($this->barangImportCabangId)->where('is_aktif', true)->exists()) {
-            $this->addError('barangImportCabangId', 'Pilih cabang aktif untuk template penyesuaian stok.');
+        if (! Cabang::query()->whereKey($this->barangStockCabangId)->where('is_aktif', true)->exists()) {
+            $this->addError('barangStockCabangId', 'Pilih cabang aktif untuk template penyesuaian stok.');
             return;
         }
 
+        $this->barangImportMode = 'stock';
         return Excel::download(
-            new BarangStockExport($this->barangImportCabangId),
-            'template-penyesuaian-stok-cabang-' . $this->barangImportCabangId . '.xlsx',
+            new BarangStockExport($this->barangStockCabangId),
+            '3-penyesuaian-stok-cabang-' . $this->barangStockCabangId . '.xlsx',
         );
     }
 
@@ -115,8 +127,18 @@ new class extends Component
             return;
         }
 
+        if ($this->barangImportMode !== $mode) {
+            $this->reset('barangImportFile');
+        }
+
         $this->barangImportMode = $mode;
         $this->resetValidation();
+    }
+
+    public function updatedBarangStockCabangId(): void
+    {
+        $this->reset('barangImportFile');
+        $this->resetValidation('barangImportFile');
     }
 
     public function toggleBarangExcelGuide(): void
@@ -150,12 +172,30 @@ new class extends Component
 
             $groups = [];
             $errors = [];
+            $templateMarker = $this->barangImportMode === 'new'
+                ? 'BARANG_BARU_V1'
+                : 'UPDATE_BARANG_V1';
+            $hasTemplateMarker = false;
 
             foreach ($rows as $rowIndex => $row) {
                 $line = $rowIndex + 2;
                 $code = strtoupper(trim((string) ($row['kode_barang'] ?? '')));
                 $name = trim((string) ($row['nama_barang'] ?? ''));
                 $unitName = strtoupper(trim((string) ($row['nama_satuan'] ?? '')));
+                $rowMarker = strtoupper(trim((string) ($row['jenis_template'] ?? '')));
+                $hasProductData = $code !== '' || $name !== '' || $unitName !== '';
+
+                if ($rowMarker !== '' && $rowMarker !== $templateMarker) {
+                    $errors[] = "Baris {$line}: file ini bukan template untuk aktivitas yang dipilih.";
+                    continue;
+                }
+                if ($hasProductData && $rowMarker !== $templateMarker) {
+                    $errors[] = "Baris {$line}: penanda jenis template hilang atau telah diubah.";
+                    continue;
+                }
+                if ($rowMarker === $templateMarker) {
+                    $hasTemplateMarker = true;
+                }
 
                 if ($code === '' && $name === '' && $unitName === '') {
                     continue;
@@ -203,6 +243,9 @@ new class extends Component
 
             if ($groups === []) {
                 $errors[] = 'File Excel tidak memiliki data barang.';
+            }
+            if (! $hasTemplateMarker) {
+                $errors[] = 'Penanda jenis template tidak ditemukan. Unduh kembali template untuk aktivitas ini.';
             }
 
             $existingCodes = Barang::whereIn('kode_barang', array_keys($groups))
@@ -328,7 +371,7 @@ new class extends Component
 
     private function importStokCabangRows(\Illuminate\Support\Collection $rows): void
     {
-        if (! Cabang::query()->whereKey($this->barangImportCabangId)->where('is_aktif', true)->exists()) {
+        if (! Cabang::query()->whereKey($this->barangStockCabangId)->where('is_aktif', true)->exists()) {
             $this->addError('barangImportFile', 'Pilih cabang aktif untuk penyesuaian stok.');
             return;
         }
@@ -342,8 +385,18 @@ new class extends Component
             $code = strtoupper(trim((string) ($row['kode_barang'] ?? '')));
             $stockValue = $row['stok_baru'] ?? null;
             $reason = trim((string) ($row['alasan'] ?? ''));
+            $rowMarker = strtoupper(trim((string) ($row['jenis_template'] ?? '')));
+            $templateBranchId = $row['cabang_template_id'] ?? null;
 
-            if ($code === '' && ($stockValue === null || trim((string) $stockValue) === '') && $reason === '') {
+            if ($code === '' && ($stockValue === null || trim((string) $stockValue) === '') && $reason === '' && $rowMarker === '') {
+                continue;
+            }
+            if ($rowMarker !== 'PENYESUAIAN_STOK_V1') {
+                $errors[] = "Baris {$line}: file ini bukan template penyesuaian stok.";
+                continue;
+            }
+            if (! is_numeric($templateBranchId) || (int) $templateBranchId !== $this->barangStockCabangId) {
+                $errors[] = "Baris {$line}: cabang di template berbeda dari cabang yang dipilih.";
                 continue;
             }
             if ($code === '' || str_starts_with($code, '=')) {
@@ -394,7 +447,7 @@ new class extends Component
             }
 
             $barang = $products->get($record['kode_barang']);
-            $stokSaatIni = StokCabangService::tersedia($barang->id, $this->barangImportCabangId);
+            $stokSaatIni = StokCabangService::tersedia($barang->id, $this->barangStockCabangId);
             if ($record['stok_baru'] !== $stokSaatIni && $record['alasan'] === '') {
                 $errors[] = "Baris {$record['line']}: isi alasan untuk stok yang berubah.";
             }
@@ -411,7 +464,7 @@ new class extends Component
                     $barang = $products->get($record['kode_barang']);
                     StokCabangService::aturSaldo(
                         $barang->id,
-                        $this->barangImportCabangId,
+                        $this->barangStockCabangId,
                         $record['stok_baru'],
                         $record['alasan'],
                     );

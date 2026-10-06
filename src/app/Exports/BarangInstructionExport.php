@@ -22,6 +22,8 @@ class BarangInstructionExport implements Export, FromArray, WithTitle
             ['- Isi stok pada baris konversi terkecil; baris satuan lain boleh dikosongkan.'],
             ['- Pilih cabang pada aplikasi saat upload; stok awal hanya masuk ke cabang tersebut.'],
             ['- Jika stok belum diketahui, kosongkan kolom stok. Stok dapat disesuaikan kemudian dari form barang dengan alasan.'],
+            ['- Jangan ubah kolom jenis_template; sistem menggunakannya untuk memastikan file ini diproses sebagai barang baru.'],
+            ['- Saat menambah baris barang/satuan, salin juga nilai jenis_template dari baris sebelumnya.'],
             ['- Mode ini hanya untuk kode barang yang belum terdaftar.'],
             [''],
             ['UPDATE BARANG EXISTING'],

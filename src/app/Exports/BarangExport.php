@@ -30,6 +30,7 @@ class BarangExport implements Export, FromCollection, WithHeadings, WithTitle
                     'konversi' => $satuan->konversi,
                     'harga_jual' => $satuan->harga_jual,
                     'harga_beli' => $satuan->harga_beli,
+                    'jenis_template' => 'UPDATE_BARANG_V1',
                 ]);
             });
     }
@@ -38,7 +39,7 @@ class BarangExport implements Export, FromCollection, WithHeadings, WithTitle
     {
         return [
             'kode_barang', 'nama_barang', 'stok_total_semua_cabang', 'nama_satuan',
-            'konversi', 'harga_jual', 'harga_beli',
+            'konversi', 'harga_jual', 'harga_beli', 'jenis_template',
         ];
     }
 

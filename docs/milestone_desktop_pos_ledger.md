@@ -223,9 +223,10 @@ Keputusan berikut disetujui pada 6 Oktober 2026 dan menjadi dasar contoh di taha
 - [x] Excel tambah barang: stok awal opsional; bila ada stok, wajib pilih cabang. Tanpa stok awal, import hanya membuat katalog.
 - [x] Excel update barang hanya mengubah data barang/satuan; kolom total stok export hanya informasi dan tidak ditulis kembali.
 - [x] Excel memiliki mode penyesuaian stok terpisah: pilih cabang, isi jumlah akhir dan alasan; mutasi dicatat satu per barang.
+- [x] Saat aktivitas berubah, file upload lama dikosongkan. Import memeriksa penanda jenis template dan ID cabang pada template stok sebelum menulis data.
 - [ ] Rekonsiliasi nilai `barang.stok` lama ke stok cabang melalui rencana yang disetujui; jangan membagi stok global ke semua cabang secara otomatis.
 
-**Progress 6 Oktober 2026:** perubahan kode stok per cabang dan mode koreksi Excel sudah dibuat. Pengecekan service terisolasi di SQLite in-memory, PHP lint, dan kompilasi Blade lulus. Test PHPUnit belum dapat dijalankan karena paket PHPUnit tidak ada di container dan PHP lokal 8.3.17 (project meminta >=8.4.1). Belum ada migration atau perubahan data produksi. Tahap 10 belum selesai sampai stok historis direkonsiliasi dan pengujian aplikasi dijalankan di lingkungan yang sesuai.
+**Progress 6 Oktober 2026:** perubahan kode stok per cabang dan mode koreksi Excel sudah dibuat. Pengecekan service terisolasi di SQLite in-memory, PHP lint, dan kompilasi Blade lulus. Test PHPUnit berjalan 1,69 detik tetapi gagal saat `RefreshDatabase` membuat tabel `pelunasan` di SQLite: migration memasang dua foreign key ke tabel berbeda pada kolom `referensi_id`, sehingga test berhenti sebelum assertion. Belum ada migration atau perubahan data produksi. Tahap 10 belum selesai sampai masalah setup test, rekonsiliasi stok historis, dan pengujian aplikasi dibereskan.
 
 **Selesai jika:** menerima 5 barang di cabang A hanya menambah stok A; menjual 2 di cabang B hanya mengurangi stok B; total pusat merupakan jumlah cabang, bukan sumber stok transaksi.
 

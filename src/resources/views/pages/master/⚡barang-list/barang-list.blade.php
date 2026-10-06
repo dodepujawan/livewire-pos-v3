@@ -87,7 +87,7 @@
 
     @if($showBarangExcelModal)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-xl">
+            <div class="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-xl bg-white shadow-xl">
                 <div class="flex items-center justify-between border-b px-6 py-4">
                     <div>
                         <h2 class="text-lg font-semibold">Excel Barang</h2>
@@ -101,7 +101,7 @@
                         <div class="flex items-center justify-between gap-3">
                             <div>
                                 <p class="font-semibold text-slate-800">Cara kerja Excel Barang</p>
-                                <p class="text-sm text-slate-600">Pilih aktivitas, isi atau edit file, upload, lalu sistem memvalidasi sebelum menyimpan.</p>
+                                <p class="text-sm text-slate-600">Pilih salah satu dari tiga kartu, unduh file yang sesuai, isi file, lalu upload untuk divalidasi sebelum disimpan.</p>
                             </div>
                             <button type="button" wire:click="toggleBarangExcelGuide" class="shrink-0 text-sm font-medium text-blue-700 hover:underline">
                                 {{ $showBarangExcelGuide ? 'Tutup Panduan' : 'Lihat Panduan' }}
@@ -109,64 +109,127 @@
                         </div>
                         @if($showBarangExcelGuide)
                             <div class="mt-3 space-y-2 border-t border-slate-200 pt-3 text-sm text-slate-700">
-                                <p><strong>Tambah barang baru:</strong> download template kosong, pilih cabang stok awal, lalu isi stok opsional pada file. Stok hanya ditempatkan pada cabang terpilih.</p>
-                                <p><strong>Ubah data lama:</strong> export data barang, edit file hasil export, lalu pilih mode Update Barang Existing. Angka total stok di export hanya informasi.</p>
-                                <p><strong>Tambah satuan:</strong> pada file export, tambahkan baris di bawah barang terkait dengan kode_barang yang sama, lalu gunakan mode Update Barang Existing.</p>
-                                <p><strong>Penyesuaian stok:</strong> pilih cabang, download template cabang tersebut, isi stok_baru sebagai jumlah akhir dan alasan. Baris tanpa stok_baru tidak diubah.</p>
-                                <p class="text-amber-700"><strong>Catatan:</strong> mode Update Barang Existing tidak mengubah stok. Penyesuaian Excel dicatat ke riwayat stok cabang.</p>
+                                <p><strong>A. Tambah barang baru:</strong> unduh template kosong. Jika ingin memasukkan stok awal lebih dari nol, pilih cabang agar stok hanya masuk ke cabang tersebut. Jika baru menambah katalog, pilih “Tanpa stok awal”. Jangan ubah kolom `jenis_template`; salin nilainya saat menambah baris.</p>
+                                <p><strong>B. Update data barang:</strong> unduh Export Data Barang, ubah nama/harga atau satuan, lalu upload lewat kartu Update Data Barang. Angka total stok pada export hanya informasi dan tidak diimpor kembali. Jangan ubah kolom `jenis_template`.</p>
+                                <p><strong>Tambah satuan:</strong> pada file export, tambah baris dengan kode_barang yang sama dan nama satuan baru, lalu upload sebagai Update Data Barang.</p>
+                                <p><strong>C. Penyesuaian stok cabang:</strong> cabang wajib dipilih; tidak ada pilihan untuk mengubah semua cabang sekaligus. Unduh template untuk cabang itu, isi stok_baru sebagai jumlah akhir hasil hitung fisik (bukan selisih), serta alasan. Baris tanpa stok_baru tidak diubah. Jangan ubah kolom `jenis_template` dan `cabang_template_id`; sistem memeriksa keduanya saat upload.</p>
+                                <p>Jika aktivitas atau cabang penyesuaian stok diganti setelah file dipilih, file dikosongkan agar file lama tidak terproses dengan pilihan baru.</p>
+                                <p class="text-amber-700"><strong>Catatan:</strong> setiap upload penyesuaian stok hanya memengaruhi cabang yang dipilih dan menulis riwayat mutasi stok.</p>
                             </div>
                         @endif
                     </div>
 
-                    <p class="text-sm font-semibold text-slate-700">Saya ingin...</p>
-                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        @if(auth()->user()->can('master.barang.export'))
-                            <button type="button" wire:click="downloadBarangTemplate" class="rounded-lg border border-blue-600 px-4 py-3 text-left text-blue-700 hover:bg-blue-50">
-                                <span class="block font-semibold">Template Barang Baru</span>
-                                <span class="text-xs">File kosong untuk menambah kode barang baru.</span>
-                            </button>
-                            <button type="button" wire:click="exportBarangData" class="rounded-lg border border-indigo-600 px-4 py-3 text-left text-indigo-700 hover:bg-indigo-50">
-                                <span class="block font-semibold">Export Data Barang</span>
-                                <span class="text-xs">Download data barang yang sudah ada.</span>
-                            </button>
-                        @endif
-                    </div>
-
-                    @if(auth()->user()->can('master.barang.import'))
-                        <form wire:submit="importBarang" class="space-y-4 border-t pt-5">
-                            <div>
-                                <label class="mb-2 block text-sm font-medium">Saya ingin</label>
-                                <select wire:model.live="barangImportMode" class="w-full rounded-lg border px-3 py-2">
-                                    <option value="new">Import Barang Baru</option>
-                                    <option value="update">Update atau Tambah Satuan Barang Existing</option>
-                                    <option value="stock">Penyesuaian Stok per Cabang</option>
-                                </select>
-                            </div>
-                            @if(in_array($barangImportMode, ['new', 'stock'], true))
-                                <div>
-                                    <label class="mb-2 block text-sm font-medium">{{ $barangImportMode === 'stock' ? 'Cabang yang Disesuaikan' : 'Cabang untuk Stok Awal' }}</label>
-                                    <select wire:model="barangImportCabangId" class="w-full rounded-lg border px-3 py-2">
-                                        <option value="0">{{ $barangImportMode === 'stock' ? 'Pilih cabang' : 'Tanpa stok awal (katalog saja)' }}</option>
+                    <div>
+                        <p class="mb-3 text-sm font-semibold text-slate-700">Langkah 1: Pilih salah satu dari tiga aktivitas</p>
+                        <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+                            <section class="rounded-xl border p-4 {{ $barangImportMode === 'new' ? 'border-blue-600 bg-blue-50' : 'border-slate-200' }}">
+                                <div class="flex items-start gap-3">
+                                    <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white">A</span>
+                                    <div>
+                                        <h3 class="font-semibold text-slate-900">Tambah Barang Baru</h3>
+                                        <p class="mt-1 text-xs text-slate-600">Untuk kode barang yang belum ada di katalog.</p>
+                                    </div>
+                                </div>
+                                @if(auth()->user()->can('master.barang.import'))
+                                    <button type="button" wire:click="selectBarangImportMode('new')" class="mt-3 w-full rounded border border-blue-600 px-3 py-2 text-sm text-blue-700 hover:bg-white">
+                                        {{ $barangImportMode === 'new' ? 'Aktivitas dipilih' : 'Pilih aktivitas' }}
+                                    </button>
+                                @endif
+                                @if(auth()->user()->can('master.barang.export'))
+                                    <button type="button" wire:click="downloadBarangTemplate" class="mt-2 w-full rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700">
+                                        Download Template Barang
+                                    </button>
+                                @endif
+                                <div class="mt-3">
+                                    <label class="mb-1 block text-xs font-medium text-slate-700">Cabang stok awal (opsional)</label>
+                                    <select wire:model="barangImportCabangId" class="w-full rounded border px-2 py-2 text-sm">
+                                        <option value="0">Tanpa stok awal</option>
                                         @foreach($listCabang as $id => $nama)
                                             <option value="{{ $id }}">{{ $nama }}</option>
                                         @endforeach
                                     </select>
                                     @error('barangImportCabangId')
-                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                                     @enderror
                                 </div>
-                            @endif
-                            @if($barangImportMode === 'stock' && auth()->user()->can('master.barang.export'))
-                                <button type="button"
-                                        wire:click="downloadStokCabangTemplate"
-                                        class="rounded-lg border border-indigo-600 px-4 py-2 text-sm text-indigo-700 hover:bg-indigo-50">
-                                    Download Template Stok Cabang
-                                </button>
-                            @endif
+                            </section>
+
+                            <section class="rounded-xl border p-4 {{ $barangImportMode === 'update' ? 'border-indigo-600 bg-indigo-50' : 'border-slate-200' }}">
+                                <div class="flex items-start gap-3">
+                                    <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-sm font-semibold text-white">B</span>
+                                    <div>
+                                        <h3 class="font-semibold text-slate-900">Update Data Barang</h3>
+                                        <p class="mt-1 text-xs text-slate-600">Untuk mengubah nama/harga atau menambah satuan. Stok tidak berubah.</p>
+                                    </div>
+                                </div>
+                                @if(auth()->user()->can('master.barang.import'))
+                                    <button type="button" wire:click="selectBarangImportMode('update')" class="mt-3 w-full rounded border border-indigo-600 px-3 py-2 text-sm text-indigo-700 hover:bg-white">
+                                        {{ $barangImportMode === 'update' ? 'Aktivitas dipilih' : 'Pilih aktivitas' }}
+                                    </button>
+                                @endif
+                                @if(auth()->user()->can('master.barang.export'))
+                                    <button type="button" wire:click="exportBarangData" class="mt-2 w-full rounded bg-indigo-600 px-3 py-2 text-sm text-white hover:bg-indigo-700">
+                                        Export Data untuk Diedit
+                                    </button>
+                                @endif
+                            </section>
+
+                            <section class="rounded-xl border p-4 {{ $barangImportMode === 'stock' ? 'border-amber-600 bg-amber-50' : 'border-slate-200' }}">
+                                <div class="flex items-start gap-3">
+                                    <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-600 text-sm font-semibold text-white">C</span>
+                                    <div>
+                                        <h3 class="font-semibold text-slate-900">Penyesuaian Stok Cabang</h3>
+                                        <p class="mt-1 text-xs text-slate-600">Untuk memasukkan jumlah stok akhir hasil hitung fisik.</p>
+                                    </div>
+                                </div>
+                                @if(auth()->user()->can('master.barang.import'))
+                                    <button type="button" wire:click="selectBarangImportMode('stock')" class="mt-3 w-full rounded border border-amber-600 px-3 py-2 text-sm text-amber-700 hover:bg-white">
+                                        {{ $barangImportMode === 'stock' ? 'Aktivitas dipilih' : 'Pilih aktivitas' }}
+                                    </button>
+                                @endif
+                                <div class="mt-3">
+                                    <label class="mb-1 block text-xs font-medium text-slate-700">Cabang yang dihitung</label>
+                                    <select wire:model="barangStockCabangId" class="w-full rounded border px-2 py-2 text-sm">
+                                        <option value="0">Pilih cabang</option>
+                                        @foreach($listCabang as $id => $nama)
+                                            <option value="{{ $id }}">{{ $nama }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('barangStockCabangId')
+                                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                                @if(auth()->user()->can('master.barang.export'))
+                                    <button type="button" wire:click="downloadStokCabangTemplate" class="mt-2 w-full rounded bg-amber-600 px-3 py-2 text-sm text-white hover:bg-amber-700">
+                                        Download Template Stok Cabang
+                                    </button>
+                                @endif
+                            </section>
+                        </div>
+                    </div>
+
+                    <div class="rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                        <strong>Langkah 2:</strong> Download file dari kartu yang dipilih. Isi atau edit file tersebut, lalu lanjut ke upload di bawah.
+                    </div>
+
+                    @if(auth()->user()->can('master.barang.import'))
+                        <form wire:submit="importBarang" class="space-y-4 border-t pt-5">
                             <div>
+                                <p class="mb-2 text-sm font-semibold text-slate-700">Langkah 3: Upload file untuk aktivitas yang dipilih</p>
+                                <p class="mb-2 text-xs text-slate-500">
+                                    @if($barangImportMode === 'new')
+                                        File harus memakai template barang baru. Jika mengisi stok, stok masuk ke cabang stok awal di atas.
+                                    @elseif($barangImportMode === 'update')
+                                        Gunakan file hasil Export Data untuk mengubah katalog; stok tidak disentuh.
+                                    @else
+                                        Gunakan template stok dari cabang yang dipilih. Isi stok_baru sebagai jumlah akhir dan alasan perubahan.
+                                    @endif
+                                </p>
                                 <label class="mb-2 block text-sm font-medium">File Excel</label>
                                 <input type="file" wire:model="barangImportFile" accept=".xlsx,.xls" class="w-full rounded-lg border px-3 py-2">
-                                <p class="mt-1 text-xs text-gray-500">Satu baris untuk satu satuan. Barang multi-satuan memakai kode barang yang sama.</p>
+                                @if($barangImportMode !== 'stock')
+                                    <p class="mt-1 text-xs text-gray-500">Satu baris untuk satu satuan. Barang multi-satuan memakai kode barang yang sama.</p>
+                                @endif
                                 @if($barangImportMode === 'update')
                                     <p class="mt-1 text-xs text-amber-600">Gunakan file hasil Export Data Barang. Untuk menambah satuan, tambahkan baris dengan kode barang yang sama. Stok tidak diubah.</p>
                                 @elseif($barangImportMode === 'stock')

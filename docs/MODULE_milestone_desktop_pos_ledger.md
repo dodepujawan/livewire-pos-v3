@@ -545,13 +545,16 @@ Fitur awal Tahap 0–8 sudah pernah dibuat, tetapi audit menemukan alur stok, ju
 - Penjualan, edit/pembatalan transaksi, dan terima/batal pembelian memakai saldo `barang_stok` cabang dan mencatat mutasi.
 - Master barang dan Excel menetapkan stok awal/koreksi untuk cabang tertentu; update katalog tidak menulis stok.
 - Excel memiliki mode penyesuaian stok per cabang; transfer cabang mencatat stok keluar/masuk dengan referensi yang sama.
+- Pergantian aktivitas mengosongkan file terpilih; tipe template diverifikasi saat import dan template stok memeriksa ID cabang.
+- Salah pilih template/aktivitas/cabang ditolak sebelum penyimpanan; penanda mencegah salah pilih tidak sengaja, bukan admin yang sengaja memalsukannya.
 - Daftar/export barang menampilkan total hasil penjumlahan semua cabang. Nilai lama `barang.stok` tidak dipakai sebagai saldo transaksi.
 - Stok negatif ditolak; perubahan saldo dan baris mutasi terjadi dalam transaksi database.
 
 **Belum dilakukan:**
 - Rekonsiliasi stok global lama ke stok cabang. Jangan membagi stok global otomatis ke semua cabang.
 - Menghapus kolom legacy `barang.stok` membutuhkan pemeriksaan pemakaian, backup, migrate:status, dan approval terpisah.
-- PHPUnit tidak dapat dijalankan: dependency test tidak tersedia di container; PHP lokal 8.3.17 sedangkan project mensyaratkan >=8.4.1.
+- Penanda template mencegah salah pilih yang tidak sengaja, bukan pemalsuan oleh admin; riwayat stok belum menyimpan ID pengguna yang melakukan perubahan.
+- Test PHPUnit terdeteksi dan berjalan, tetapi gagal di `RefreshDatabase` sebelum assertion: migration `2026_08_28_000003_create_pelunasan_table.php` memberi dua FK parent berbeda pada `referensi_id`; perbaiki strategi schema test setelah persetujuan.
 
 **Validasi aman:** PHP lint dan kompilasi Blade lulus. Alur service stok/transfer diuji dengan skema SQLite in-memory; tidak ada migration atau perubahan database toko.
 
