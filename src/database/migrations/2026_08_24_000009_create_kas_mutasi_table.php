@@ -25,6 +25,8 @@ return new class extends Migration
                 'TARIK',
                 'REFUND',
                 'LAIN',
+                'PELUNASAN_PIUTANG',
+                'PELUNASAN_HUTANG',
             ])->default('PENJUALAN');
 
             $table->foreignId('transaksi_id')

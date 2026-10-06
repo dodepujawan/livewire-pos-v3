@@ -13,7 +13,14 @@ return new class extends Migration
             $table->uuid('draft_token')->nullable()->unique()->after('id');
         });
 
-        \DB::statement('ALTER TABLE transaksi MODIFY COLUMN nomor_transaksi VARCHAR(255) NULL');
+        if (Schema::getConnection()->getDriverName() === 'mysql') {
+            DB::statement('ALTER TABLE transaksi MODIFY COLUMN nomor_transaksi VARCHAR(255) NULL');
+        } else {
+            // SQLite: gunakan change() untuk membuat kolom nullable
+            Schema::table('transaksi', function (Blueprint $table) {
+                $table->string('nomor_transaksi')->nullable()->change();
+            });
+        }
 
         \DB::table('transaksi')
             ->where('status', 'DRAFT')
@@ -34,7 +41,13 @@ return new class extends Migration
             throw new \RuntimeException('Cannot rollback while draft transactions without invoices exist.');
         }
 
-        \DB::statement('ALTER TABLE transaksi MODIFY COLUMN nomor_transaksi VARCHAR(255) NOT NULL');
+        if (Schema::getConnection()->getDriverName() === 'mysql') {
+            DB::statement('ALTER TABLE transaksi MODIFY COLUMN nomor_transaksi VARCHAR(255) NOT NULL');
+        } else {
+            Schema::table('transaksi', function (Blueprint $table) {
+                $table->string('nomor_transaksi')->nullable(false)->change();
+            });
+        }
 
         Schema::table('transaksi', function (Blueprint $table) {
             $table->dropUnique('transaksi_draft_token_unique');

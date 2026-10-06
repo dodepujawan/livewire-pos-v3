@@ -21,16 +21,6 @@ return new class extends Migration
 
             $table->index(['jenis', 'referensi_id']);
         });
-
-        // FK ke piutang atau hutang (nullable, satu-satu)
-        Schema::table('pelunasan', function (Blueprint $table) {
-            $table->foreign('referensi_id')
-                ->constrained('piutang')
-                ->nullOnDelete();
-            $table->foreign('referensi_id')
-                ->constrained('hutang')
-                ->nullOnDelete();
-        });
     }
 
     public function down(): void
