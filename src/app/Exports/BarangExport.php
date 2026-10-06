@@ -13,26 +13,31 @@ class BarangExport implements Export, FromCollection, WithHeadings, WithTitle
 {
     public function collection(): Collection
     {
-        return Barang::with('satuan')->get()->flatMap(function (Barang $barang): Collection {
-            $satuans = $barang->satuan->sortBy('konversi')->values();
-            $baseConversion = $satuans->first()?->konversi;
+        return Barang::with('satuan')
+            ->withSum('stokPerCabang as stok_total', 'stok')
+            ->get()
+            ->flatMap(function (Barang $barang): Collection {
+                $satuans = $barang->satuan->sortBy('konversi')->values();
+                $baseConversion = $satuans->first()?->konversi;
 
-            return $satuans->map(fn ($satuan) => [
-                'kode_barang' => $barang->kode_barang,
-                'nama_barang' => $barang->nama_barang,
-                'stok' => $satuan->konversi === $baseConversion ? $barang->stok : null,
-                'nama_satuan' => $satuan->nama_satuan,
-                'konversi' => $satuan->konversi,
-                'harga_jual' => $satuan->harga_jual,
-                'harga_beli' => $satuan->harga_beli,
-            ]);
-        });
+                return $satuans->map(fn ($satuan) => [
+                    'kode_barang' => $barang->kode_barang,
+                    'nama_barang' => $barang->nama_barang,
+                    'stok_total_semua_cabang' => $satuan->konversi === $baseConversion
+                        ? (int) ($barang->stok_total ?? 0)
+                        : null,
+                    'nama_satuan' => $satuan->nama_satuan,
+                    'konversi' => $satuan->konversi,
+                    'harga_jual' => $satuan->harga_jual,
+                    'harga_beli' => $satuan->harga_beli,
+                ]);
+            });
     }
 
     public function headings(): array
     {
         return [
-            'kode_barang', 'nama_barang', 'stok', 'nama_satuan',
+            'kode_barang', 'nama_barang', 'stok_total_semua_cabang', 'nama_satuan',
             'konversi', 'harga_jual', 'harga_beli',
         ];
     }

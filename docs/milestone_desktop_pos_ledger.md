@@ -185,27 +185,47 @@ Angka dapat berubah; cek ulang sebelum membuat rencana perbaikan data.
 
 **Tujuan:** programmer tidak menebak-nebak aturan uang, pajak, dan persediaan.
 
-- [ ] Putuskan arti akun `Kas`, `Bank`, akun penampung QRIS, `Piutang`, `Hutang`, `Penjualan`, `Pajak`, `Persediaan`, dan HPP dengan contoh sederhana.
-- [ ] Putuskan kapan penjualan dianggap terjadi dan bagaimana penjualan kredit serta uang muka dicatat.
-- [ ] Putuskan perlakuan pembayaran tunai, transfer, QRIS, biaya QRIS, pembayaran sebagian, refund, dan pembatalan.
-- [ ] Putuskan apakah Laporan Kas menampilkan nilai bersih penjualan atau uang diterima dan kembalian sebagai dua gerakan terpisah.
-- [ ] Putuskan apakah akun dan laporan berlaku untuk seluruh perusahaan atau dapat dipisah per cabang.
+- [x] Akun Kas berarti uang fisik; transfer masuk ke Bank; QRIS masuk ke akun penampung sampai penyedia mencairkannya.
+- [x] Pakai dasar akrual: penjualan/piutang dicatat saat barang dijual; pelunasan hanya menambah Kas/Bank dan mengurangi Piutang.
+- [x] Dukung pembayaran sebagian; uang yang diterima dan sisa Piutang dicatat terpisah.
+- [x] Pembelian supplier memisahkan penerimaan barang dari pembayaran: barang menambah stok saat diterima, tagihan yang belum dibayar menjadi Hutang, dan pembayaran mengurangi Hutang serta Kas/Bank.
+- [x] Laporan Kas mencatat penerimaan bersih penjualan. Nilai Bayar dan Kembali tetap disimpan di transaksi/struk.
+- [x] Karena cabang satu perusahaan, gunakan bagan akun bersama dan tandai setiap transaksi dengan cabang untuk laporan per cabang/gabungan.
+- [x] `barang_stok` menjadi sumber stok tiap cabang; total semua cabang di layar dihitung dari tabel ini. Kolom lama `barang.stok` bukan lagi saldo operasional dan dipertahankan sementara untuk kompatibilitas/migrasi.
+- [x] Sepakati pembatalan transaksi selesai dengan pencatatan pembalik; rincian biaya QRIS, setoran, dan koreksi kas tetap perlu diputuskan.
 - [ ] Catat keputusan pajak dan saldo awal bersama pemilik/akuntan; jangan menetapkan aturan pajak hanya dari asumsi programmer.
 
-**Selesai jika:** contoh transaksi tunai, transfer/QRIS, piutang, pelunasan sebagian, pembelian, dan refund sudah disepakati sebelum jurnal diubah.
+#### Hasil Tanya-Jawab
+
+Keputusan berikut disetujui pada 6 Oktober 2026 dan menjadi dasar contoh di tahap selanjutnya:
+
+- Tunai Rp80.000 dicatat sebagai uang masuk bersih Rp80.000. Jika pelanggan menyerahkan Rp100.000 dan menerima kembalian Rp20.000, kedua nilai itu tetap ada di struk, tetapi laporan kas penjualan mencatat netonya.
+- Transfer dicatat ke Bank setelah pembayaran terkonfirmasi.
+- QRIS dicatat sementara sebagai Dana QRIS Belum Cair, lalu dipindahkan ke Bank saat penyedia mencairkannya.
+- Jika tagihan Rp80.000 dibayar Rp30.000 sekarang, catat Rp30.000 ke Kas/Bank dan sisa Rp50.000 sebagai Piutang.
+- Pembelian mengikuti pola serupa: barang menambah stok saat diterima; bila belum dibayar, catat Hutang; pembayaran sebagian/lunas mengurangi Hutang dan Kas/Bank.
+- Cabang-cabang memakai bagan akun bersama; laporan tetap bisa difilter per cabang dan dilihat gabungan.
+- Stok transaksi selalu dibaca/diubah per cabang. Total pusat dihitung dengan menjumlahkan baris cabang; nilai lama `barang.stok` bukan lagi total yang disimpan/diedit.
+- Transaksi selesai yang dibatalkan tidak dihapus: buat catatan pembalik, pulihkan stok, kembalikan uang bila sudah diterima, dan simpan alasan pembatalan.
+- Pajak belum diputuskan; validasi tarif dan cara pencatatannya dengan akuntan sebelum posting pajak dibuat.
+
+**Selesai jika:** contoh pembayaran tunai, transfer/QRIS, Piutang/Hutang dan pembayaran sebagian sudah dipahami; pembatalan memakai jejak pembalik; biaya QRIS, pajak, dan saldo awal ditandai jelas sebelum alur terkait dibuat.
 
 ### Tahap 10 — Jadikan Stok Per Cabang sebagai Sumber Utama
 
 **Tujuan:** stok cabang A tidak ikut berubah saat cabang B menjual atau menerima barang.
 
-- [ ] Gunakan `barang_stok(barang_id, cabang_id)` sebagai angka stok yang dibaca dan diubah transaksi.
-- [ ] Hentikan penggunaan `barang.stok` global untuk validasi penjualan, penerimaan pembelian, edit barang, dan saldo stok cabang.
-- [ ] Pilih nasib `barang.stok`: hapus setelah semua pemakaian dipindah, atau pertahankan hanya sebagai total hasil penjumlahan semua cabang. Jangan jadikan angka global kedua yang bisa diedit terpisah.
-- [ ] Sesuaikan stok saat jual, edit transaksi, batal/refund, terima/batal pembelian, koreksi stok manual, dan transfer antar cabang.
-- [ ] Pisahkan data katalog barang dari saldo stok. Tambah/edit nama atau harga barang tidak boleh tanpa sengaja mengubah stok.
-- [ ] Excel tambah barang: minta cabang jika sekaligus memasukkan stok awal; jika tidak, hanya buat katalog barang.
-- [ ] Excel update barang: tetap hanya mengubah data barang/satuan. Buat alur koreksi stok Excel terpisah yang meminta cabang dan mencatat `stok_mutasi`.
+- [x] Gunakan `barang_stok(barang_id, cabang_id)` sebagai angka stok yang dibaca dan diubah transaksi.
+- [x] Hentikan penggunaan `barang.stok` global untuk validasi penjualan, penerimaan pembelian, edit barang, dan saldo stok cabang.
+- [x] Hentikan edit manual atas `barang.stok`; layar/export menghitung total dari stok cabang. Kolom lama tetap ada dan baru boleh dihapus setelah semua pemakaian ditemukan serta data lama direkonsiliasi.
+- [x] Sesuaikan stok saat jual, edit transaksi, batal/refund, terima/batal pembelian, koreksi stok manual, dan transfer antar cabang.
+- [x] Pisahkan data katalog barang dari saldo stok. Stok awal/koreksi manual memerlukan cabang; koreksi membutuhkan alasan dan dicatat di `stok_mutasi`.
+- [x] Excel tambah barang: stok awal opsional; bila ada stok, wajib pilih cabang. Tanpa stok awal, import hanya membuat katalog.
+- [x] Excel update barang hanya mengubah data barang/satuan; kolom total stok export hanya informasi dan tidak ditulis kembali.
+- [x] Excel memiliki mode penyesuaian stok terpisah: pilih cabang, isi jumlah akhir dan alasan; mutasi dicatat satu per barang.
 - [ ] Rekonsiliasi nilai `barang.stok` lama ke stok cabang melalui rencana yang disetujui; jangan membagi stok global ke semua cabang secara otomatis.
+
+**Progress 6 Oktober 2026:** perubahan kode stok per cabang dan mode koreksi Excel sudah dibuat. Pengecekan service terisolasi di SQLite in-memory, PHP lint, dan kompilasi Blade lulus. Test PHPUnit belum dapat dijalankan karena paket PHPUnit tidak ada di container dan PHP lokal 8.3.17 (project meminta >=8.4.1). Belum ada migration atau perubahan data produksi. Tahap 10 belum selesai sampai stok historis direkonsiliasi dan pengujian aplikasi dijalankan di lingkungan yang sesuai.
 
 **Selesai jika:** menerima 5 barang di cabang A hanya menambah stok A; menjual 2 di cabang B hanya mengurangi stok B; total pusat merupakan jumlah cabang, bukan sumber stok transaksi.
 

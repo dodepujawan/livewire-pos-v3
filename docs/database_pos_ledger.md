@@ -5,6 +5,11 @@
 >
 > Status: **DOKUMENTASI / ANALISA**. Sesuai `PROJECT_RULES_v2.md` pasal 3 & 12,
 > migration **tidak boleh dibuat/diubah tanpa approval**. Di bawah ini hanya usulan.
+>
+> **Update 6 Oktober 2026:** schema masih memiliki `barang.stok` sebagai kolom
+> legacy, tetapi alur aplikasi yang sedang diperbaiki memakai `barang_stok` sebagai
+> saldo operasional per cabang. Total di layar dihitung dari baris cabang. Data stok
+> lama belum direkonsiliasi; jangan menghapus kolom atau membagi nilainya otomatis.
 
 ---
 

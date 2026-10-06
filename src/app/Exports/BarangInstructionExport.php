@@ -20,6 +20,8 @@ class BarangInstructionExport implements Export, FromArray, WithTitle
             ['- Minimal satu satuan harus memiliki konversi = 1.'],
             ['- Sistem otomatis memilih konversi terkecil sebagai satuan default.'],
             ['- Isi stok pada baris konversi terkecil; baris satuan lain boleh dikosongkan.'],
+            ['- Pilih cabang pada aplikasi saat upload; stok awal hanya masuk ke cabang tersebut.'],
+            ['- Jika stok belum diketahui, kosongkan kolom stok. Stok dapat disesuaikan kemudian dari form barang dengan alasan.'],
             ['- Mode ini hanya untuk kode barang yang belum terdaftar.'],
             [''],
             ['UPDATE BARANG EXISTING'],

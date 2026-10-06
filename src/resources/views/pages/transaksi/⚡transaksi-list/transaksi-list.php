@@ -1,7 +1,7 @@
 <?php
 
 use App\Models\Transaksi;
-use App\Models\Barang;
+use App\Services\StokCabangService;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -88,13 +88,18 @@ new class extends Component
             'cancelReason' => 'required|string|min:3|max:500',
         ]);
 
-        $transaksi = Transaksi::findOrFail($this->cancelTransaksiId);
-        $isDraft = $transaksi->status === 'DRAFT';
+        $isDraft = false;
 
         try {
             $reason = $this->cancelReason;
 
-            \DB::transaction(function () use ($transaksi, $reason) {
+            \DB::transaction(function () use ($reason, &$isDraft): void {
+                $transaksi = Transaksi::query()
+                    ->whereKey($this->cancelTransaksiId)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $isDraft = $transaksi->status === 'DRAFT';
                 if ($transaksi->status === 'DRAFT') {
                     // Draft belum berdampak finansial, jadi hapus permanen.
                     $transaksi->details()->delete();
@@ -103,14 +108,26 @@ new class extends Component
                     return;
                 }
 
-                $transaksi->update(['status' => 'BATAL']);
-                $transaksi->update(['delete_reason' => $reason]);
+                if ($transaksi->status === 'BATAL') {
+                    throw new \RuntimeException('Transaksi sudah dibatalkan.');
+                }
+
+                $transaksi->update([
+                    'status' => 'BATAL',
+                    'delete_reason' => $reason,
+                ]);
 
                 foreach ($transaksi->details as $detail) {
-                    $barang = Barang::find($detail->barang_id);
-                    if ($barang) {
-                        $barang->increment('stok', $detail->qty_pcs);
-                    }
+                    StokCabangService::ubah(
+                        (int) $detail->barang_id,
+                        (int) $transaksi->cabang_id,
+                        (int) $detail->qty_pcs,
+                        'Pembalik pembatalan transaksi ' . $transaksi->nomor_transaksi,
+                        now()->toDateString(),
+                        $transaksi->id,
+                        $detail->barang_satuan_id ? (int) $detail->barang_satuan_id : null,
+                        (float) $detail->qty,
+                    );
                 }
             });
 

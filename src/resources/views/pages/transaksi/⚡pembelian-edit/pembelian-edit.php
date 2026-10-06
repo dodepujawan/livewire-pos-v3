@@ -5,8 +5,7 @@ use App\Models\BarangSatuan;
 use App\Models\Cabang;
 use App\Models\Pembelian;
 use App\Models\PembelianDetail;
-use App\Models\BarangStok;
-use App\Models\StokMutasi;
+use App\Services\StokCabangService;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
@@ -308,7 +307,16 @@ new class extends Component
         }
 
         try {
-            \DB::transaction(function () use ($pembelian) {
+            $pembelian = \DB::transaction(function (): Pembelian {
+                $pembelian = Pembelian::query()
+                    ->whereKey($this->pembelianId)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                if ($pembelian->status !== 'ORDER') {
+                    throw new \RuntimeException('Pembelian sudah diproses.');
+                }
+
                 $pembelian->update(['status' => 'TERIMA']);
 
                 foreach ($pembelian->details as $detail) {
@@ -316,30 +324,24 @@ new class extends Component
                     if ($barang) {
                         $qtyPcs = (float) $detail->qty * ($detail->satuan->konversi ?? 1);
 
-                        StokMutasi::create([
-                            'barang_id' => $detail->barang_id,
-                            'cabang_id' => $pembelian->cabang_id,
-                            'tanggal' => $pembelian->tanggal,
-                            'tipe' => 'MASUK',
-                            'qty' => $qtyPcs,
-                            'qty_satuan' => $detail->qty,
-                            'keterangan' => 'Pembelian ' . $pembelian->nomor_beli,
-                        ]);
-
-                        BarangStok::updateOrCreate(
-                            [
-                                'barang_id' => $detail->barang_id,
-                                'cabang_id' => $pembelian->cabang_id,
-                            ],
-                            ['stok' => ($barang->stok ?? 0) + $qtyPcs]
+                        StokCabangService::ubah(
+                            (int) $detail->barang_id,
+                            (int) $pembelian->cabang_id,
+                            (int) $qtyPcs,
+                            'Penerimaan pembelian ' . $pembelian->nomor_beli,
+                            $pembelian->tanggal->toDateString(),
+                            null,
+                            $detail->barang_satuan_id ? (int) $detail->barang_satuan_id : null,
+                            (float) $detail->qty,
                         );
 
                         $barang->update([
-                            'stok' => ($barang->stok ?? 0) + $qtyPcs,
                             'harga_beli' => $detail->harga_beli,
                         ]);
                     }
                 }
+
+                return $pembelian;
             });
 
             \App\Services\JurnalService::buatJurnalPembelian($pembelian);
@@ -363,30 +365,30 @@ new class extends Component
         }
 
         try {
-            \DB::transaction(function () use ($pembelian) {
+            \DB::transaction(function (): void {
+                $pembelian = Pembelian::query()
+                    ->whereKey($this->pembelianId)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                if ($pembelian->status === 'BATAL') {
+                    throw new \RuntimeException('Pembelian sudah dibatalkan.');
+                }
+
                 if ($pembelian->status === 'TERIMA') {
                     foreach ($pembelian->details as $detail) {
-                        $barang = Barang::find($detail->barang_id);
-                        if ($barang) {
-                            $qtyPcs = (float) $detail->qty * ($detail->satuan->konversi ?? 1);
+                        $qtyPcs = (float) $detail->qty * ($detail->satuan->konversi ?? 1);
 
-                            StokMutasi::create([
-                                'barang_id' => $detail->barang_id,
-                                'cabang_id' => $pembelian->cabang_id,
-                                'tanggal' => now(),
-                                'tipe' => 'KELUAR',
-                                'qty' => $qtyPcs,
-                                'qty_satuan' => $detail->qty,
-                                'keterangan' => 'Cancel Pembelian ' . $pembelian->nomor_beli,
-                            ]);
-
-                            BarangStok::where([
-                                'barang_id' => $detail->barang_id,
-                                'cabang_id' => $pembelian->cabang_id,
-                            ])->decrement('stok', $qtyPcs);
-
-                            $barang->decrement('stok', $qtyPcs);
-                        }
+                        StokCabangService::ubah(
+                            (int) $detail->barang_id,
+                            (int) $pembelian->cabang_id,
+                            -(int) $qtyPcs,
+                            'Pembatalan pembelian ' . $pembelian->nomor_beli,
+                            now()->toDateString(),
+                            null,
+                            $detail->barang_satuan_id ? (int) $detail->barang_satuan_id : null,
+                            (float) $detail->qty,
+                        );
                     }
                 }
 

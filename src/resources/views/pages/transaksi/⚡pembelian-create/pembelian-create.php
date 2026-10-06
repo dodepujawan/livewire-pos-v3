@@ -5,8 +5,6 @@ use App\Models\BarangSatuan;
 use App\Models\Cabang;
 use App\Models\Pembelian;
 use App\Models\PembelianDetail;
-use App\Models\BarangStok;
-use App\Models\StokMutasi;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 

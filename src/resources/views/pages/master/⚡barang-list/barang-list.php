@@ -2,9 +2,13 @@
 
 use App\Exports\BarangTemplateExport;
 use App\Exports\BarangExport;
+use App\Exports\BarangStockExport;
 use App\Imports\BarangImport;
 use App\Models\Barang;
 use App\Models\BarangSatuan;
+use App\Models\Cabang;
+use App\Services\StokCabangService;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -27,6 +31,22 @@ new class extends Component
     public bool $showBarangExcelModal = false;
     public bool $showBarangExcelGuide = false;
     public string $barangImportMode = 'new';
+    public int $barangImportCabangId = 0;
+    public array $listCabang = [];
+
+    public function mount(): void
+    {
+        $this->listCabang = Cabang::query()
+            ->where('is_aktif', true)
+            ->orderBy('nama_cabang')
+            ->pluck('nama_cabang', 'id')
+            ->toArray();
+
+        $userBranch = Auth::user()?->cabang_id;
+        $this->barangImportCabangId = isset($this->listCabang[$userBranch])
+            ? (int) $userBranch
+            : (int) (array_key_first($this->listCabang) ?? 0);
+    }
 
     public function updatingSearchBarangKeyword()
     {
@@ -59,6 +79,21 @@ new class extends Component
         return Excel::download(new BarangExport(), '2-edit-atau-tambah-satuan-barang.xlsx');
     }
 
+    public function downloadStokCabangTemplate()
+    {
+        abort_unless(auth()->user()->can('master.barang.export'), 403);
+
+        if (! Cabang::query()->whereKey($this->barangImportCabangId)->where('is_aktif', true)->exists()) {
+            $this->addError('barangImportCabangId', 'Pilih cabang aktif untuk template penyesuaian stok.');
+            return;
+        }
+
+        return Excel::download(
+            new BarangStockExport($this->barangImportCabangId),
+            'template-penyesuaian-stok-cabang-' . $this->barangImportCabangId . '.xlsx',
+        );
+    }
+
     public function openBarangExcelModal(): void
     {
         $this->resetValidation();
@@ -76,7 +111,7 @@ new class extends Component
 
     public function selectBarangImportMode(string $mode): void
     {
-        if (! in_array($mode, ['new', 'update'], true)) {
+        if (! in_array($mode, ['new', 'update', 'stock'], true)) {
             return;
         }
 
@@ -100,8 +135,19 @@ new class extends Component
             'barangImportFile.mimes' => 'File harus berformat XLS atau XLSX.',
         ]);
 
+        if (! in_array($this->barangImportMode, ['new', 'update', 'stock'], true)) {
+            $this->addError('barangImportMode', 'Pilih salah satu mode import yang tersedia.');
+            return;
+        }
+
         try {
             $rows = Excel::toCollection(new BarangImport(), $this->barangImportFile)->first() ?? collect();
+
+            if ($this->barangImportMode === 'stock') {
+                $this->importStokCabangRows($rows);
+                return;
+            }
+
             $groups = [];
             $errors = [];
 
@@ -200,6 +246,23 @@ new class extends Component
                 return;
             }
 
+            $hasOpeningStock = collect($groups)
+                ->flatten(1)
+                ->contains(fn ($row) => isset($row['stok']) && (float) $row['stok'] > 0);
+
+            if ($this->barangImportMode === 'new') {
+                $validBranchSelected = $this->barangImportCabangId > 0 && Cabang::query()
+                    ->whereKey($this->barangImportCabangId)
+                    ->where('is_aktif', true)
+                    ->exists();
+
+                if (($hasOpeningStock && ! $validBranchSelected)
+                    || ($this->barangImportCabangId > 0 && ! $validBranchSelected)) {
+                    $this->addError('barangImportFile', 'Pilih cabang aktif untuk stok awal, atau pilih tanpa stok awal.');
+                    return;
+                }
+            }
+
             DB::transaction(function () use ($groups): void {
                 foreach ($groups as $items) {
                     $master = $items[0];
@@ -213,7 +276,7 @@ new class extends Component
                         : Barang::create([
                             'kode_barang' => $master['kode_barang'],
                             'nama_barang' => $master['nama_barang'],
-                            'stok' => $stockValue,
+                            'stok' => 0,
                             'harga_beli' => $defaultUnit['harga_beli'],
                         ]);
 
@@ -242,6 +305,15 @@ new class extends Component
                             $barang->satuan()->create($satuanData);
                         }
                     }
+
+                    if ($this->barangImportMode === 'new' && $this->barangImportCabangId > 0) {
+                        StokCabangService::ubah(
+                            $barang->id,
+                            $this->barangImportCabangId,
+                            (int) $stockValue,
+                            'Stok awal dari import Excel',
+                        );
+                    }
                 }
             });
 
@@ -254,9 +326,115 @@ new class extends Component
         }
     }
 
+    private function importStokCabangRows(\Illuminate\Support\Collection $rows): void
+    {
+        if (! Cabang::query()->whereKey($this->barangImportCabangId)->where('is_aktif', true)->exists()) {
+            $this->addError('barangImportFile', 'Pilih cabang aktif untuk penyesuaian stok.');
+            return;
+        }
+
+        $records = [];
+        $errors = [];
+        $seenCodes = [];
+
+        foreach ($rows as $rowIndex => $row) {
+            $line = $rowIndex + 2;
+            $code = strtoupper(trim((string) ($row['kode_barang'] ?? '')));
+            $stockValue = $row['stok_baru'] ?? null;
+            $reason = trim((string) ($row['alasan'] ?? ''));
+
+            if ($code === '' && ($stockValue === null || trim((string) $stockValue) === '') && $reason === '') {
+                continue;
+            }
+            if ($code === '' || str_starts_with($code, '=')) {
+                $errors[] = "Baris {$line}: kode barang wajib diisi sebagai nilai biasa.";
+                continue;
+            }
+            if ($stockValue === null || trim((string) $stockValue) === '') {
+                if ($reason !== '') {
+                    $errors[] = "Baris {$line}: isi stok_baru jika alasan diisi.";
+                }
+                continue;
+            }
+            if (! is_numeric($stockValue) || (int) $stockValue < 0 || (float) $stockValue != (int) $stockValue) {
+                $errors[] = "Baris {$line}: stok_baru harus berupa bilangan bulat minimal 0.";
+                continue;
+            }
+            if (isset($seenCodes[$code])) {
+                $errors[] = "Baris {$line}: kode barang {$code} muncul lebih dari sekali.";
+                continue;
+            }
+            if (mb_strlen($reason) > 255) {
+                $errors[] = "Baris {$line}: alasan maksimal 255 karakter.";
+                continue;
+            }
+
+            $seenCodes[$code] = true;
+            $records[] = [
+                'line' => $line,
+                'kode_barang' => $code,
+                'stok_baru' => (int) $stockValue,
+                'alasan' => $reason,
+            ];
+        }
+
+        if ($records === [] && $errors === []) {
+            $errors[] = 'Isi minimal satu nilai stok_baru yang ingin disesuaikan.';
+        }
+
+        $products = Barang::query()
+            ->whereIn('kode_barang', array_column($records, 'kode_barang'))
+            ->get(['id', 'kode_barang'])
+            ->keyBy(fn (Barang $barang) => strtoupper($barang->kode_barang));
+
+        foreach ($records as $record) {
+            if (! $products->has($record['kode_barang'])) {
+                $errors[] = "Baris {$record['line']}: kode barang {$record['kode_barang']} tidak ditemukan.";
+                continue;
+            }
+
+            $barang = $products->get($record['kode_barang']);
+            $stokSaatIni = StokCabangService::tersedia($barang->id, $this->barangImportCabangId);
+            if ($record['stok_baru'] !== $stokSaatIni && $record['alasan'] === '') {
+                $errors[] = "Baris {$record['line']}: isi alasan untuk stok yang berubah.";
+            }
+        }
+
+        if ($errors !== []) {
+            $this->addError('barangImportFile', implode(' ', $errors));
+            return;
+        }
+
+        try {
+            DB::transaction(function () use ($records, $products): void {
+                foreach ($records as $record) {
+                    $barang = $products->get($record['kode_barang']);
+                    StokCabangService::aturSaldo(
+                        $barang->id,
+                        $this->barangImportCabangId,
+                        $record['stok_baru'],
+                        $record['alasan'],
+                    );
+                }
+            });
+        } catch (\RuntimeException $exception) {
+            $this->addError('barangImportFile', $exception->getMessage());
+            return;
+        } catch (Throwable $exception) {
+            report($exception);
+            $this->addError('barangImportFile', 'Penyesuaian dibatalkan. Periksa file dan cabang, lalu coba kembali.');
+            return;
+        }
+
+        $count = count($records);
+        $this->closeBarangExcelModal();
+        session()->flash('success', "Stok {$count} barang berhasil disesuaikan di cabang yang dipilih.");
+    }
+
     public function render()
     {
         $barangData = Barang::with('satuan')
+        ->withSum('stokPerCabang as stok_total', 'stok')
         ->when(
             $this->searchBarangKeyword,
             function ($query) {

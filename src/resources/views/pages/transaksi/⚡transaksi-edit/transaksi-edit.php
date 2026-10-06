@@ -1,13 +1,12 @@
 <?php
 
 use App\Models\Barang;
-use App\Models\BarangStok;
 use App\Models\BarangSatuan;
 use App\Models\Cabang;
 use App\Models\KasMutasi;
-use App\Models\StokMutasi;
 use App\Models\Transaksi;
 use App\Models\TransaksiDetail;
+use App\Services\StokCabangService;
 use Livewire\Component;
 
 new class extends Component
@@ -186,6 +185,17 @@ new class extends Component
             ->toArray();
     }
 
+    public function updatedTransCabangId(): void
+    {
+        if ($this->itemBarangId > 0) {
+            $this->itemStok = StokCabangService::tersedia($this->itemBarangId, $this->transCabangId);
+        }
+
+        if ($this->showSearchModal) {
+            $this->searchBarangLike($this->searchKeyword);
+        }
+    }
+
     public function searchBarang(): void
     {
         $keyword = trim($this->itemKodeBarang);
@@ -225,6 +235,10 @@ new class extends Component
     private function loadSearchPage(string $keyword): void
     {
         $query = Barang::with('satuan')
+            ->withSum([
+                'stokPerCabang as stok_cabang' => fn ($stockQuery) => $stockQuery
+                    ->where('cabang_id', $this->transCabangId),
+            ], 'stok')
             ->orderBy('kode_barang')
             ->orderBy('id');
 
@@ -256,7 +270,7 @@ new class extends Component
                     'id' => $barang->id,
                     'kode_barang' => $barang->kode_barang,
                     'nama_barang' => $barang->nama_barang,
-                    'stok' => $barang->stok,
+                    'stok' => (int) ($barang->stok_cabang ?? 0),
                     'satuan_list' => $barang->satuan->toArray(),
                     'default_harga' => $defaultSatuan ? $defaultSatuan->harga_jual : 0,
                     'default_satuan_id' => $defaultSatuan ? $defaultSatuan->id : 0,
@@ -317,7 +331,7 @@ new class extends Component
     {
         $this->itemBarangId = $barang->id;
         $this->itemNamaBarang = $barang->nama_barang;
-        $this->itemStok = $barang->stok;
+        $this->itemStok = StokCabangService::tersedia($barang->id, $this->transCabangId);
         $this->itemSatuanList = $barang->satuan->toArray();
 
         $defaultSatuan = $barang->satuan->firstWhere('konversi', 1);
@@ -409,6 +423,13 @@ new class extends Component
         }
 
         $qtyPcs = (int) $this->itemQty * $satuan->konversi;
+        $stokTersedia = StokCabangService::tersedia($barang->id, $this->transCabangId);
+        $qtyDiKeranjang = $this->cartQtyPcs($barang->id);
+
+        if ($this->isDraftMode && $qtyDiKeranjang + $qtyPcs > $stokTersedia) {
+            session()->flash('error', 'Stok cabang tidak mencukupi. Tersedia: ' . $stokTersedia . ' pcs');
+            return;
+        }
 
         $existingIndex = null;
         foreach ($this->cartItems as $index => $item) {
@@ -421,11 +442,6 @@ new class extends Component
         if ($existingIndex !== null) {
             $newQty = (int) $this->cartItems[$existingIndex]['qty'] + (int) $this->itemQty;
             $newQtyPcs = $newQty * $satuan->konversi;
-
-            if ($this->isDraftMode && $barang->stok < $newQtyPcs) {
-                session()->flash('error', 'Total qty melebihi stok tersedia');
-                return;
-            }
 
             $this->cartItems[$existingIndex]['qty'] = $newQty;
             $this->cartItems[$existingIndex]['qty_pcs'] = $newQtyPcs;
@@ -475,6 +491,8 @@ new class extends Component
 
     public function updatedCartItems(): void
     {
+        $cartQtyByBarang = [];
+
         foreach ($this->cartItems as $index => $item) {
             $qty = (int) $this->toFloat($item['qty'] ?? 0);
             $diskon = $this->toFloat($item['diskon'] ?? 0);
@@ -488,18 +506,21 @@ new class extends Component
             $satuan = BarangSatuan::find($item['barang_satuan_id']);
             $qtyPcs = $satuan ? $qty * $satuan->konversi : $qty;
 
-            $barang = Barang::find($item['barang_id']);
-            if ($this->isDraftMode && $barang && $barang->stok < $qtyPcs) {
-                session()->flash('error', 'Stok tidak mencukupi untuk ' . $item['nama_barang']);
-                $maxQty = floor($barang->stok / ($satuan ? $satuan->konversi : 1));
-                $this->cartItems[$index]['qty'] = max(1, $maxQty);
-                $qty = (int) $this->cartItems[$index]['qty'];
-                $qtyPcs = $satuan ? $qty * $satuan->konversi : $qty;
-            }
+            $barangId = (int) $item['barang_id'];
+            $cartQtyByBarang[$barangId] = ($cartQtyByBarang[$barangId] ?? 0) + (int) $qtyPcs;
 
             $subtotal = ($harga * $qty) - $diskon;
             $this->cartItems[$index]['subtotal'] = $this->formatNumber((float) $subtotal);
             $this->cartItems[$index]['qty_pcs'] = $qtyPcs;
+        }
+
+        if ($this->isDraftMode) {
+            foreach ($cartQtyByBarang as $barangId => $requestedQty) {
+                if ($requestedQty > StokCabangService::tersedia($barangId, $this->transCabangId)) {
+                    session()->flash('error', 'Jumlah di keranjang melebihi stok cabang untuk salah satu barang.');
+                    break;
+                }
+            }
         }
 
         $this->calculateGrandTotal();
@@ -509,6 +530,13 @@ new class extends Component
         $this->transKembali = $bayar - $grandTotal;
 
         $this->saveDraftState();
+    }
+
+    private function cartQtyPcs(int $barangId): int
+    {
+        return (int) collect($this->cartItems)
+            ->where('barang_id', $barangId)
+            ->sum(fn ($item) => (int) ($item['qty_pcs'] ?? 0));
     }
 
     private function calculateGrandTotal(): void
@@ -569,19 +597,30 @@ new class extends Component
 
         try {
             \DB::beginTransaction();
+            $transaksi = Transaksi::query()
+                ->whereKey($this->transaksiId)
+                ->lockForUpdate()
+                ->firstOrFail();
 
             // Only restore old stock when the original transaction had already
             // committed stock. Drafts do not reserve or deduct stock.
-            if (!$this->isDraftMode) {
+            if ($transaksi->status !== 'DRAFT') {
                 $oldDetails = TransaksiDetail::where('transaksi_id', $this->transaksiId)->get();
                 foreach ($oldDetails as $detail) {
-                    Barang::where('id', $detail->barang_id)
-                        ->increment('stok', $detail->qty_pcs);
+                    StokCabangService::ubah(
+                        (int) $detail->barang_id,
+                        (int) $transaksi->cabang_id,
+                        (int) $detail->qty_pcs,
+                        'Pembalik edit transaksi ' . $transaksi->nomor_transaksi,
+                        now()->toDateString(),
+                        $transaksi->id,
+                        $detail->barang_satuan_id ? (int) $detail->barang_satuan_id : null,
+                        (float) $detail->qty,
+                    );
                 }
             }
 
             // Update transaksi header
-            $transaksi = Transaksi::find($this->transaksiId);
             $transaksi->update([
                 'nomor_transaksi' => $this->transNoInvoice,
                 'tanggal' => $this->transTanggal,
@@ -620,30 +659,20 @@ new class extends Component
                 ]);
             }
 
-            // Deduct new stock
-            foreach ($this->cartItems as $item) {
-                $barang = Barang::find($item['barang_id']);
-                if ($barang) {
-                    if ($barang->stok < $item['qty_pcs']) {
-                        throw new \Exception('Stok tidak mencukupi untuk ' . $item['nama_barang']);
-                    }
-                    $barang->decrement('stok', $item['qty_pcs']);
+            // Draft belum mengurangi stok; transaksi final mengurangi stok cabang pilihan.
+            if ($this->transStatus !== 'DRAFT') {
+                foreach ($this->cartItems as $item) {
+                    StokCabangService::ubah(
+                        (int) $item['barang_id'],
+                        $this->transCabangId,
+                        -(int) $item['qty_pcs'],
+                        'Edit transaksi ' . $this->transNoInvoice,
+                        $this->transTanggal,
+                        $transaksi->id,
+                        (int) $item['barang_satuan_id'],
+                        (float) $item['qty'],
+                    );
                 }
-            }
-
-            // Update stock mutation
-            foreach ($this->cartItems as $item) {
-                StokMutasi::create([
-                    'barang_id' => $item['barang_id'],
-                    'cabang_id' => $this->transCabangId,
-                    'transaksi_id' => $transaksi->id,
-                    'barang_satuan_id' => $item['barang_satuan_id'],
-                    'tanggal' => $this->transTanggal,
-                    'tipe' => 'KELUAR',
-                    'qty' => $item['qty_pcs'],
-                    'qty_satuan' => $item['qty'],
-                    'keterangan' => 'Edit Transaksi ' . $this->transNoInvoice,
-                ]);
             }
 
             // Update payment entries if payment fields changed
@@ -732,20 +761,31 @@ new class extends Component
         }
 
         try {
-            \DB::transaction(function () use ($transaksi) {
+            \DB::transaction(function (): void {
+                $transaksi = Transaksi::query()
+                    ->whereKey($this->transaksiId)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                if ($transaksi->status === 'BATAL') {
+                    throw new \RuntimeException('Transaksi sudah dibatalkan.');
+                }
+                if ($transaksi->status === 'DRAFT') {
+                    throw new \RuntimeException('Draft berubah saat proses pembatalan. Muat ulang halaman.');
+                }
+
                 $transaksi->update(['status' => 'BATAL']);
 
                 foreach ($transaksi->details as $detail) {
-                    $barang = Barang::find($detail->barang_id);
-                    if ($barang) {
-                        $barang->increment('stok', $detail->qty_pcs);
-                    }
-
-                    BarangStok::updateOrCreate(
-                        [
-                            'barang_id' => $detail->barang_id,
-                            'cabang_id' => $transaksi->cabang_id,
-                        ]
+                    StokCabangService::ubah(
+                        (int) $detail->barang_id,
+                        (int) $transaksi->cabang_id,
+                        (int) $detail->qty_pcs,
+                        'Pembalik pembatalan transaksi ' . $transaksi->nomor_transaksi,
+                        now()->toDateString(),
+                        $transaksi->id,
+                        $detail->barang_satuan_id ? (int) $detail->barang_satuan_id : null,
+                        (float) $detail->qty,
                     );
                 }
 

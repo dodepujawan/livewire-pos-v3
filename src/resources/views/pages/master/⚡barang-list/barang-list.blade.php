@@ -41,7 +41,7 @@
                         <th class="px-4 py-3 text-left">Kode Barang</th>
                         <th class="px-4 py-3 text-left">Nama Barang</th>
                         <th class="px-4 py-3 text-left">Satuan</th>
-                        <th class="px-4 py-3 text-right">Stok</th>
+                        <th class="px-4 py-3 text-right">Total Stok Semua Cabang</th>
                         <th class="px-4 py-3 text-center w-40">Action</th>
                     </tr>
                 </thead>
@@ -60,7 +60,7 @@
                                     @endforeach
                                 </div>
                             </td>
-                            <td class="px-4 py-3 text-right">{{ number_format($barang->stok) }}</td>
+                            <td class="px-4 py-3 text-right">{{ number_format((int) $barang->stok_total) }}</td>
                             <td class="px-4 py-3">
                                 <div class="flex justify-center gap-2">
                                     <a href="{{ route('master.barang.edit', $barang->id) }}" wire:navigate class="px-3 py-1 bg-amber-500 text-white rounded">Edit</a>
@@ -72,7 +72,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="text-center py-8 text-gray-500">Data barang belum tersedia.</td>
+                            <td colspan="6" class="text-center py-8 text-gray-500">Data barang belum tersedia.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -109,10 +109,11 @@
                         </div>
                         @if($showBarangExcelGuide)
                             <div class="mt-3 space-y-2 border-t border-slate-200 pt-3 text-sm text-slate-700">
-                                <p><strong>Tambah barang baru:</strong> download template kosong, isi kode yang belum ada, lalu pilih mode Import Barang Baru.</p>
-                                <p><strong>Ubah data lama:</strong> export data barang, edit file hasil export, lalu pilih mode Update Barang Existing.</p>
+                                <p><strong>Tambah barang baru:</strong> download template kosong, pilih cabang stok awal, lalu isi stok opsional pada file. Stok hanya ditempatkan pada cabang terpilih.</p>
+                                <p><strong>Ubah data lama:</strong> export data barang, edit file hasil export, lalu pilih mode Update Barang Existing. Angka total stok di export hanya informasi.</p>
                                 <p><strong>Tambah satuan:</strong> pada file export, tambahkan baris di bawah barang terkait dengan kode_barang yang sama, lalu gunakan mode Update Barang Existing.</p>
-                                <p class="text-amber-700"><strong>Catatan:</strong> update Excel tidak mengubah stok. Stok diproses melalui transaksi atau stok opname.</p>
+                                <p><strong>Penyesuaian stok:</strong> pilih cabang, download template cabang tersebut, isi stok_baru sebagai jumlah akhir dan alasan. Baris tanpa stok_baru tidak diubah.</p>
+                                <p class="text-amber-700"><strong>Catatan:</strong> mode Update Barang Existing tidak mengubah stok. Penyesuaian Excel dicatat ke riwayat stok cabang.</p>
                             </div>
                         @endif
                     </div>
@@ -138,14 +139,38 @@
                                 <select wire:model.live="barangImportMode" class="w-full rounded-lg border px-3 py-2">
                                     <option value="new">Import Barang Baru</option>
                                     <option value="update">Update atau Tambah Satuan Barang Existing</option>
+                                    <option value="stock">Penyesuaian Stok per Cabang</option>
                                 </select>
                             </div>
+                            @if(in_array($barangImportMode, ['new', 'stock'], true))
+                                <div>
+                                    <label class="mb-2 block text-sm font-medium">{{ $barangImportMode === 'stock' ? 'Cabang yang Disesuaikan' : 'Cabang untuk Stok Awal' }}</label>
+                                    <select wire:model="barangImportCabangId" class="w-full rounded-lg border px-3 py-2">
+                                        <option value="0">{{ $barangImportMode === 'stock' ? 'Pilih cabang' : 'Tanpa stok awal (katalog saja)' }}</option>
+                                        @foreach($listCabang as $id => $nama)
+                                            <option value="{{ $id }}">{{ $nama }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('barangImportCabangId')
+                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            @endif
+                            @if($barangImportMode === 'stock' && auth()->user()->can('master.barang.export'))
+                                <button type="button"
+                                        wire:click="downloadStokCabangTemplate"
+                                        class="rounded-lg border border-indigo-600 px-4 py-2 text-sm text-indigo-700 hover:bg-indigo-50">
+                                    Download Template Stok Cabang
+                                </button>
+                            @endif
                             <div>
                                 <label class="mb-2 block text-sm font-medium">File Excel</label>
                                 <input type="file" wire:model="barangImportFile" accept=".xlsx,.xls" class="w-full rounded-lg border px-3 py-2">
                                 <p class="mt-1 text-xs text-gray-500">Satu baris untuk satu satuan. Barang multi-satuan memakai kode barang yang sama.</p>
                                 @if($barangImportMode === 'update')
                                     <p class="mt-1 text-xs text-amber-600">Gunakan file hasil Export Data Barang. Untuk menambah satuan, tambahkan baris dengan kode barang yang sama. Stok tidak diubah.</p>
+                                @elseif($barangImportMode === 'stock')
+                                    <p class="mt-1 text-xs text-amber-600">Isi stok_baru sebagai jumlah akhir di cabang terpilih. Setiap perubahan stok wajib diberi alasan.</p>
                                 @endif
                                 @error('barangImportFile')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>

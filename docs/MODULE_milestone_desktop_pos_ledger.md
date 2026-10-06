@@ -1,7 +1,7 @@
 # MODULE — Log Pengerjaan Desktop POS & Ledger
 
 > Log progress per tahap + hints untuk AI selanjutnya.
-> Referensi utama: `docs/MEGA_PLAN_pos_ledger.md`
+> Rencana utama: `docs/milestone_desktop_pos_ledger.md`. Mega Plan terpisah yang dirujuk catatan lama tidak ditemukan pada 6 Oktober 2026.
 
 ---
 
@@ -18,16 +18,20 @@
 | 6 | Jurnal Akuntansi | ✅ | Akun, jurnal, jurnal_detail + service + laporan laba-rugi |
 | 7 | Piutang, Hutang & Pajak | ✅ | Piutang, hutang, pelunasan, PPN, status PIUTANG |
 | 8 | Laporan Gabungan & Final | ✅ | Penjualan, stok, neraca, arus kas + sidebar menu lengkap |
+| 9 | Aturan Pembukuan | 🔄 | Tunai/Bank/QRIS, Piutang, pembayaran sebagian, cabang, refund, pembelian disepakati; pajak/biaya QRIS masih ditunda |
+| 10 | Stok Per Cabang | 🔄 | Kode dialihkan ke `barang_stok`; data stok historis belum direkonsiliasi dan migration belum disetujui |
+| 11–15 | Akun, Jurnal, Buku Kas/Bank, Laporan, Tes | ⏳ | Belum dimulai; urutannya dan kriteria selesai ada di milestone utama |
+| 16 | Closing | ⏳ | Fase terakhir setelah stok, jurnal, laporan, dan rekonsiliasi benar |
 
 ---
 
 ## Hints untuk AI Selanjutnya
 
-1. **WAJIB baca** `docs/MEGA_PLAN_pos_ledger.md` sebelum mulai coding
-2. **WAJIB baca** `docs/PROJECT_RULES_v2.md` untuk aturan project
-3. **WAJIB baca** `docs/database_pos_ledger.md` untuk skema database
-4. Migration **tidak boleh dibuat tanpa approval** programmer
-5. Setelah selesai 1 tahap, update tabel status di atas + tulis catatan di bawah
+1. **WAJIB baca** `docs/milestone_desktop_pos_ledger.md`, `docs/PROJECT_RULES_v2.md`, dan `docs/database_pos_ledger.md` sebelum coding.
+2. File `docs/MEGA_PLAN_pos_ledger.md` yang disebut catatan lama tidak tersedia; jangan membuat file baru tanpa persetujuan.
+3. Mulai tiap tahap dengan tanya-jawab istilah dan contoh sederhana; sepakati hasil sebelum coding.
+4. Migration atau perubahan data **tidak boleh dilakukan tanpa approval** programmer, backup, dan pengecekan status migration.
+5. Setelah selesai 1 tahap, update tabel status di atas + tulis catatan di bawah.
 
 ---
 
@@ -531,12 +535,25 @@ resources/views/pages/
 
 ---
 
-## Status: ✅ SELESAI SEMUA MILESTONE
+## Status: 🔄 UPGRADE HASIL AUDIT BERJALAN
 
-Semua 9 tahap (Tahap 0-8) sudah selesai. Sistem POS & Ledger lengkap:
-- Multi-cabang, master barang, transaksi penjualan, pembelian, piutang, hutang
-- Cash ledger, jurnal akuntansi, laporan keuangan (laba rugi, neraca, arus kas)
-- Sidebar menu lengkap, permission system
+Fitur awal Tahap 0–8 sudah pernah dibuat, tetapi audit menemukan alur stok, jurnal, pembayaran, dan laporan yang perlu diperbaiki. Status checklist lama berarti fitur pernah diimplementasikan, bukan semuanya sudah lolos audit. Ikuti Tahap 9–16 di dokumen milestone utama.
+
+### Tahap 10 — Stok Per Cabang (6 Oktober 2026)
+
+**Sudah diubah pada kode:**
+- Penjualan, edit/pembatalan transaksi, dan terima/batal pembelian memakai saldo `barang_stok` cabang dan mencatat mutasi.
+- Master barang dan Excel menetapkan stok awal/koreksi untuk cabang tertentu; update katalog tidak menulis stok.
+- Excel memiliki mode penyesuaian stok per cabang; transfer cabang mencatat stok keluar/masuk dengan referensi yang sama.
+- Daftar/export barang menampilkan total hasil penjumlahan semua cabang. Nilai lama `barang.stok` tidak dipakai sebagai saldo transaksi.
+- Stok negatif ditolak; perubahan saldo dan baris mutasi terjadi dalam transaksi database.
+
+**Belum dilakukan:**
+- Rekonsiliasi stok global lama ke stok cabang. Jangan membagi stok global otomatis ke semua cabang.
+- Menghapus kolom legacy `barang.stok` membutuhkan pemeriksaan pemakaian, backup, migrate:status, dan approval terpisah.
+- PHPUnit tidak dapat dijalankan: dependency test tidak tersedia di container; PHP lokal 8.3.17 sedangkan project mensyaratkan >=8.4.1.
+
+**Validasi aman:** PHP lint dan kompilasi Blade lulus. Alur service stok/transfer diuji dengan skema SQLite in-memory; tidak ada migration atau perubahan database toko.
 
 ---
 

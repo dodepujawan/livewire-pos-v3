@@ -26,9 +26,22 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                 <div>
-                    <label class="block mb-2 text-sm font-medium">Stok Awal</label>
-                    <input type="number" wire:model="createBarangStok" class="w-full border rounded-lg px-3 py-2">
+                    <label class="block mb-2 text-sm font-medium">Stok Awal di Cabang</label>
+                    <input type="number" wire:model="createBarangStok" min="0" class="w-full border rounded-lg px-3 py-2">
                     @error('createBarangStok')
+                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <label class="block mb-2 text-sm font-medium">Cabang untuk Stok Awal</label>
+                    <select wire:model="createBarangCabangId" class="w-full border rounded-lg px-3 py-2">
+                        <option value="0">Tanpa stok awal (katalog saja)</option>
+                        @foreach($listCabang as $id => $nama)
+                            <option value="{{ $id }}">{{ $nama }}</option>
+                        @endforeach
+                    </select>
+                    @error('createBarangCabangId')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                     @enderror
                 </div>
